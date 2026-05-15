@@ -1,11 +1,11 @@
-// script.js — compartilha lógica entre index.html e admin.html com IndexedDB
+// script.js — compartilha lógica entre index.html e admin.html com IndexedDB + Blob
 (function(){
   const ADMIN_PASSWORD = 'ImobiPro@2026#Seg';
   const WHATSAPP_NUMBER = '5547999701743';
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
   const DB_NAME = 'imobiliario';
-  const DB_VER = 1;
+  const DB_VER = 2;
   const STORE_NAME = 'properties';
 
   const CITY_NEIGHBORHOODS = {
@@ -20,13 +20,13 @@
     'Maringá (PR)': ['Zona 01','Zona 02','Zona 03','Zona 04','Zona 05','Zona 06','Zona 07']
   };
 
-  const SAMPLE_PHOTOS = [
+  const SAMPLE_URLS = [
     'https://images.unsplash.com/photo-1560184897-e6f6f0d0b1f8?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=1',
     'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=2',
     'https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=3'
   ];
 
-  // ───── IndexedDB ─────
+  // ───── IndexedDB (upgrade to v2) ─────
   function openDB(){
     return new Promise((resolve, reject)=>{
       const req = indexedDB.open(DB_NAME, DB_VER);
@@ -35,7 +35,7 @@
       req.onupgradeneeded = e=>{
         const db = e.target.result;
         if(!db.objectStoreNames.contains(STORE_NAME)){
-          db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+          const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
         }
       };
     });
@@ -74,24 +74,34 @@
     });
   }
 
-  // ───── File → Base64 ─────
-  function fileToBase64(file){
-    return new Promise((resolve, reject)=>{
-      const reader = new FileReader();
-      reader.onload = ()=>resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+  // ───── Blob helpers ─────
+  let objectURLMap = new Map(); // propId -> [urls]
+
+  function revokePropertyURLs(propId){
+    const urls = objectURLMap.get(propId);
+    if(urls){
+      urls.forEach(u => URL.revokeObjectURL(u));
+      objectURLMap.delete(propId);
+    }
   }
 
-  async function filesToBase64List(fileList){
-    const files = Array.from(fileList);
-    const results = [];
-    for(const f of files){
-      const b64 = await fileToBase64(f);
-      results.push(b64);
+  function getImageSrc(prop, idx = 0){
+    if(prop.imageBlobs && prop.imageBlobs.length > 0){
+      const key = `${prop.id}-${idx}`;
+      // Reuse cache if available
+      let cached = objectURLMap.get(`${prop.id}-obj`);
+      if(!cached){
+        cached = prop.imageBlobs.map(b => URL.createObjectURL(b));
+        objectURLMap.set(`${prop.id}-obj`, cached);
+      }
+      return cached[idx] || SAMPLE_URLS[0];
     }
-    return results;
+    return SAMPLE_URLS[0];
+  }
+
+  function cleanupObjectURLs(){
+    objectURLMap.forEach((urls) => urls.forEach(u => URL.revokeObjectURL(u)));
+    objectURLMap.clear();
   }
 
   // ───── Render Public (Index) ─────
@@ -129,22 +139,23 @@
     }
 
     container.innerHTML = filtered.map(p => {
-      const images = p.images && p.images.length ? p.images : [SAMPLE_PHOTOS[0]];
+      const total = p.imageBlobs ? p.imageBlobs.length : 0;
       const carouselId = `car-${p.id}`;
+      const firstSrc = getImageSrc(p, 0);
       return `
         <div class="card property-card">
-          <div class="carousel-wrap" id="${carouselId}" style="position:relative">
-            <img src="${images[0]}" alt="${escapeHTML(p.title)}" class="carousel-img" style="width:100%;height:180px;object-fit:cover;border-radius:10px;display:block">
-            ${images.length > 1 ? `
-              <button class="carousel-btn carousel-prev" data-carousel="${carouselId}" data-dir="-1" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5"><</button>
-              <button class="carousel-btn carousel-next" data-carousel="${carouselId}" data-dir="1" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5">></button>
+          <div class="carousel-wrap" id="${carouselId}" style="position:relative" data-total="${total}" data-idx="0" data-pid="${p.id}">
+            <img src="${firstSrc}" alt="${escapeHTML(p.title)}" class="carousel-img" style="width:100%;height:180px;object-fit:cover;border-radius:10px;display:block">
+            ${total > 1 ? `
+              <button class="carousel-btn carousel-prev" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;line-height:1"><</button>
+              <button class="carousel-btn carousel-next" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;line-height:1">></button>
             ` : ''}
           </div>
           <div class="property-info">
             <strong>${escapeHTML(p.title)}</strong>
             <div class="muted">${escapeHTML(p.neighborhood || '')}, ${escapeHTML(p.city || '')}</div>
             <div><strong>${escapeHTML(p.price)}</strong></div>
-            <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'}</div>
+            <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} ${total > 1 ? '| 📸 ' + total : ''}</div>
             <p class="muted">${escapeHTML((p.description || '').slice(0, 110))}</p>
             <a class="btn hero-whatsapp-btn" href="${WHATSAPP_URL}" target="_blank" rel="noopener" style="width:100%;justify-content:center;margin-top:6px">Falar sobre este imóvel</a>
           </div>
@@ -152,37 +163,37 @@
       `;
     }).join('');
 
-    // Attach carousel listeners
+    // Attach carousel events globally
     document.querySelectorAll('.carousel-btn').forEach(btn => {
-      btn.addEventListener('click', function(e){
-        e.stopPropagation();
-        const wrap = document.getElementById(this.dataset.carousel);
-        if(!wrap) return;
-        const imgs = wrap.closest('.card').querySelector('.property-info');
-        // store current index on the wrap
-        let idx = parseInt(wrap.dataset.idx || '0', 10);
-        const dir = parseInt(this.dataset.dir, 10);
-        // find property
-        const pid = parseInt(this.dataset.carousel.replace('car-',''), 10);
-        // we need images from the property
-        (async ()=>{
-          const all = await getAllProperties();
-          const prop = all.find(x => x.id === pid);
-          if(!prop || !prop.images || !prop.images.length) return;
-          const imgsArr = prop.images;
-          idx = (idx + dir + imgsArr.length) % imgsArr.length;
-          wrap.dataset.idx = idx;
-          wrap.querySelector('.carousel-img').src = imgsArr[idx];
-        })();
-      });
+      btn.removeEventListener('click', carouselHandler);
+      btn.addEventListener('click', carouselHandler);
     });
+  }
+
+  function carouselHandler(e){
+    e.stopPropagation();
+    const wrap = e.currentTarget.closest('.carousel-wrap');
+    if(!wrap) return;
+    const total = parseInt(wrap.dataset.total, 10);
+    if(!total) return;
+    let idx = parseInt(wrap.dataset.idx, 10) || 0;
+    const dir = e.currentTarget.classList.contains('carousel-next') ? 1 : -1;
+    const pid = parseInt(wrap.dataset.pid, 10);
+    idx = (idx + dir + total) % total;
+    wrap.dataset.idx = idx;
+    (async ()=>{
+      const all = await getAllProperties();
+      const prop = all.find(x => x.id === pid);
+      if(!prop) return;
+      wrap.querySelector('.carousel-img').src = getImageSrc(prop, idx);
+    })();
   }
 
   // ───── Hero Gallery ─────
   function renderHero(){
     const el = document.getElementById('hero-gallery');
     if(!el) return;
-    el.innerHTML = SAMPLE_PHOTOS.map(u => `<img src="${u}" alt="casa">`).join('');
+    el.innerHTML = SAMPLE_URLS.map(u => `<img src="${u}" alt="casa">`).join('');
   }
 
   // ───── Filtros e Bairros (Público) ─────
@@ -223,18 +234,20 @@
       const props = await getAllProperties();
       el.innerHTML = props.length
         ? props.map(p => {
-            const thumb = p.images && p.images.length ? p.images[0] : SAMPLE_PHOTOS[0];
+            const src = getImageSrc(p, 0);
+            const total = p.imageBlobs ? p.imageBlobs.length : 0;
             return `
               <div class="card">
-                <img src="${thumb}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;border:1px solid rgba(217,178,77,.35)">
+                <img src="${src}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;border:1px solid rgba(217,178,77,.35)">
                 <div class="property-info">
                   <strong>${escapeHTML(p.title)}</strong>
                   <div class="muted">${escapeHTML(p.rua || '')}, ${escapeHTML(p.numero || '')} — ${escapeHTML(p.neighborhood || '')}, ${escapeHTML(p.city || '')}</div>
                   <div><strong>${escapeHTML(p.price)}</strong></div>
-                  <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} | 📸 ${(p.images||[]).length} fotos</div>
+                  <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} | 📸 ${total}</div>
                   <p class="muted">${escapeHTML((p.description || '').slice(0, 100))}</p>
-                  <div style="margin-top:8px">
-                    <button data-id="${p.id}" class="btn btn-outline del" style="color:#ff6b6b;border-color:rgba(255,107,107,0.3)">Remover</button>
+                  <div style="margin-top:8px;display:flex;gap:6px">
+                    <button data-id="${p.id}" class="btn btn-outline edit" style="flex:1;color:var(--accent);border-color:rgba(217,178,77,0.3)">Editar</button>
+                    <button data-id="${p.id}" class="btn btn-outline del" style="flex:1;color:#ff6b6b;border-color:rgba(255,107,107,0.3)">Remover</button>
                   </div>
                 </div>
               </div>
@@ -245,7 +258,6 @@
 
     const leadsEl = document.getElementById('leads');
     if(leadsEl){
-      // leads are still stored in localStorage for simplicity
       const leads = (function(){
         try { return JSON.parse(localStorage.getItem('leads') || '[]'); } catch(e){ return []; }
       })();
@@ -255,7 +267,9 @@
     }
   }
 
-  // ───── Admin Form ─────
+  let editingId = null; // track if editing
+
+  // ───── Admin Form (Submit/Edit) ─────
   function attachAdminForm(){
     const form = document.getElementById('property-form');
     if(!form) return;
@@ -264,10 +278,18 @@
       e.preventDefault();
       const fd = new FormData(form);
       const imageFiles = fd.get('images');
-      let imagesBase64 = [];
+      let blobs = [];
 
+      // If new files selected, use them; otherwise keep existing blobs if editing
       if(imageFiles && imageFiles instanceof FileList && imageFiles.length > 0){
-        imagesBase64 = await filesToBase64List(imageFiles);
+        blobs = Array.from(imageFiles);
+      } else if(editingId){
+        // Keep original blobs — we need to fetch from DB
+        const all = await getAllProperties();
+        const original = all.find(x => x.id === editingId);
+        if(original && original.imageBlobs){
+          blobs = original.imageBlobs;
+        }
       }
 
       const prop = {
@@ -279,26 +301,74 @@
         price: fd.get('price'),
         bedrooms: parseInt(fd.get('bedrooms'), 10) || 0,
         parking: parseInt(fd.get('parking'), 10) || 0,
-        images: imagesBase64.length ? imagesBase64 : [...SAMPLE_PHOTOS],
+        imageBlobs: blobs.length ? blobs : undefined,
         description: fd.get('description'),
-        createdAt: Date.now()
+        createdAt: editingId ? undefined : Date.now()
       };
 
+      if(editingId){
+        prop.id = editingId;
+        // Preserve original createdAt
+        const all = await getAllProperties();
+        const orig = all.find(x => x.id === editingId);
+        if(orig) prop.createdAt = orig.createdAt;
+        // clear cache
+        revokePropertyURLs(editingId);
+      }
+
       await saveProperty(prop);
+      editingId = null;
       form.reset();
-      document.getElementById('adminNeighborhood').innerHTML = '<option value="">Selecione o bairro</option>';
+      const neighSel = document.getElementById('adminNeighborhood');
+      if(neighSel) neighSel.innerHTML = '<option value="">Selecione o bairro</option>';
       await renderAdmin();
       await renderPublic();
-      alert('Imóvel cadastrado com sucesso!');
+      alert(editingId ? 'Imóvel atualizado com sucesso!' : 'Imóvel cadastrado com sucesso!');
     });
 
+    // Delete handler
     document.addEventListener('click', async e => {
       if(e.target.matches('.del')){
         const id = Number(e.target.dataset.id);
         if(!id) return;
+        revokePropertyURLs(id);
         await deleteProperty(id);
         await renderAdmin();
         await renderPublic();
+      }
+    });
+
+    // Edit handler
+    document.addEventListener('click', async e => {
+      if(e.target.matches('.edit')){
+        const id = Number(e.target.dataset.id);
+        if(!id) return;
+        const all = await getAllProperties();
+        const p = all.find(x => x.id === id);
+        if(!p) return;
+        editingId = id;
+        // Populate form
+        const form = document.getElementById('property-form');
+        form.querySelector('[name="title"]').value = p.title || '';
+        form.querySelector('[name="rua"]').value = p.rua || '';
+        form.querySelector('[name="numero"]').value = p.numero || '';
+        form.querySelector('[name="city"]').value = p.city || '';
+        // Trigger bairro update
+        const citySel = document.getElementById('adminCitySelect');
+        if(citySel){
+          const evt = new Event('change');
+          citySel.dispatchEvent(evt);
+        }
+        // Wait then set neighborhood
+        setTimeout(()=>{
+          form.querySelector('[name="neighborhood"]').value = p.neighborhood || '';
+        }, 50);
+        form.querySelector('[name="price"]').value = p.price || '';
+        form.querySelector('[name="bedrooms"]').value = p.bedrooms || '';
+        form.querySelector('[name="parking"]').value = p.parking || '';
+        form.querySelector('[name="description"]').value = p.description || '';
+        // Scroll to form
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   }
@@ -308,11 +378,8 @@
     return String(s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
   }
 
-  // ───── Cross-tab sync ─────
   window.addEventListener('storage', async e => {
-    if(e.key === 'leads'){
-      await renderAdmin();
-    }
+    if(e.key === 'leads'){ await renderAdmin(); }
   });
 
   window.addEventListener('properties:updated', async ()=>{
