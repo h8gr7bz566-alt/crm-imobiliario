@@ -360,9 +360,14 @@ select option { background: #0c1830; color: var(--text); }
 
 .property-info { padding-top: 10px; }
 
-.property-info strong { color: var(--accent); font-weight: 400; }
+.property-info strong { color: #fff; font-weight: 400; }
 
-.property-info .muted, .muted {
+.property-info .muted {
+  color: rgba(255, 255, 255, 0.80);
+  font-size: 13px;
+}
+
+.muted {
   color: var(--text-muted);
   font-size: 13px;
 }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin — Isaac Omar Corretor</title>
   <link rel="stylesheet" href="styles.css">
-  <script defer src="script.js"></script>
+  <script type="module" src="/script.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -27,7 +27,8 @@
     <div class="modal-content">
       <h3>Entrar no Painel do Corretor</h3>
       <form id="login-form">
-        <label>Senha<input name="password" type="password" required></label>
+        <label>E-mail<input name="email" type="email" required autocomplete="username"></label>
+        <label>Senha<input name="password" type="password" required autocomplete="current-password"></label>
         <div class="actions">
           <button class="btn" type="submit">Entrar</button>
         </div>
