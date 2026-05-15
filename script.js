@@ -1,20 +1,19 @@
-// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// script.js — compartilha lógica entre index.html e admin.// sc, 'Alto Perequê', 'Jardim Dourado', 'Morar Bem'
-    ],
-    'Florianópolis (SC)': [
-      'Centro', 'Trindade', 'Agronômica', 'Coqueiros', 'Campeche', 'Ingleses', 'Canasvieiras', 'Jurerê', 'Jurerê Internacional', 'Lagoa da Conceição', 'Itacorubi', 'Saco dos Limões', 'João Paulo', 'Rio Tavares'
-    ],
-    'Curitiba (PR)': [
-      'Centro', 'Batel', 'Água Verde', 'Bigorrilho', 'Cabral', 'Ahú', 'Mercês', 'Santa Felicidade', 'Portão', 'Ecoville', 'Rebouças', 'Juvevê', 'Cristo Rei', 'Hugo Lange'
-    ],
-    'Ponta Grossa (PR)': [
-      'Centro', 'Uvaranas', 'Oficinas', 'Nova Rússia', 'Estrela', 'Jardim Carvalho', 'Olarias', 'Boa Vista', 'Ronda', 'Neves', 'Orfãs', 'Contorno'
-    ],
-    'Carambeí (PR)': [
-      'Centro', 'Areião', 'Jardim Brasília', 'Colônia Catanduvas', 'Vila Nova', 'Parque dos Imigrantes', 'Boqueirão', 'Campo do Serrado'
-    ],
-    'Maringá (PR)': [
-      'Zona 01', 'Zona 02', 'Zona 03', 'Zona 04', 'Zona 05', 'Zona 06', 'Zona 07', 'Jardim Alvorada', 'Jardim Ipanema'
-    ]
+// script.js — compartilha lógica entre index.html e admin.html
+(function(){
+  const ADMIN_PASSWORD = 'ImobiPro@2026#Seg';
+  const WHATSAPP_NUMBER = '5547999701743';
+  const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
+
+  const CITY_NEIGHBORHOODS = {
+    'Balneário Camboriú (SC)': ['Centro','Barra Sul','Barra Norte','Pioneiros','Praia dos Amores','Nações','Estados','Ariribá'],
+    'Itapema (SC)': ['Meia Praia','Centro','Morretes','Tabuleiro','Ilhota','Alto São Bento'],
+    'Itajaí (SC)': ['Praia Brava','Centro','Fazenda','Cabeçudas','Ressacada','Cordeiros'],
+    'Porto Belo (SC)': ['Perequê','Centro','Balneário Perequê','Alto Perequê'],
+    'Florianópolis (SC)': ['Centro','Jurerê Internacional','Campeche','Trindade','Agronômica','Ingleses'],
+    'Curitiba (PR)': ['Batel','Bigorrilho','Ecoville','Centro','Água Verde','Cabral'],
+    'Ponta Grossa (PR)': ['Olarias','Estrela','Centro','Jardim América','Uvaranas','Nova Rússia','Oficinas'],
+    'Carambeí (PR)': ['Centro','Boqueirão','Novo Horizonte','Jardim Eldorado','AFC','Catanduvas'],
+    'Maringá (PR)': ['Zona 01','Zona 02','Zona 03','Zona 04','Zona 05','Zona 06','Zona 07']
   };
 
   const SAMPLE_PHOTOS = [
@@ -87,7 +86,7 @@
             <div><strong>${escapeHTML(p.price)}</strong></div>
             <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'}</div>
             <p class="muted">${escapeHTML((p.description || '').slice(0, 110))}</p>
-            <a class="btn small whatsapp-btn" href="${WHATSAPP_URL}" target="_blank" rel="noopener">Falar sobre este imóvel</a>
+            <a class="btn btn-glass whatsapp-btn" href="${WHATSAPP_URL}" target="_blank" rel="noopener">Falar sobre este imóvel</a>
           </div>
         </div>
       `).join('')
@@ -151,7 +150,7 @@
               <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'}</div>
               <p class="muted">${escapeHTML((p.description || '').slice(0, 100))}</p>
               <div style="margin-top:8px">
-                <button data-index="${i}" class="btn small secondary del">Remover</button>
+                <button data-index="${i}" class="btn btn-glass del">Remover</button>
               </div>
             </div>
           </div>
@@ -220,7 +219,7 @@
 
   function escapeHTML(s){
     if(!s) return '';
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
   }
 
   window.addEventListener('storage', e => {
