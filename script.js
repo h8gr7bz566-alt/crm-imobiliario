@@ -110,8 +110,11 @@
     const neighborhood = document.getElementById('neighborhood-filter')?.value || '';
     const bedrooms = document.getElementById('bedrooms-filter')?.value || '';
     const parking = document.getElementById('parking-filter')?.value || '';
-    const priceMin = parseInt(document.getElementById('price-min-filter')?.value || '10000', 10);
-    const priceMax = parseInt(document.getElementById('price-max-filter')?.value || '130000000', 10);
+
+    // Range slider único: compara se preço do imóvel <= valor do slider
+    const slider = document.getElementById('price-slider');
+    const priceMaxVal = slider ? parseInt(slider.value, 10) : 130000000;
+    const priceMin = 0; // Sempre 0 — slider único vai de R$ 0 até o valor selecionado
 
     const filtered = props.filter(p => {
       if(city && p.city !== city) return false;
@@ -125,7 +128,7 @@
         if(parking !== '4+' && Number(p.parking) !== Number(parking)) return false;
       }
       const price = parseInt(String(p.price || '').replace(/[^0-9]/g, ''), 10) || 0;
-      if(price < priceMin || price > priceMax) return false;
+      if(price < priceMin || price > priceMaxVal) return false;
       return true;
     });
 
@@ -193,6 +196,18 @@
     const el = document.getElementById('hero-gallery');
     if(!el) return;
     el.innerHTML = SAMPLE_URLS.map(u => `<img src="${u}" alt="casa">`).join('');
+  }
+
+  // Atualiza o rótulo do slider em tempo real
+  function attachPriceSlider(){
+    const slider = document.getElementById('price-slider');
+    const label = document.getElementById('price-label');
+    if(!slider || !label) return;
+    slider.addEventListener('input', ()=>{
+      const val = parseInt(slider.value, 10);
+      label.textContent = 'Até R$ ' + val.toLocaleString('pt-BR');
+      renderPublic();
+    });
   }
 
   // ───── Filtros ─────
@@ -403,6 +418,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     renderPublic();
     renderHero();
+    attachPriceSlider();
     attachContact();
     attachAdminCityNeighborhood();
     renderAdmin();
