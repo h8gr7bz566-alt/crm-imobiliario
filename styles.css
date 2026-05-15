@@ -28,10 +28,10 @@ a { color: inherit; text-decoration: none; }
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 50;
-  background: rgba(6, 13, 28, 0.50);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-glass);
+  background: rgba(6, 13, 28, 0.40);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .topbar-inner {
@@ -39,7 +39,7 @@ a { color: inherit; text-decoration: none; }
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding: 10px 24px;
+  padding: 6px 24px;
 }
 
 /* ───── Logo e Marca ───── */
@@ -50,7 +50,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .logo-img {
-  max-height: 45px;
+  max-height: 36px;
   width: auto;
   border: none;
   box-shadow: none;
@@ -68,18 +68,18 @@ a { color: inherit; text-decoration: none; }
 
 .brand-name {
   font-weight: 500;
-  font-size: 17px;
+  font-size: 14px;
   letter-spacing: 0.5px;
   color: #f2efe7;
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .brand-title {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 300;
-  color: rgba(245, 248, 255, 0.55);
-  letter-spacing: 0.4px;
-  line-height: 1.2;
+  color: rgba(245, 248, 255, 0.50);
+  letter-spacing: 0.3px;
+  line-height: 1.1;
 }
 
 /* ───── Top Actions ───── */
@@ -164,7 +164,7 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   justify-content: center;
   padding: 100px 24px 60px;
-  background: url('https://images.unsplash.com/photo-1604411920632-f343f50428cf?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3') center center / cover no-repeat;
+  background: url('fundobc.jpg') center center / cover no-repeat;
   overflow: hidden;
 }
 
@@ -378,35 +378,44 @@ select option { background: #0c1830; color: var(--text); }
   font-weight: 300;
 }
 
-/* ───── Floating WhatsApp ───── */
-.floating-whatsapp {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: flex;
+/* ───── Mini WhatsApp Link (top right) ───── */
+.wa-top-link {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(37, 211, 102, 0.12);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(37, 211, 102, 0.25);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   color: #25d366;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  z-index: 60;
+  opacity: 0.7;
+  transition: all 0.25s ease;
+}
+
+.wa-top-link:hover {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+/* ───── Hero WhatsApp Button ───── */
+.hero-whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(37, 211, 102, 0.10);
+  border: 1px solid rgba(37, 211, 102, 0.25);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: 400;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.floating-whatsapp:hover {
-  background: rgba(37, 211, 102, 0.20);
-  transform: scale(1.05);
-}
-
-.floating-whatsapp svg {
-  width: 26px;
-  height: 26px;
+.hero-whatsapp-btn:hover {
+  background: rgba(37, 211, 102, 0.18);
+  border-color: rgba(37, 211, 102, 0.40);
+  transform: translateY(-1px);
 }
 
 /* ───── Utility ───── */
