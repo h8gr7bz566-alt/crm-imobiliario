@@ -1,7 +1,7 @@
 // script.js — compartilha lógica entre index.html e admin.html
 (function(){
-  // CHANGE THIS PASSWORD after deploy to something secure
-  const ADMIN_PASSWORD = 'senha123';
+  // Senha segura do admin (altere periodicamente)
+  const ADMIN_PASSWORD = 'ImobiPro@2026#Seg';
   const SAMPLE_PHOTOS = [
     'https://images.unsplash.com/photo-1560184897-e6f6f0d0b1f8?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=1',
     'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=2',
