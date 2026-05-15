@@ -43,8 +43,11 @@
           <h3>Cadastrar Imóvel</h3>
           <form id="property-form" class="card">
             <label>Título<input name="title" required></label>
-            <label>Endereço<input name="address"></label>
-            <label>Cidade<select name="city" required>
+            <div style="display:flex;gap:8px">
+              <label style="flex:1">Rua<input name="rua"></label>
+              <label style="flex:0 0 100px">Número<input name="numero" type="number" min="0"></label>
+            </div>
+            <label>Cidade<select name="city" id="adminCitySelect" required>
               <option value="">Selecione uma cidade</option>
               <option value="Itapema (SC)">Itapema (SC)</option>
               <option value="Balneário Camboriú (SC)">Balneário Camboriú (SC)</option>
@@ -56,11 +59,13 @@
               <option value="Carambeí (PR)">Carambeí (PR)</option>
               <option value="Maringá (PR)">Maringá (PR)</option>
             </select></label>
-            <label>Bairro<input name="neighborhood"></label>
+            <label>Bairro<select name="neighborhood" id="adminNeighborhood" required>
+              <option value="">Selecione o bairro</option>
+            </select></label>
             <label>Preço<input name="price" required></label>
             <label>Quartos<input name="bedrooms" type="number" min="1"></label>
             <label>Vagas de Garagem<input name="parking" type="number" min="0"></label>
-            <label>Foto do Imóvel<input name="image" type="file" accept="image/*" required></label>
+            <label>Fotos do Imóvel (múltiplas)<input name="images" type="file" accept="image/*" multiple></label>
             <label>Descrição<textarea name="description"></textarea></label>
             <div class="actions">
               <button type="submit" class="btn">Salvar Imóvel</button>
