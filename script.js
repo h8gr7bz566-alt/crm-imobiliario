@@ -97,12 +97,15 @@
     return results;
   }
 
-  // ───── Render Public (Index) — SEM rua/numero por sigilo ─────
+  // ───── Render Public (Index) — SEM rua/numero por sigilo, SÓ published=true ─────
   function renderPublic(){
     const container = document.getElementById('properties');
     if(!container) return;
 
-    const props = getAllProperties();
+    let props = getAllProperties();
+    // Força: só exibe imóveis com published === true
+    props = props.filter(p => p.published === true);
+
     const city = document.getElementById('city-filter')?.value || '';
     const neighborhood = document.getElementById('neighborhood-filter')?.value || '';
     const bedrooms = document.getElementById('bedrooms-filter')?.value || '';
@@ -126,8 +129,14 @@
       return true;
     });
 
+    // Se não houver imóvel com published=true, mostra a mensagem
     if(!filtered.length){
-      container.innerHTML = '<div class="muted" style="padding:20px;text-align:center">Nenhum imóvel encontrado.</div>';
+      const totalPublished = props.length;
+      if(totalPublished === 0){
+        container.innerHTML = '<div class="muted" style="padding:20px;text-align:center">Nenhum imóvel publicado no site.</div>';
+      } else {
+        container.innerHTML = '<div class="muted" style="padding:20px;text-align:center">Nenhum imóvel encontrado com os filtros selecionados.</div>';
+      }
       return;
     }
 
@@ -217,7 +226,7 @@
     });
   }
 
-  // ───── Render Admin ─────
+  // ───── Render Admin — com status e endereço ─────
   function renderAdmin(){
     const el = document.getElementById('admin-properties');
     if(el){
@@ -225,13 +234,16 @@
       el.innerHTML = props.length
         ? props.map(p => {
             const images = p.imagesCompressed && p.imagesCompressed.length ? p.imagesCompressed : SAMPLE_URLS;
+            const publishedLabel = p.published === true
+              ? '<span style="color:#4caf50;font-weight:700">✔ Publicado</span>'
+              : '<span style="color:#ff6b6b;font-weight:600">✖ Não publicado</span>';
             return `
               <div class="card">
                 <img src="${images[0]}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;border:1px solid rgba(217,178,77,.35)">
                 <div class="property-info">
                   <strong>${escapeHTML(p.title)}</strong>
                   <div class="muted">${escapeHTML(p.rua || '')}, ${escapeHTML(p.numero || '')} — ${escapeHTML(p.neighborhood || '')}, ${escapeHTML(p.city || '')}</div>
-                  <div><strong>${escapeHTML(p.price)}</strong></div>
+                  <div><strong>${escapeHTML(p.price)}</strong> · ${publishedLabel}</div>
                   <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} | 📸 ${images.length}</div>
                   <p class="muted">${escapeHTML((p.description || '').slice(0, 100))}</p>
                   <div style="margin-top:8px;display:flex;gap:6px">
@@ -298,6 +310,7 @@
         price: fd.get('price'),
         bedrooms: parseInt(fd.get('bedrooms'), 10) || 0,
         parking: parseInt(fd.get('parking'), 10) || 0,
+        published: fd.get('published') === 'true',  // <-- salva como booleano
         imagesCompressed: compressedImages,
         description: fd.get('description'),
         createdAt: Date.now()
@@ -307,6 +320,9 @@
       editingId = null;
       submitBtn.textContent = 'Salvar Imóvel';
       form.reset();
+      // Reset published to default "Sim"
+      const pubSel = document.getElementById('adminPublished');
+      if(pubSel) pubSel.value = 'true';
       const neighSel = document.getElementById('adminNeighborhood');
       if(neighSel) neighSel.innerHTML = '<option value="">Selecione o bairro</option>';
       renderAdmin();
@@ -325,7 +341,7 @@
       }
     });
 
-    // Edit handler
+    // Edit handler — restaura TODOS os campos inclusive published
     document.addEventListener('click', e => {
       if(e.target.matches('.edit-btn')){
         const id = Number(e.target.dataset.id);
@@ -345,6 +361,10 @@
         form.querySelector('[name="bedrooms"]').value = p.bedrooms || '';
         form.querySelector('[name="parking"]').value = p.parking || '';
         form.querySelector('[name="description"]').value = p.description || '';
+
+        // Restaura o campo published
+        const pubSel = document.getElementById('adminPublished');
+        if(pubSel) pubSel.value = p.published === true ? 'true' : 'false';
 
         // Trigger neighborhood update
         const citySel = document.getElementById('adminCitySelect');

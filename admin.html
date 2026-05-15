@@ -65,6 +65,12 @@
             <label>Preço<input name="price" required></label>
             <label>Quartos<input name="bedrooms" type="number" min="1"></label>
             <label>Vagas de Garagem<input name="parking" type="number" min="0"></label>
+            <label>Exibir no Site Público?
+              <select name="published" id="adminPublished" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(217,178,77,.3);background:#1c1c1e;color:#f5f0e8;font-size:14px">
+                <option value="true">Sim</option>
+                <option value="false">Não</option>
+              </select>
+            </label>
             <label>Fotos do Imóvel (múltiplas)<input name="images" type="file" accept="image/*" multiple></label>
             <label>Descrição<textarea name="description"></textarea></label>
             <div class="actions">
