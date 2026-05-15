@@ -3,10 +3,9 @@
   --card: rgba(17, 31, 63, 0.85);
   --card-hover: rgba(23, 44, 87, 0.9);
   --accent: #d9b24d;
-  --accent-soft: rgba(217, 178, 77, 0.15);
   --text: #f5f8ff;
   --text-muted: rgba(245, 248, 255, 0.65);
-  --border-glass: rgba(255, 255, 255, 0.12);
+  --border-glass: rgba(255, 255, 255, 0.10);
   --shadow-glass: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
 
@@ -24,16 +23,14 @@ body {
 
 a { color: inherit; text-decoration: none; }
 
-/* ───── Sticky Transparent Topbar ───── */
+/* ───── Transparent Topbar ───── */
 .topbar {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   z-index: 50;
-  background: rgba(6, 13, 28, 0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(6, 13, 28, 0.50);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-glass);
 }
 
@@ -45,6 +42,7 @@ a { color: inherit; text-decoration: none; }
   padding: 10px 24px;
 }
 
+/* ───── Logo e Marca ───── */
 .logo {
   display: flex;
   gap: 10px;
@@ -52,85 +50,109 @@ a { color: inherit; text-decoration: none; }
 }
 
 .logo-img {
-  max-height: 48px;
+  max-height: 45px;
   width: auto;
   border: none;
   box-shadow: none;
   border-radius: 0;
   background: transparent;
+  mix-blend-mode: screen;
+  filter: brightness(1.1) contrast(1.0);
+  opacity: 0.92;
 }
 
-.brand {
-  font-weight: 600;
-  font-size: 18px;
-  letter-spacing: 0.4px;
-  color: var(--text);
+.brand-wrap {
+  display: flex;
+  flex-direction: column;
 }
 
-.accent { color: var(--accent); }
-
-.tag {
-  font-size: 11px;
-  color: var(--text-muted);
+.brand-name {
+  font-weight: 500;
+  font-size: 17px;
   letter-spacing: 0.5px;
+  color: #f2efe7;
+  line-height: 1.2;
 }
 
+.brand-title {
+  font-size: 11px;
+  font-weight: 300;
+  color: rgba(245, 248, 255, 0.55);
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+}
+
+/* ───── Top Actions ───── */
 .top-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-/* ───── Glass Buttons ───── */
-.btn-glass {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(217, 178, 77, 0.35);
+.top-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ───── Outline Buttons ───── */
+.btn-outline {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--text);
   padding: 8px 16px;
   border-radius: 10px;
-  font-weight: 500;
+  font-weight: 400;
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.35s ease;
-  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.btn-glass:hover {
-  background: rgba(217, 178, 77, 0.12);
-  border-color: var(--accent);
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.20);
+  color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(217, 178, 77, 0.12);
 }
 
 .btn {
-  background: rgba(217, 178, 77, 0.12);
-  border: 1px solid var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--text);
   padding: 10px 18px;
   border-radius: 10px;
-  font-weight: 500;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   text-align: center;
   font-size: 14px;
 }
 
 .btn:hover {
-  background: rgba(217, 178, 77, 0.22);
+  background: rgba(255, 255, 255, 0.10);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(217, 178, 77, 0.15);
 }
 
 .btn.secondary {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
   color: var(--text-muted);
 }
 
-.btn.small {
-  padding: 6px 12px;
-  font-size: 12px;
+.btn.small { padding: 6px 12px; font-size: 12px; }
+
+/* ───── WhatsApp Icon ───── */
+.wa-icon {
+  width: 16px;
+  height: 16px;
+  color: #25d366;
+  flex-shrink: 0;
 }
 
 /* ───── Hero Section ───── */
@@ -142,14 +164,14 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   justify-content: center;
   padding: 100px 24px 60px;
-  background: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop&ixlib=rb-4.0.3') center center / cover no-repeat;
+  background: url('https://images.unsplash.com/photo-1604411920632-f343f50428cf?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3') center center / cover no-repeat;
   overflow: hidden;
 }
 
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(6, 13, 28, 0.65) 0%, rgba(6, 13, 28, 0.50) 50%, rgba(6, 13, 28, 0.85) 100%);
+  background: linear-gradient(180deg, rgba(6, 13, 28, 0.55) 0%, rgba(6, 13, 28, 0.40) 50%, rgba(6, 13, 28, 0.80) 100%);
   z-index: 1;
 }
 
@@ -158,7 +180,7 @@ a { color: inherit; text-decoration: none; }
   z-index: 2;
   text-align: center;
   max-width: 780px;
-  margin-bottom: 40px;
+  margin-bottom: 36px;
 }
 
 .hero-content h1 {
@@ -171,7 +193,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .hero-content p {
-  margin: 16px 0 24px;
+  margin: 14px 0 22px;
   font-size: 17px;
   font-weight: 300;
   color: var(--text-muted);
@@ -179,7 +201,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .hero-whatsapp {
-  display: inline-block;
+  display: inline-flex;
 }
 
 /* ───── Glass Search Bar ───── */
@@ -188,9 +210,9 @@ a { color: inherit; text-decoration: none; }
   z-index: 2;
   width: 100%;
   max-width: 1050px;
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border-glass);
   border-radius: 16px;
   padding: 20px;
@@ -206,47 +228,39 @@ a { color: inherit; text-decoration: none; }
 label {
   display: block;
   margin: 0;
-  color: rgba(255, 255, 255, 0.75);
-  font-weight: 500;
+  color: rgba(255, 255, 255, 0.70);
+  font-weight: 400;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
 
-input,
-textarea,
-select {
+input, textarea, select {
   width: 100%;
   margin-top: 6px;
   margin-bottom: 0;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.20);
   color: var(--text);
   font-size: 13px;
   font-weight: 300;
   transition: border-color 0.25s ease;
 }
 
-input::placeholder,
-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+input::placeholder, textarea::placeholder {
+  color: rgba(255, 255, 255, 0.30);
   font-weight: 300;
 }
 
-input:focus,
-textarea:focus,
-select:focus {
+input:focus, textarea:focus, select:focus {
   outline: none;
-  border-color: var(--accent);
-  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.30);
 }
 
-select option {
-  background: #0c1830;
-  color: var(--text);
-}
+select option { background: #0c1830; color: var(--text); }
 
 /* ───── Listings ───── */
 .listings {
@@ -257,7 +271,7 @@ select option {
 
 .listings h2 {
   font-size: 26px;
-  font-weight: 400;
+  font-weight: 300;
   letter-spacing: 0.6px;
   color: var(--accent);
   margin: 0 0 24px;
@@ -273,13 +287,13 @@ select option {
   background: var(--card);
   padding: 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.3s ease;
 }
 
 .card:hover {
   background: var(--card-hover);
-  border-color: rgba(217, 178, 77, 0.25);
+  border-color: rgba(217, 178, 77, 0.20);
   transform: translateY(-2px);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
 }
@@ -291,17 +305,11 @@ select option {
   border-radius: 10px;
 }
 
-.property-info {
-  padding-top: 10px;
-}
+.property-info { padding-top: 10px; }
 
-.property-info strong {
-  color: var(--accent);
-  font-weight: 500;
-}
+.property-info strong { color: var(--accent); font-weight: 400; }
 
-.property-info .muted,
-.muted {
+.property-info .muted, .muted {
   color: var(--text-muted);
   font-size: 13px;
 }
@@ -349,33 +357,15 @@ select option {
   margin: 0 auto;
 }
 
-.panel h2 {
-  font-size: 26px;
-  font-weight: 400;
-  color: var(--accent);
-}
+.panel h2 { font-size: 26px; font-weight: 300; color: var(--accent); }
 
-.admin h3 {
-  color: var(--accent);
-  font-weight: 400;
-  font-size: 18px;
-}
+.admin h3 { color: var(--accent); font-weight: 400; font-size: 18px; }
 
-.panel-grid {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
-}
+.panel-grid { display: flex; gap: 24px; flex-wrap: wrap; }
 
-.panel-grid > div {
-  flex: 1;
-  min-width: 300px;
-}
+.panel-grid > div { flex: 1; min-width: 300px; }
 
-.small-list {
-  max-height: 260px;
-  overflow: auto;
-}
+.small-list { max-height: 260px; overflow: auto; }
 
 /* ───── Footer ───── */
 .footer {
@@ -399,10 +389,9 @@ select option {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
-  background: rgba(37, 211, 102, 0.15);
+  background: rgba(37, 211, 102, 0.12);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(37, 211, 102, 0.3);
+  border: 1px solid rgba(37, 211, 102, 0.25);
   color: #25d366;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   z-index: 60;
@@ -411,8 +400,13 @@ select option {
 }
 
 .floating-whatsapp:hover {
-  background: rgba(37, 211, 102, 0.25);
+  background: rgba(37, 211, 102, 0.20);
   transform: scale(1.05);
+}
+
+.floating-whatsapp svg {
+  width: 26px;
+  height: 26px;
 }
 
 /* ───── Utility ───── */
@@ -420,33 +414,16 @@ select option {
 
 /* ───── Responsive ───── */
 @media (max-width: 1100px) {
-  .fly-like-filters {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .hero-content h1 {
-    font-size: 32px;
-  }
+  .fly-like-filters { grid-template-columns: repeat(3, 1fr); }
+  .hero-content h1 { font-size: 32px; }
 }
 
 @media (max-width: 760px) {
-  .topbar-inner,
-  .hero,
-  .listings,
-  .admin .panel {
+  .topbar-inner, .hero, .listings, .admin .panel {
     padding-left: 16px;
     padding-right: 16px;
   }
-
-  .fly-like-filters {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .hero-content h1 {
-    font-size: 26px;
-  }
-
-  .hero-content p {
-    font-size: 15px;
-  }
+  .fly-like-filters { grid-template-columns: 1fr 1fr; }
+  .hero-content h1 { font-size: 26px; }
+  .hero-content p { font-size: 15px; }
 }
