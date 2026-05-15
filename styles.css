@@ -19,8 +19,9 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top right, #122654 0%,   background: radial-gradient(circle at top right, #122654 0%,   background: radial-gradient(circle at top right, #122654 0%,   background: radial-gradient(circle at top right, #122654 0%,   background: radial-gradient(circle at top right, #122654 0%,   background: radial-gradient(circle at top right, #122654 0%,   background: radial-gradient(circle at top right, #122654 0%,   background: radial-gradient(circle at top right, #122654 0%,   background: radial-gradient(circle at top ri: 12px;
-  align-items: center;
+  background: radial-gradient(circle at top right, #122654 0%, #060d1c 100%);
+  color: var(--text);
+  min-height: 100vh;
 }
 
 .logo-img {
