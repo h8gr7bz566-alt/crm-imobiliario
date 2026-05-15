@@ -1,10 +1,10 @@
-// script.js — compartilha lógica entre index.html e admin.html com LocalStorage + compressão
+// script.js — arquitetura global via imoveis.json + download no admin
 (function(){
   const ADMIN_PASSWORD = 'ImobiPro@2026#Seg';
   const WHATSAPP_NUMBER = '5547999701743';
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
-  const LS_KEY = 'meus_imoveis_luxo';
+  const JSON_FILE = 'imoveis.json';
 
   const CITY_NEIGHBORHOODS = {
     'Balneário Camboriú (SC)': ['Centro','Barra Sul','Barra Norte','Pioneiros','Praia dos Amores','Nações','Estados','Ariribá'],
@@ -24,41 +24,47 @@
     'https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=3'
   ];
 
-  // ───── LocalStorage com chave UNIFICADA 'meus_imoveis_luxo' ─────
-  function getAllProperties(){
+  let cachedProperties = [];
+
+  // ───── Banco Global via imoveis.json ─────
+  async function getAllProperties(){
+    if(cachedProperties.length) return cachedProperties;
     try {
-      // Migração automática: se houver dados na chave antiga, copia para a nova
-      const OLD_KEY = 'imobi-properties';
-      const oldData = localStorage.getItem(OLD_KEY);
-      if(oldData){
-        const parsed = JSON.parse(oldData);
-        if(parsed && parsed.length){
-          localStorage.setItem(LS_KEY, oldData);
-        }
-        localStorage.removeItem(OLD_KEY);
-      }
-      return JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+      const resp = await fetch(JSON_FILE + '?t=' + Date.now());
+      if(!resp.ok) return [];
+      const data = await resp.json();
+      cachedProperties = Array.isArray(data) ? data : [];
+      return cachedProperties;
     } catch(e){
       return [];
     }
   }
 
-  function saveProperty(prop){
-    const all = getAllProperties();
-    const idx = all.findIndex(p => p.id === prop.id);
+  // Admin: mantém cache local durante a sessão + gera download do JSON
+  function addToLocalCache(prop){
+    const idx = cachedProperties.findIndex(p => p.id === prop.id);
     if(idx >= 0){
-      all[idx] = prop;
+      cachedProperties[idx] = prop;
     } else {
-      all.push(prop);
+      cachedProperties.push(prop);
     }
-    localStorage.setItem(LS_KEY, JSON.stringify(all));
-    window.dispatchEvent(new CustomEvent('properties:updated'));
   }
 
-  function deleteProperty(id){
-    const all = getAllProperties().filter(p => p.id !== id);
-    localStorage.setItem(LS_KEY, JSON.stringify(all));
-    window.dispatchEvent(new CustomEvent('properties:updated'));
+  function removeFromLocalCache(id){
+    cachedProperties = cachedProperties.filter(p => p.id !== id);
+  }
+
+  // Gera download do JSON atualizado e instrui o usuário a commitar
+  function downloadJSON(){
+    const blob = new Blob([JSON.stringify(cachedProperties, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'imoveis.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   // ───── Compressão de Imagem via Canvas (800px max, quality 0.5) ─────
@@ -97,24 +103,27 @@
     return results;
   }
 
-  // ───── Render Public (Index) — SEM rua/numero por sigilo, SÓ published=true ─────
-  function renderPublic(){
+  // ───── Render Public (Index) — SEM rua/numero, SÓ published=true ─────
+  async function renderPublic(){
     const container = document.getElementById('properties');
     if(!container) return;
 
-    let props = getAllProperties();
-    // Força: só exibe imóveis com published === true
-    props = props.filter(p => p.published === true);
+    const all = await getAllProperties();
+    let props = all.filter(p => p.published === true);
 
     const city = document.getElementById('city-filter')?.value || '';
     const neighborhood = document.getElementById('neighborhood-filter')?.value || '';
     const bedrooms = document.getElementById('bedrooms-filter')?.value || '';
     const parking = document.getElementById('parking-filter')?.value || '';
+    const priceRange = document.getElementById('price-filter')?.value || '';
 
-    // Range slider único: compara se preço do imóvel <= valor do slider
-    const slider = document.getElementById('price-slider');
-    const priceMaxVal = slider ? parseInt(slider.value, 10) : 130000000;
-    const priceMin = 0; // Sempre 0 — slider único vai de R$ 0 até o valor selecionado
+    // Parse price range
+    let priceMin = 0, priceMax = Infinity;
+    if(priceRange){
+      const parts = priceRange.split('-');
+      priceMin = parseInt(parts[0], 10) || 0;
+      priceMax = parseInt(parts[1], 10) || Infinity;
+    }
 
     const filtered = props.filter(p => {
       if(city && p.city !== city) return false;
@@ -128,11 +137,10 @@
         if(parking !== '4+' && Number(p.parking) !== Number(parking)) return false;
       }
       const price = parseInt(String(p.price || '').replace(/[^0-9]/g, ''), 10) || 0;
-      if(price < priceMin || price > priceMaxVal) return false;
+      if(price < priceMin || price > priceMax) return false;
       return true;
     });
 
-    // Se não houver imóvel com published=true, mostra a mensagem
     if(!filtered.length){
       const totalPublished = props.length;
       if(totalPublished === 0){
@@ -167,7 +175,6 @@
       `;
     }).join('');
 
-    // Attach carousel
     document.querySelectorAll('.carousel-btn').forEach(btn => {
       btn.removeEventListener('click', carouselHandler);
       btn.addEventListener('click', carouselHandler);
@@ -185,8 +192,7 @@
     idx = (idx + dir + total) % total;
     wrap.dataset.idx = idx;
     const pid = parseInt(wrap.dataset.pid, 10);
-    const all = getAllProperties();
-    const prop = all.find(x => x.id === pid);
+    const prop = cachedProperties.find(x => x.id === pid);
     if(!prop || !prop.imagesCompressed || !prop.imagesCompressed.length) return;
     wrap.querySelector('.carousel-img').src = prop.imagesCompressed[idx];
   }
@@ -198,20 +204,8 @@
     el.innerHTML = SAMPLE_URLS.map(u => `<img src="${u}" alt="casa">`).join('');
   }
 
-  // Atualiza o rótulo do slider em tempo real
-  function attachPriceSlider(){
-    const slider = document.getElementById('price-slider');
-    const label = document.getElementById('price-label');
-    if(!slider || !label) return;
-    slider.addEventListener('input', ()=>{
-      const val = parseInt(slider.value, 10);
-      label.textContent = 'Até R$ ' + val.toLocaleString('pt-BR');
-      renderPublic();
-    });
-  }
-
   // ───── Filtros ─────
-  function attachContact(){
+  function attachFilters(){
     const cityFilter = document.getElementById('city-filter');
     const neighborhoodFilter = document.getElementById('neighborhood-filter');
     const filterInputs = document.querySelectorAll('[id$="-filter"]');
@@ -241,46 +235,35 @@
     });
   }
 
-  // ───── Render Admin — com status e endereço ─────
-  function renderAdmin(){
+  // ───── Render Admin ─────
+  async function renderAdmin(){
     const el = document.getElementById('admin-properties');
-    if(el){
-      const props = getAllProperties();
-      el.innerHTML = props.length
-        ? props.map(p => {
-            const images = p.imagesCompressed && p.imagesCompressed.length ? p.imagesCompressed : SAMPLE_URLS;
-            const publishedLabel = p.published === true
-              ? '<span style="color:#4caf50;font-weight:700">✔ Publicado</span>'
-              : '<span style="color:#ff6b6b;font-weight:600">✖ Não publicado</span>';
-            return `
-              <div class="card">
-                <img src="${images[0]}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;border:1px solid rgba(217,178,77,.35)">
-                <div class="property-info">
-                  <strong>${escapeHTML(p.title)}</strong>
-                  <div class="muted">${escapeHTML(p.rua || '')}, ${escapeHTML(p.numero || '')} — ${escapeHTML(p.neighborhood || '')}, ${escapeHTML(p.city || '')}</div>
-                  <div><strong>${escapeHTML(p.price)}</strong> · ${publishedLabel}</div>
-                  <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} | 📸 ${images.length}</div>
-                  <p class="muted">${escapeHTML((p.description || '').slice(0, 100))}</p>
-                  <div style="margin-top:8px;display:flex;gap:6px">
-                    <button data-id="${p.id}" class="btn btn-outline edit-btn" style="flex:1">Editar</button>
-                    <button data-id="${p.id}" class="btn btn-outline del-btn" style="flex:1;color:#ff6b6b;border-color:rgba(255,107,107,0.3)">Remover</button>
-                  </div>
+    if(!el) return;
+    const props = await getAllProperties();
+    el.innerHTML = props.length
+      ? props.map(p => {
+          const images = p.imagesCompressed && p.imagesCompressed.length ? p.imagesCompressed : SAMPLE_URLS;
+          const publishedLabel = p.published === true
+            ? '<span style="color:#4caf50;font-weight:700">✔ Publicado</span>'
+            : '<span style="color:#ff6b6b;font-weight:600">✖ Não publicado</span>';
+          return `
+            <div class="card">
+              <img src="${images[0]}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;border:1px solid rgba(217,178,77,.35)">
+              <div class="property-info">
+                <strong>${escapeHTML(p.title)}</strong>
+                <div class="muted">${escapeHTML(p.rua || '')}, ${escapeHTML(p.numero || '')} — ${escapeHTML(p.neighborhood || '')}, ${escapeHTML(p.city || '')}</div>
+                <div><strong>${escapeHTML(p.price)}</strong> · ${publishedLabel}</div>
+                <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} | 📸 ${images.length}</div>
+                <p class="muted">${escapeHTML((p.description || '').slice(0, 100))}</p>
+                <div style="margin-top:8px;display:flex;gap:6px">
+                  <button data-id="${p.id}" class="btn btn-outline edit-btn" style="flex:1">Editar</button>
+                  <button data-id="${p.id}" class="btn btn-outline del-btn" style="flex:1;color:#ff6b6b;border-color:rgba(255,107,107,0.3)">Remover</button>
                 </div>
               </div>
-            `;
-          }).join('')
-        : '<div class="muted">Nenhum imóvel cadastrado.</div>';
-    }
-
-    const leadsEl = document.getElementById('leads');
-    if(leadsEl){
-      const leads = (function(){
-        try { return JSON.parse(localStorage.getItem('leads') || '[]'); } catch(e){ return []; }
-      })();
-      leadsEl.innerHTML = leads.length
-        ? leads.map(l => `<div class="card"><strong>${escapeHTML(l.name)}</strong><div class="muted">${escapeHTML(l.contact)} • ${new Date(l.created).toLocaleString('pt-BR')}</div><p>${escapeHTML(l.message || '')}</p></div>`).join('')
-        : '<div class="muted">Nenhum lead recebido.</div>';
-    }
+            </div>
+          `;
+        }).join('')
+      : '<div class="muted">Nenhum imóvel cadastrado.</div>';
   }
 
   // ───── Edit State ─────
@@ -290,9 +273,20 @@
   function attachAdminForm(){
     const form = document.getElementById('property-form');
     if(!form) return;
-
     const submitBtn = form.querySelector('button[type="submit"]');
     if(!submitBtn) return;
+
+    // Botão de download do JSON (publicar alterações)
+    const publishBtn = document.createElement('button');
+    publishBtn.type = 'button';
+    publishBtn.className = 'btn';
+    publishBtn.textContent = '⬇ Baixar JSON (publicar alterações)';
+    publishBtn.style.cssText = 'margin-top:8px;width:100%;justify-content:center;background:rgba(217,178,77,0.1);border-color:rgba(217,178,77,0.25);color:#d9b24d';
+    publishBtn.addEventListener('click', ()=>{
+      downloadJSON();
+      alert('Arquivo imoveis.json baixado! Faça upload para o GitHub para publicar as alterações no site.');
+    });
+    form.appendChild(publishBtn);
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
@@ -300,12 +294,10 @@
       const imageFiles = fd.get('images');
       let compressedImages = [];
 
-      // If files selected, compress them; if editing and no files, keep existing
       if(imageFiles && imageFiles instanceof FileList && imageFiles.length > 0){
         compressedImages = await compressMultiple(imageFiles);
       } else if(editingId){
-        const all = getAllProperties();
-        const orig = all.find(x => x.id === editingId);
+        const orig = cachedProperties.find(x => x.id === editingId);
         if(orig && orig.imagesCompressed){
           compressedImages = orig.imagesCompressed;
         }
@@ -325,24 +317,23 @@
         price: fd.get('price'),
         bedrooms: parseInt(fd.get('bedrooms'), 10) || 0,
         parking: parseInt(fd.get('parking'), 10) || 0,
-        published: fd.get('published') === 'true',  // <-- salva como booleano
+        published: fd.get('published') === 'true',
         imagesCompressed: compressedImages,
         description: fd.get('description'),
         createdAt: Date.now()
       };
 
-      saveProperty(prop);
+      addToLocalCache(prop);
       editingId = null;
       submitBtn.textContent = 'Salvar Imóvel';
       form.reset();
-      // Reset published to default "Sim"
       const pubSel = document.getElementById('adminPublished');
       if(pubSel) pubSel.value = 'true';
       const neighSel = document.getElementById('adminNeighborhood');
       if(neighSel) neighSel.innerHTML = '<option value="">Selecione o bairro</option>';
       renderAdmin();
       renderPublic();
-      alert('Imóvel salvo com sucesso!');
+      alert('Imóvel salvo na sessão! Clique em "Baixar JSON" para gerar o arquivo e faça commit no GitHub.');
     });
 
     // Delete handler
@@ -350,19 +341,18 @@
       if(e.target.matches('.del-btn')){
         const id = Number(e.target.dataset.id);
         if(!id) return;
-        deleteProperty(id);
+        removeFromLocalCache(id);
         renderAdmin();
         renderPublic();
       }
     });
 
-    // Edit handler — restaura TODOS os campos inclusive published
+    // Edit handler
     document.addEventListener('click', e => {
       if(e.target.matches('.edit-btn')){
         const id = Number(e.target.dataset.id);
         if(!id) return;
-        const all = getAllProperties();
-        const p = all.find(x => x.id === id);
+        const p = cachedProperties.find(x => x.id === id);
         if(!p) return;
 
         editingId = id;
@@ -377,11 +367,9 @@
         form.querySelector('[name="parking"]').value = p.parking || '';
         form.querySelector('[name="description"]').value = p.description || '';
 
-        // Restaura o campo published
         const pubSel = document.getElementById('adminPublished');
         if(pubSel) pubSel.value = p.published === true ? 'true' : 'false';
 
-        // Trigger neighborhood update
         const citySel = document.getElementById('adminCitySelect');
         if(citySel){
           const evt = new Event('change');
@@ -402,27 +390,15 @@
     return String(s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
   }
 
-  window.addEventListener('storage', e => {
-    if(e.key === 'leads' || e.key === LS_KEY){
-      renderAdmin();
-      renderPublic();
-    }
-  });
-
-  window.addEventListener('properties:updated', ()=>{
-    renderPublic();
-    renderAdmin();
-  });
-
   // ───── Init ─────
-  document.addEventListener('DOMContentLoaded', () => {
-    renderPublic();
+  document.addEventListener('DOMContentLoaded', async () => {
+    await getAllProperties();
     renderHero();
-    attachPriceSlider();
-    attachContact();
+    attachFilters();
     attachAdminCityNeighborhood();
-    renderAdmin();
+    await renderAdmin();
     attachAdminForm();
+    await renderPublic();
 
     const loginModal = document.getElementById('admin-login');
     const adminRoot = document.getElementById('admin-root');
@@ -432,7 +408,7 @@
       if(session === 'true'){
         loginModal.classList.add('hidden');
         adminRoot.classList.remove('hidden');
-        renderAdmin();
+        await renderAdmin();
       } else {
         adminRoot.classList.add('hidden');
         loginModal.classList.remove('hidden');
