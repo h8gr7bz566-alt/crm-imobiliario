@@ -27,6 +27,16 @@
   // ───── LocalStorage com chave UNIFICADA 'meus_imoveis_luxo' ─────
   function getAllProperties(){
     try {
+      // Migração automática: se houver dados na chave antiga, copia para a nova
+      const OLD_KEY = 'imobi-properties';
+      const oldData = localStorage.getItem(OLD_KEY);
+      if(oldData){
+        const parsed = JSON.parse(oldData);
+        if(parsed && parsed.length){
+          localStorage.setItem(LS_KEY, oldData);
+        }
+        localStorage.removeItem(OLD_KEY);
+      }
       return JSON.parse(localStorage.getItem(LS_KEY) || '[]');
     } catch(e){
       return [];
