@@ -19,9 +19,37 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top right, #122654 0%, #060d1c 100%);
+  background: radial-gradient(circle at top right, #122654 0%, var(--bg) 45%, #030813 100%);
   color: var(--text);
   min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(10, 20, 43, 0.98) 0%, rgba(6, 13, 28, 0.96) 100%);
+  backdrop-filter: blur(6px);
+}
+
+.topbar-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+}
+
+.logo {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .logo-img {
@@ -36,6 +64,7 @@ body {
   font-weight: 700;
   font-size: 20px;
   letter-spacing: 0.3px;
+  color: var(--text);
 }
 
 .accent {
@@ -113,6 +142,8 @@ select:focus {
   cursor: pointer;
   font-weight: 700;
   transition: all 0.25s ease;
+  display: inline-block;
+  text-align: center;
 }
 
 .btn:hover {
@@ -250,6 +281,11 @@ select:focus {
   box-shadow: var(--shadow);
 }
 
+.modal-content h3 {
+  color: var(--accent);
+  margin-top: 0;
+}
+
 .actions {
   display: flex;
   gap: 8px;
@@ -301,6 +337,7 @@ select:focus {
   color: #fff;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
   z-index: 60;
+  cursor: pointer;
 }
 
 .hidden {
