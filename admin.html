@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — Isaac Omar Corretor</title>
+  <script type="module" crossorigin src="/crm-imobiliario/assets/script-DNvKn1pe.js"></script>
+  <link rel="stylesheet" crossorigin href="/crm-imobiliario/assets/script-CJWN6Utn.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="index.html" class="logo" aria-label="Isaac Omar Corretor">
+        <img src="/crm-imobiliario/assets/logo-Bj86NeCe.png" alt="Isaac Omar" class="logo-img">
+        <div class="brand-wrap">
+          <div class="brand-name">Isaac Omar</div>
+          <div class="brand-title">Painel do Corretor</div>
+        </div>
+      </a>
+      <nav class="top-actions">
+        <a href="index.html" class="btn btn-outline">Ver Site Público</a>
+      </nav>
+    </div>
+  </header>
+
+  <div id="admin-login" class="modal">
+    <div class="modal-content">
+      <h3>Entrar no Painel do Corretor</h3>
+      <form id="login-form">
+        <label>E-mail<input name="email" type="email" required autocomplete="username"></label>
+        <label>Senha<input name="password" type="password" required autocomplete="current-password"></label>
+        <div class="actions">
+          <button class="btn" type="submit">Entrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <main class="admin hidden" id="admin-root">
+    <section class="panel">
+      <h2>Painel de Controle</h2>
+      <div class="panel-grid">
+        <div>
+          <h3>Cadastrar Imóvel</h3>
+          <form id="property-form" class="card">
+            <label>Título<input name="title" required></label>
+            <div style="display:flex;gap:8px">
+              <label style="flex:1">Rua<input name="rua"></label>
+              <label style="flex:0 0 100px">Número<input name="numero" type="number" min="0"></label>
+            </div>
+            <label>Cidade<select name="city" id="adminCitySelect" required>
+              <option value="">Selecione uma cidade</option>
+              <option value="Itapema (SC)">Itapema (SC)</option>
+              <option value="Balneário Camboriú (SC)">Balneário Camboriú (SC)</option>
+              <option value="Itajaí (SC)">Itajaí (SC)</option>
+              <option value="Porto Belo (SC)">Porto Belo (SC)</option>
+              <option value="Florianópolis (SC)">Florianópolis (SC)</option>
+              <option value="Curitiba (PR)">Curitiba (PR)</option>
+              <option value="Ponta Grossa (PR)">Ponta Grossa (PR)</option>
+              <option value="Carambeí (PR)">Carambeí (PR)</option>
+              <option value="Maringá (PR)">Maringá (PR)</option>
+            </select></label>
+            <label>Bairro<select name="neighborhood" id="adminNeighborhood" required>
+              <option value="">Selecione o bairro</option>
+            </select></label>
+            <label>Preço<input name="price" required></label>
+            <label>Quartos<input name="bedrooms" type="number" min="1"></label>
+            <label>Vagas de Garagem<input name="parking" type="number" min="0"></label>
+            <label>Exibir no Site Público?
+              <select name="published" id="adminPublished" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(217,178,77,.3);background:#1c1c1e;color:#f5f0e8;font-size:14px">
+                <option value="true">Sim</option>
+                <option value="false">Não</option>
+              </select>
+            </label>
+            <label>Fotos do Imóvel (múltiplas)<input name="images" type="file" accept="image/*" multiple></label>
+            <label>Descrição<textarea name="description"></textarea></label>
+            <div class="actions">
+              <button type="submit" class="btn">Salvar Imóvel</button>
+            </div>
+          </form>
+        </div>
+
+        <div>
+          <h3>Leads</h3>
+          <div id="leads" class="card small-list"></div>
+        </div>
+      </div>
+
+      <h3>Imóveis Cadastrados</h3>
+      <div id="admin-properties" class="grid"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <small>© 2026 Isaac Omar — Corretor de Imóveis — CRECI 69965F</small>
+  </footer>
+</body>
+</html>
