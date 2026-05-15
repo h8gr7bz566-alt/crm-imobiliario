@@ -1,12 +1,10 @@
-// script.js — compartilha lógica entre index.html e admin.html com IndexedDB + compressão
+// script.js — compartilha lógica entre index.html e admin.html com LocalStorage + compressão
 (function(){
   const ADMIN_PASSWORD = 'ImobiPro@2026#Seg';
   const WHATSAPP_NUMBER = '5547999701743';
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
-  const DB_NAME = 'ImobiDB';
-  const DB_VER = 1;
-  const STORE_NAME = 'properties';
+  const LS_KEY = 'imobi-properties';
 
   const CITY_NEIGHBORHOODS = {
     'Balneário Camboriú (SC)': ['Centro','Barra Sul','Barra Norte','Pioneiros','Praia dos Amores','Nações','Estados','Ariribá'],
@@ -26,56 +24,35 @@
     'https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=3'
   ];
 
-  // ───── IndexedDB ─────
-  function openDB(){
-    return new Promise((resolve, reject)=>{
-      const req = indexedDB.open(DB_NAME, DB_VER);
-      req.onerror = ()=>reject(req.error);
-      req.onsuccess = ()=>resolve(req.result);
-      req.onupgradeneeded = e=>{
-        const db = e.target.result;
-        if(!db.objectStoreNames.contains(STORE_NAME)){
-          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        }
-      };
-    });
+  // ───── LocalStorage (substitui IndexedDB) ─────
+  function getAllProperties(){
+    try {
+      return JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+    } catch(e){
+      return [];
+    }
   }
 
-  async function getAllProperties(){
-    const db = await openDB();
-    return new Promise((resolve, reject)=>{
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.getAll();
-      req.onsuccess = ()=>resolve(req.result || []);
-      req.onerror = ()=>reject(req.error);
-    });
+  function saveProperty(prop){
+    const all = getAllProperties();
+    const idx = all.findIndex(p => p.id === prop.id);
+    if(idx >= 0){
+      all[idx] = prop;
+    } else {
+      all.push(prop);
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(all));
+    window.dispatchEvent(new CustomEvent('properties:updated'));
   }
 
-  async function saveProperty(prop){
-    const db = await openDB();
-    return new Promise((resolve, reject)=>{
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.put(prop);
-      req.onsuccess = ()=>{ resolve(); window.dispatchEvent(new CustomEvent('properties:updated')); };
-      req.onerror = ()=>reject(req.error);
-    });
+  function deleteProperty(id){
+    const all = getAllProperties().filter(p => p.id !== id);
+    localStorage.setItem(LS_KEY, JSON.stringify(all));
+    window.dispatchEvent(new CustomEvent('properties:updated'));
   }
 
-  async function deleteProperty(id){
-    const db = await openDB();
-    return new Promise((resolve, reject)=>{
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.delete(id);
-      req.onsuccess = ()=>{ resolve(); window.dispatchEvent(new CustomEvent('properties:updated')); };
-      req.onerror = ()=>reject(req.error);
-    });
-  }
-
-  // ───── Compressão de Imagem via Canvas ─────
-  function compressImage(file, maxW = 1000, quality = 0.6){
+  // ───── Compressão de Imagem via Canvas (800px max, quality 0.5) ─────
+  function compressImage(file, maxW = 800, quality = 0.5){
     return new Promise((resolve, reject)=>{
       const img = new Image();
       const url = URL.createObjectURL(file);
@@ -111,11 +88,11 @@
   }
 
   // ───── Render Public (Index) ─────
-  async function renderPublic(){
+  function renderPublic(){
     const container = document.getElementById('properties');
     if(!container) return;
 
-    const props = await getAllProperties();
+    const props = getAllProperties();
     const city = document.getElementById('city-filter')?.value || '';
     const neighborhood = document.getElementById('neighborhood-filter')?.value || '';
     const bedrooms = document.getElementById('bedrooms-filter')?.value || '';
@@ -186,12 +163,10 @@
     idx = (idx + dir + total) % total;
     wrap.dataset.idx = idx;
     const pid = parseInt(wrap.dataset.pid, 10);
-    (async ()=>{
-      const all = await getAllProperties();
-      const prop = all.find(x => x.id === pid);
-      if(!prop || !prop.imagesCompressed || !prop.imagesCompressed.length) return;
-      wrap.querySelector('.carousel-img').src = prop.imagesCompressed[idx];
-    })();
+    const all = getAllProperties();
+    const prop = all.find(x => x.id === pid);
+    if(!prop || !prop.imagesCompressed || !prop.imagesCompressed.length) return;
+    wrap.querySelector('.carousel-img').src = prop.imagesCompressed[idx];
   }
 
   // ───── Hero ─────
@@ -233,10 +208,10 @@
   }
 
   // ───── Render Admin ─────
-  async function renderAdmin(){
+  function renderAdmin(){
     const el = document.getElementById('admin-properties');
     if(el){
-      const props = await getAllProperties();
+      const props = getAllProperties();
       el.innerHTML = props.length
         ? props.map(p => {
             const images = p.imagesCompressed && p.imagesCompressed.length ? p.imagesCompressed : SAMPLE_URLS;
@@ -292,7 +267,7 @@
       if(imageFiles && imageFiles instanceof FileList && imageFiles.length > 0){
         compressedImages = await compressMultiple(imageFiles);
       } else if(editingId){
-        const all = await getAllProperties();
+        const all = getAllProperties();
         const orig = all.find(x => x.id === editingId);
         if(orig && orig.imagesCompressed){
           compressedImages = orig.imagesCompressed;
@@ -318,41 +293,40 @@
         createdAt: Date.now()
       };
 
-      await saveProperty(prop);
+      saveProperty(prop);
       editingId = null;
       submitBtn.textContent = 'Salvar Imóvel';
       form.reset();
       const neighSel = document.getElementById('adminNeighborhood');
       if(neighSel) neighSel.innerHTML = '<option value="">Selecione o bairro</option>';
-      await renderAdmin();
-      await renderPublic();
+      renderAdmin();
+      renderPublic();
       alert('Imóvel salvo com sucesso!');
     });
 
     // Delete handler
-    document.addEventListener('click', async e => {
+    document.addEventListener('click', e => {
       if(e.target.matches('.del-btn')){
         const id = Number(e.target.dataset.id);
         if(!id) return;
-        await deleteProperty(id);
-        await renderAdmin();
-        await renderPublic();
+        deleteProperty(id);
+        renderAdmin();
+        renderPublic();
       }
     });
 
     // Edit handler
-    document.addEventListener('click', async e => {
+    document.addEventListener('click', e => {
       if(e.target.matches('.edit-btn')){
         const id = Number(e.target.dataset.id);
         if(!id) return;
-        const all = await getAllProperties();
+        const all = getAllProperties();
         const p = all.find(x => x.id === id);
         if(!p) return;
 
         editingId = id;
         submitBtn.textContent = 'Salvar Alterações';
 
-        const form = document.getElementById('property-form');
         form.querySelector('[name="title"]').value = p.title || '';
         form.querySelector('[name="rua"]').value = p.rua || '';
         form.querySelector('[name="numero"]').value = p.numero || '';
@@ -383,22 +357,25 @@
     return String(s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
   }
 
-  window.addEventListener('storage', async e => {
-    if(e.key === 'leads'){ await renderAdmin(); }
+  window.addEventListener('storage', e => {
+    if(e.key === 'leads' || e.key === LS_KEY){
+      renderAdmin();
+      renderPublic();
+    }
   });
 
-  window.addEventListener('properties:updated', async ()=>{
-    await renderPublic();
-    await renderAdmin();
+  window.addEventListener('properties:updated', ()=>{
+    renderPublic();
+    renderAdmin();
   });
 
   // ───── Init ─────
-  document.addEventListener('DOMContentLoaded', async () => {
-    await renderPublic();
+  document.addEventListener('DOMContentLoaded', () => {
+    renderPublic();
     renderHero();
     attachContact();
     attachAdminCityNeighborhood();
-    await renderAdmin();
+    renderAdmin();
     attachAdminForm();
 
     const loginModal = document.getElementById('admin-login');
@@ -409,7 +386,7 @@
       if(session === 'true'){
         loginModal.classList.add('hidden');
         adminRoot.classList.remove('hidden');
-        await renderAdmin();
+        renderAdmin();
       } else {
         adminRoot.classList.add('hidden');
         loginModal.classList.remove('hidden');
