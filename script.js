@@ -1,10 +1,11 @@
-// script.js — arquitetura global via imoveis.json + download no admin
+// script.js — arquitetura em nuvem real via jsonblob.com (API REST gratuita)
 (function(){
   const ADMIN_PASSWORD = 'ImobiPro@2026#Seg';
   const WHATSAPP_NUMBER = '5547999701743';
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
-  const JSON_FILE = 'imoveis.json';
+  const API_BASE = 'https://jsonblob.com/api/jsonBlob';
+  const BLOB_ID_KEY = 'imobi_blob_id';
 
   const CITY_NEIGHBORHOODS = {
     'Balneário Camboriú (SC)': ['Centro','Barra Sul','Barra Norte','Pioneiros','Praia dos Amores','Nações','Estados','Ariribá'],
@@ -25,12 +26,47 @@
   ];
 
   let cachedProperties = [];
+  let blobUrl = localStorage.getItem(BLOB_ID_KEY) || '';
 
-  // ───── Banco Global via imoveis.json ─────
+  // ───── API em Nuvem via JSONBlob ─────
+  async function initBlob(){
+    // Se já temos URL salva, tenta usar
+    if(blobUrl){
+      try {
+        const resp = await fetch(blobUrl);
+        if(resp.ok){
+          const data = await resp.json();
+          cachedProperties = Array.isArray(data) ? data : [];
+          return cachedProperties;
+        }
+      } catch(e){
+        // Se falhou, recria
+      }
+    }
+    // Cria um novo blob vazio
+    try {
+      const resp = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([])
+      });
+      if(resp.ok){
+        blobUrl = resp.url;
+        localStorage.setItem(BLOB_ID_KEY, blobUrl);
+        cachedProperties = [];
+        return cachedProperties;
+      }
+    } catch(e){}
+    return [];
+  }
+
   async function getAllProperties(){
     if(cachedProperties.length) return cachedProperties;
+    if(!blobUrl){
+      return await initBlob();
+    }
     try {
-      const resp = await fetch(JSON_FILE + '?t=' + Date.now());
+      const resp = await fetch(blobUrl);
       if(!resp.ok) return [];
       const data = await resp.json();
       cachedProperties = Array.isArray(data) ? data : [];
@@ -40,31 +76,41 @@
     }
   }
 
-  // Admin: mantém cache local durante a sessão + gera download do JSON
-  function addToLocalCache(prop){
+  async function saveToCloud(prop){
+    // Atualiza cache local
     const idx = cachedProperties.findIndex(p => p.id === prop.id);
     if(idx >= 0){
       cachedProperties[idx] = prop;
     } else {
       cachedProperties.push(prop);
     }
+    // Se ainda não tem blob, cria um
+    if(!blobUrl){
+      await initBlob();
+    }
+    // Envia array completo para a nuvem via PUT
+    try {
+      await fetch(blobUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cachedProperties)
+      });
+    } catch(e){
+      console.error('Erro ao salvar na nuvem:', e);
+    }
   }
 
-  function removeFromLocalCache(id){
+  async function deleteFromCloud(id){
     cachedProperties = cachedProperties.filter(p => p.id !== id);
-  }
-
-  // Gera download do JSON atualizado e instrui o usuário a commitar
-  function downloadJSON(){
-    const blob = new Blob([JSON.stringify(cachedProperties, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'imoveis.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      await fetch(blobUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cachedProperties)
+      });
+    } catch(e){
+      console.error('Erro ao deletar na nuvem:', e);
+    }
   }
 
   // ───── Compressão de Imagem via Canvas (800px max, quality 0.5) ─────
@@ -284,18 +330,6 @@
     const submitBtn = form.querySelector('button[type="submit"]');
     if(!submitBtn) return;
 
-    // Botão de download do JSON (publicar alterações)
-    const publishBtn = document.createElement('button');
-    publishBtn.type = 'button';
-    publishBtn.className = 'btn';
-    publishBtn.textContent = '⬇ Baixar JSON (publicar alterações)';
-    publishBtn.style.cssText = 'margin-top:8px;width:100%;justify-content:center;background:rgba(217,178,77,0.1);border-color:rgba(217,178,77,0.25);color:#d9b24d';
-    publishBtn.addEventListener('click', ()=>{
-      downloadJSON();
-      alert('Arquivo imoveis.json baixado! Faça upload para o GitHub para publicar as alterações no site.');
-    });
-    form.appendChild(publishBtn);
-
     form.addEventListener('submit', async e => {
       e.preventDefault();
       const fd = new FormData(form);
@@ -331,7 +365,8 @@
         createdAt: Date.now()
       };
 
-      addToLocalCache(prop);
+      // Salva na nuvem (jsonblob.com)
+      await saveToCloud(prop);
       editingId = null;
       submitBtn.textContent = 'Salvar Imóvel';
       form.reset();
@@ -339,24 +374,24 @@
       if(pubSel) pubSel.value = 'true';
       const neighSel = document.getElementById('adminNeighborhood');
       if(neighSel) neighSel.innerHTML = '<option value="">Selecione o bairro</option>';
-      renderAdmin();
-      renderPublic();
-      alert('Imóvel salvo na sessão! Clique em "Baixar JSON" para gerar o arquivo e faça commit no GitHub.');
+      await renderAdmin();
+      await renderPublic();
+      alert('✅ Imóvel salvo na nuvem! Todos os clientes já veem a atualização.');
     });
 
     // Delete handler
-    document.addEventListener('click', e => {
+    document.addEventListener('click', async e => {
       if(e.target.matches('.del-btn')){
         const id = Number(e.target.dataset.id);
         if(!id) return;
-        removeFromLocalCache(id);
-        renderAdmin();
-        renderPublic();
+        await deleteFromCloud(id);
+        await renderAdmin();
+        await renderPublic();
       }
     });
 
     // Edit handler
-    document.addEventListener('click', e => {
+    document.addEventListener('click', async e => {
       if(e.target.matches('.edit-btn')){
         const id = Number(e.target.dataset.id);
         if(!id) return;
@@ -400,6 +435,7 @@
 
   // ───── Init ─────
   document.addEventListener('DOMContentLoaded', async () => {
+    await initBlob();
     await getAllProperties();
     renderHero();
     attachPriceSlider();
