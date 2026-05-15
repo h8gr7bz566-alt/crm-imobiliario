@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Portfólio Imobiliário</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+        <path d="M3 11.5L12 3l9 8.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V11.5z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div class="brand">Imobi<span class="accent">Pro</span></div>
+        <div class="tag">Corretor & Portfólio</div>
+      </div>
+    </div>
+    <nav>
+      <a href="admin.html" class="btn small">Área do Corretor</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-left">
+        <h1>Encontre a casa dos seus sonhos</h1>
+        <p>Portfólio selecionado de imóveis com fotos reais.</p>
+        <button id="contact-main" class="btn">Falar com Corretor</button>
+      </div>
+      <div class="hero-right" id="hero-gallery">
+        <!-- imagens do Unsplash via JS -->
+      </div>
+    </section>
+
+    <section class="listings">
+      <h2>Imóveis Disponíveis</h2>
+      <div id="properties" class="grid"></div>
+    </section>
+  </main>
+
+  <div id="contact-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Fale com o corretor</h3>
+      <form id="contact-form">
+        <label>Nome<input name="name" required></label>
+        <label>Telefone ou Email<input name="contact" required></label>
+        <label>Mensagem<textarea name="message"></textarea></label>
+        <div class="actions">
+          <button type="submit" class="btn">Enviar</button>
+          <button type="button" id="close-contact" class="btn secondary">Fechar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <small>© 2026 ImobiPro — Corretor</small>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin - CRM Imobiliário</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+        <path d="M3 11.5L12 3l9 8.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V11.5z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div class="brand">Imobi<span class="accent">Pro</span></div>
+        <div class="tag">Painel do Corretor</div>
+      </div>
+    </div>
+    <nav>
+      <a href="index.html" class="btn small">Ver Site Público</a>
+    </nav>
+  </header>
+
+  <div id="admin-login" class="modal">
+    <div class="modal-content">
+      <h3>Entrar no Painel do Corretor</h3>
+      <form id="login-form">
+        <label>Senha<input name="password" type="password" required></label>
+        <div class="actions">
+          <button class="btn" type="submit">Entrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <main class="admin hidden" id="admin-root">
+    <section class="panel">
+      <h2>Painel de Controle</h2>
+      <div class="panel-grid">
+        <div>
+          <h3>Cadastrar Imóvel</h3>
+          <form id="property-form" class="card">
+            <label>Título<input name="title" required></label>
+            <label>Endereço<input name="address"></label>
+            <label>Preço<input name="price" required></label>
+            <label>Foto (URL)<input name="image"></label>
+            <label>Descrição<textarea name="description"></textarea></label>
+            <div class="actions">
+              <button type="submit" class="btn">Salvar Imóvel</button>
+            </div>
+          </form>
+        </div>
+
+        <div>
+          <h3>Leads</h3>
+          <div id="leads" class="card small-list"></div>
+        </div>
+      </div>
+
+      <h3>Imóveis Cadastrados</h3>
+      <div id="admin-properties" class="grid"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <small>Área restrita — apenas para o corretor</small>
+  </footer>
+</body>
+</html>
