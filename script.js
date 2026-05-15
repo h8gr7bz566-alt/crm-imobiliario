@@ -1,179 +1,421 @@
-// CONFIGURAÇÃO DO BANCO DE DADOS EM NUVEM REAL E EXCLUSIVO (JSONBIN)
-const API_URL = "https://jsonbin.io"; // Endpoint público temporário de sincronização
-const MASTER_KEY = "$2a$10$ExemploChaveSuaveFirebaseSubstitutaGratuita123"; 
+// script.js — Motor em nuvem real (JSONBlob) + Filtros + Admin
+(function(){
+  const ADMIN_PASSWORD = 'ImobiPro@2026#Seg';
+  const WHATSAPP_NUMBER = '5547999701743';
+  const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
-// 1. LISTA COMPLETA E DETALHADA DE BAIRROS
-const SELECOES_CIDADES = {
-    'Balneário Camboriú (SC)': ['Centro', 'Barra Sul', 'Barra Norte', 'Pioneiros', 'Praia dos Amores', 'Nações', 'Estados', 'Ariribá', 'Vila Real'],
-    'Itapema (SC)': ['Meia Praia', 'Centro', 'Morretes', 'Tabuleiro', 'Ilhota', 'Alto São Bento', 'Várzea'],
-    'Itajaí (SC)': ['Praia Brava', 'Centro', 'Fazenda', 'Cabeçudas', 'Ressacada', 'Cordeiros', 'São Vicente'],
-    'Porto Belo (SC)': ['Perequê', 'Centro', 'Balneário Perequê', 'Alto Perequê', 'Vila Nova'],
-    'Florianópolis (SC)': ['Centro', 'Jurerê Internacional', 'Campeche', 'Trindade', 'Agronômica', 'Ingleses'],
-    'Curitiba (PR)': ['Batel', 'Bigorrilho', 'Ecoville', 'Centro', 'Água Verde', 'Cabral', 'Juvevê'],
-    'Ponta Grossa (PR)': ['Olarias', 'Estrela', 'Centro', 'Jardim América', 'Uvaranas', 'Nova Rússia'],
-    'Carambeí (PR)': ['Centro', 'Boqueirão', 'Novo Horizonte', 'Jardim Eldorado', 'AFC', 'Catanduvas']
-};
+  const API_BASE = 'https://jsonblob.com/api/jsonBlob';
+  const BLOB_ID_KEY = 'imobi_blob_id';
 
-// 2. LOGICA DE SINCRONIZAÇÃO EM NUVEM (BUSCAR DADOS)
-async function buscarImoveisDaNuvem() {
+  const CITY_NEIGHBORHOODS = {
+    'Balneário Camboriú (SC)': ['Centro','Barra Sul','Barra Norte','Pioneiros','Praia dos Amores','Nações','Estados','Ariribá'],
+    'Itapema (SC)': ['Meia Praia','Centro','Morretes','Tabuleiro','Ilhota','Alto São Bento'],
+    'Itajaí (SC)': ['Praia Brava','Centro','Fazenda','Cabeçudas','Ressacada','Cordeiros'],
+    'Porto Belo (SC)': ['Perequê','Centro','Balneário Perequê','Alto Perequê'],
+    'Florianópolis (SC)': ['Centro','Jurerê Internacional','Campeche','Trindade','Agronômica','Ingleses'],
+    'Curitiba (PR)': ['Batel','Bigorrilho','Ecoville','Centro','Água Verde','Cabral'],
+    'Ponta Grossa (PR)': ['Olarias','Estrela','Centro','Jardim América','Uvaranas','Nova Rússia','Oficinas'],
+    'Carambeí (PR)': ['Centro','Boqueirão','Novo Horizonte','Jardim Eldorado','AFC','Catanduvas'],
+    'Maringá (PR)': ['Zona 01','Zona 02','Zona 03','Zona 04','Zona 05','Zona 06','Zona 07']
+  };
+
+  const SAMPLE_URLS = [
+    'https://images.unsplash.com/photo-1560184897-e6f6f0d0b1f8?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=1',
+    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=2',
+    'https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=3'
+  ];
+
+  let cachedProperties = [];
+  let blobUrl = localStorage.getItem(BLOB_ID_KEY) || '';
+
+  // ───── API em Nuvem via JSONBlob (sem API key) ─────
+  async function initBlob(){
+    if(blobUrl){
+      try {
+        const resp = await fetch(blobUrl);
+        if(resp.ok){
+          const data = await resp.json();
+          cachedProperties = Array.isArray(data) ? data : [];
+          return cachedProperties;
+        }
+      } catch(e){}
+    }
     try {
-        const resposta = await fetch(API_URL, {
-            method: "GET",
-            headers: { "X-Master-Key": MASTER_KEY, "X-Bin-Meta": "false" }
-        });
-        if (!resposta.ok) throw new Error("Erro ao buscar dados");
-        return await resposta.json();
-    } catch (erro) {
-        console.error("Erro na nuvem, usando backup local:", erro);
-        return JSON.parse(localStorage.getItem("backup_imoveis")) || [];
-    }
-}
+      const resp = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([])
+      });
+      if(resp.ok){
+        blobUrl = resp.url;
+        localStorage.setItem(BLOB_ID_KEY, blobUrl);
+        cachedProperties = [];
+      }
+    } catch(e){}
+    return cachedProperties;
+  }
 
-// 3. LOGICA DE SINCRONIZAÇÃO EM NUVEM (SALVAR DADOS)
-async function salvarImoveisNaNuvem(listaImoveis) {
-    localStorage.setItem("backup_imoveis", JSON.stringify(listaImoveis));
+  async function getAllProperties(){
+    if(cachedProperties.length) return cachedProperties;
+    if(!blobUrl) await initBlob();
+    if(!blobUrl) return [];
     try {
-        await fetch(API_URL, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Master-Key": MASTER_KEY
-            },
-            body: JSON.stringify(listaImoveis)
-        });
-        return true;
-    } catch (erro) {
-        console.error("Erro ao salvar na nuvem:", erro);
-        return false;
+      const resp = await fetch(blobUrl);
+      if(!resp.ok) return [];
+      const data = await resp.json();
+      cachedProperties = Array.isArray(data) ? data : [];
+      return cachedProperties;
+    } catch(e){
+      return [];
     }
-}
+  }
 
-// 4. ATIVAÇÃO DINÂMICA DE CIDADES E BAIRROS NO CRM E FILTROS
-document.addEventListener("DOMContentLoaded", async () => {
-    const selectCidade = document.getElementById("buscaCidade") || document.getElementById("adminCidade");
-    const selectBairro = document.getElementById("buscaBairro") || document.getElementById("adminBairro");
-    
-    if (selectCidade && selectBairro) {
-        selectCidade.addEventListener("change", () => {
-            const cidadeSelecionada = selectCidade.value;
-            selectBairro.innerHTML = '<option value="">Todos os bairros</option>';
-            
-            if (SELECOES_CIDADES[cidadeSelecionada]) {
-                SELECOES_CIDADES[cidadeSelecionada].forEach(bairro => {
-                    const opt = document.createElement("option");
-                    opt.value = bairro;
-                    opt.textContent = bairro;
-                    selectBairro.appendChild(opt);
-                });
-            }
-        });
-    }
+  async function saveToCloud(prop){
+    const idx = cachedProperties.findIndex(p => p.id === prop.id);
+    if(idx >= 0) cachedProperties[idx] = prop;
+    else cachedProperties.push(prop);
+    if(!blobUrl) await initBlob();
+    if(!blobUrl) return;
+    try {
+      await fetch(blobUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cachedProperties)
+      });
+    } catch(e){}
+  }
 
-    // Inicializa a renderização dependendo da página aberta
-    if (document.getElementById("lista-imoveis-publicos") || document.getElementById("lista-imoveis")) {
-        renderizarSitePublico();
-    }
-    configurarPrecoSlider();
-});
+  async function deleteFromCloud(id){
+    cachedProperties = cachedProperties.filter(p => p.id !== id);
+    if(!blobUrl) return;
+    try {
+      await fetch(blobUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cachedProperties)
+      });
+    } catch(e){}
+  }
 
-// CONFIGURAÇÃO DA BARRINHA DE PREÇO (1 EM 1 MILHÃO)
-function configurarPrecoSlider() {
-    const slider = document.getElementById("precoSlider") || document.getElementById("filtroPreco");
-    if (!slider) return;
-    slider.min = "0";
-    slider.max = "130000000";
-    slider.step = "1000000";
-    slider.value = "130000000";
-    
-    const label = document.getElementById("precoLabel");
-    if (label) label.textContent = "Até R$ 130.000.000";
-    
-    slider.addEventListener("input", (e) => {
-        if (label) label.textContent = `Até R$ ${parseInt(e.target.value).toLocaleString('pt-BR')}`;
+  // ───── Compressão de Imagem via Canvas ─────
+  function compressImage(file, maxW = 800, quality = 0.5){
+    return new Promise((resolve, reject)=>{
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = ()=>{
+        URL.revokeObjectURL(url);
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if(w > maxW){ h = h * maxW / w; w = maxW; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = url;
     });
-}
+  }
 
-// 5. COMPRESSÃO DE IMAGENS CANVAS PARA MULTIPLOS UPLOADS
-async function processarImagens(arquivos) {
-    const listaPromessas = Array.from(arquivos).map(arquivo => {
-        return new Promise(resolve => {
-            const leitor = new FileReader();
-            leitor.onload = (evento) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    const MAX_WIDTH = 800;
-                    let width = img.width;
-                    let height = img.height;
+  async function compressMultiple(files){
+    const results = [];
+    for(const f of Array.from(files)){
+      if(f.size > 0) results.push(await compressImage(f));
+    }
+    return results;
+  }
 
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext("2d");
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL("image/jpeg", 0.6));
-                };
-                img.src = evento.target.result;
-            };
-            leitor.readAsDataURL(arquivo);
-        });
+  // ───── Render Public ─────
+  async function renderPublic(){
+    const container = document.getElementById('properties');
+    if(!container) return;
+
+    const all = await getAllProperties();
+    let props = all.filter(p => p.published === true);
+
+    const city = document.getElementById('city-filter')?.value || '';
+    const neighborhood = document.getElementById('neighborhood-filter')?.value || '';
+    const bedrooms = document.getElementById('bedrooms-filter')?.value || '';
+    const parking = document.getElementById('parking-filter')?.value || '';
+    const slider = document.getElementById('price-slider');
+    const priceMaxVal = slider ? parseInt(slider.value, 10) : 130000000;
+
+    const filtered = props.filter(p => {
+      if(city && p.city !== city) return false;
+      if(neighborhood && p.neighborhood !== neighborhood) return false;
+      if(bedrooms){
+        if(bedrooms === '4+' && Number(p.bedrooms) < 4) return false;
+        if(bedrooms !== '4+' && Number(p.bedrooms) !== Number(bedrooms)) return false;
+      }
+      if(parking){
+        if(parking === '4+' && Number(p.parking) < 4) return false;
+        if(parking !== '4+' && Number(p.parking) !== Number(parking)) return false;
+      }
+      const price = parseInt(String(p.price || '').replace(/[^0-9]/g, ''), 10) || 0;
+      if(price < 0 || price > priceMaxVal) return false;
+      return true;
     });
-    return Promise.all(listaPromessas);
-}
 
-// FUNCTIONS DE RENDERIZAÇÃO DO SITE PÚBLICO
-async function renderizarSitePublico() {
-    const container = document.getElementById("lista-imoveis-publicos") || document.getElementById("lista-imoveis");
-    if (!container) return;
-    
-    container.innerHTML = "<p style='color: #fff;'>Carregando imóveis exclusivos da nuvem...</p>";
-    const imoveis = await buscarImoveisDaNuvem();
-    container.innerHTML = "";
-
-    if (imoveis.length === 0) {
-        container.innerHTML = "<p style='color: #fff;'>Nenhum imóvel disponível no momento.</p>";
-        return;
+    if(!filtered.length){
+      container.innerHTML = '<div class="muted" style="padding:20px;text-align:center">Nenhum imóvel encontrado.</div>';
+      return;
     }
 
-    imoveis.forEach(imob => {
-        const card = document.createElement("div");
-        card.className = "card-imovel";
-        card.innerHTML = `
-            <div class="carrossel-container">
-                <img src="${imob.fotos && imob.fotos.length > 0 ? imob.fotos[0] : 'logo.png'}" class="foto-principal-card" id="img-${imob.id}">
-                ${imob.fotos && imob.fotos.length > 1 ? `<button class="seta-carrossel esq" onclick="mudarFoto('${imob.id}', -1)">&#10094;</button>
-                <button class="seta-carrossel dir" onclick="mudarFoto('${imob.id}', 1)">&#10095;</button>` : ''}
-            </div>
-            <div class="card-conteudo">
-                <h3>${imob.bairro || 'Centro'}, ${imob.cidade}</h3>
-                <p class="descricao-card">${imob.descricao || ''}</p>
-                <p class="caracteristicas">${imob.quartos || 0} Dorms | ${imob.vagas || 0} Vagas</p>
-                <div class="card-rodape">
-                    <span class="preco">R$ ${parseFloat(imob.preco || 0).toLocaleString('pt-BR')}</span>
-                    <a href="https://wa.me" target="_blank" class="btn-whats-card">Falar com Corretor</a>
+    container.innerHTML = filtered.map(p => {
+      const images = p.imagesCompressed && p.imagesCompressed.length ? p.imagesCompressed : SAMPLE_URLS;
+      const total = images.length;
+      return `
+        <div class="card property-card">
+          <div class="carousel-wrap" style="position:relative" data-total="${total}" data-idx="0" data-pid="${p.id}">
+            <img src="${images[0]}" alt="${escapeHTML(p.title)}" class="carousel-img" style="width:100%;height:180px;object-fit:cover;border-radius:10px;display:block">
+            ${total > 1 ? `
+              <button class="carousel-btn carousel-prev" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;line-height:1"><</button>
+              <button class="carousel-btn carousel-next" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;line-height:1">></button>
+            ` : ''}
+          </div>
+          <div class="property-info">
+            <strong>${escapeHTML(p.title)}</strong>
+            <div class="muted">${escapeHTML(p.neighborhood || '')}, ${escapeHTML(p.city || '')}</div>
+            <div><strong>${escapeHTML(p.price)}</strong></div>
+            <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} ${total > 1 ? '| 📸 ' + total : ''}</div>
+            <p class="muted">${escapeHTML((p.description || '').slice(0, 110))}</p>
+            <a class="btn hero-whatsapp-btn" href="${WHATSAPP_URL}" target="_blank" rel="noopener" style="width:100%;justify-content:center;margin-top:6px">Falar sobre este imóvel</a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.querySelectorAll('.carousel-btn').forEach(btn => {
+      btn.removeEventListener('click', carouselHandler);
+      btn.addEventListener('click', carouselHandler);
+    });
+  }
+
+  function carouselHandler(e){
+    e.stopPropagation();
+    const wrap = e.currentTarget.closest('.carousel-wrap');
+    if(!wrap) return;
+    const total = parseInt(wrap.dataset.total, 10);
+    if(!total) return;
+    let idx = parseInt(wrap.dataset.idx, 10) || 0;
+    const dir = e.currentTarget.classList.contains('carousel-next') ? 1 : -1;
+    idx = (idx + dir + total) % total;
+    wrap.dataset.idx = idx;
+    const pid = parseInt(wrap.dataset.pid, 10);
+    const prop = cachedProperties.find(x => x.id === pid);
+    if(!prop || !prop.imagesCompressed || !prop.imagesCompressed.length) return;
+    wrap.querySelector('.carousel-img').src = prop.imagesCompressed[idx];
+  }
+
+  // ───── Slider de Preço ─────
+  function attachPriceSlider(){
+    const slider = document.getElementById('price-slider');
+    const label = document.getElementById('price-label');
+    if(!slider || !label) return;
+    slider.min = '0';
+    slider.max = '130000000';
+    slider.step = '1000000';
+    slider.value = '130000000';
+    label.textContent = 'Até R$ 130.000.000';
+    slider.addEventListener('input', ()=>{
+      const val = parseInt(slider.value, 10);
+      label.textContent = 'Até R$ ' + val.toLocaleString('pt-BR');
+      renderPublic();
+    });
+  }
+
+  // ───── Filtros ─────
+  function attachFilters(){
+    const cityFilter = document.getElementById('city-filter');
+    const neighborhoodFilter = document.getElementById('neighborhood-filter');
+    if(cityFilter && neighborhoodFilter){
+      cityFilter.addEventListener('change', ()=>{
+        const neighborhoods = CITY_NEIGHBORHOODS[cityFilter.value] || [];
+        neighborhoodFilter.innerHTML = '<option value="">Todos os bairros</option>' + neighborhoods.map(n => `<option value="${n}">${n}</option>`).join('');
+        renderPublic();
+      });
+    }
+    document.querySelectorAll('[id$="-filter"]').forEach(el => {
+      el.addEventListener('change', renderPublic);
+    });
+  }
+
+  // ───── Render Admin ─────
+  async function renderAdmin(){
+    const el = document.getElementById('admin-properties');
+    if(!el) return;
+    const props = await getAllProperties();
+    el.innerHTML = props.length
+      ? props.map(p => {
+          const images = p.imagesCompressed && p.imagesCompressed.length ? p.imagesCompressed : SAMPLE_URLS;
+          const pubLabel = p.published === true
+            ? '<span style="color:#4caf50;font-weight:700">✔ Publicado</span>'
+            : '<span style="color:#ff6b6b;font-weight:600">✖ Não publicado</span>';
+          return `
+            <div class="card">
+              <img src="${images[0]}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;border:1px solid rgba(217,178,77,.35)">
+              <div class="property-info">
+                <strong>${escapeHTML(p.title)}</strong>
+                <div class="muted">${escapeHTML(p.rua || '')}, ${escapeHTML(p.numero || '')} — ${escapeHTML(p.neighborhood || '')}, ${escapeHTML(p.city || '')}</div>
+                <div><strong>${escapeHTML(p.price)}</strong> · ${pubLabel}</div>
+                <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} | 📸 ${images.length}</div>
+                <p class="muted">${escapeHTML((p.description || '').slice(0, 100))}</p>
+                <div style="margin-top:8px;display:flex;gap:6px">
+                  <button data-id="${p.id}" class="btn btn-outline edit-btn" style="flex:1">Editar</button>
+                  <button data-id="${p.id}" class="btn btn-outline del-btn" style="flex:1;color:#ff6b6b;border-color:rgba(255,107,107,0.3)">Remover</button>
                 </div>
-            </div>
-        `;
-        card.dataset.fotos = JSON.stringify(imob.fotos || []);
-        card.dataset.indexFoto = 0;
-        container.appendChild(card);
+              </div>
+            </div>`;
+        }).join('')
+      : '<div class="muted">Nenhum imóvel cadastrado.</div>';
+  }
+
+  // ───── Admin Form ─────
+  let editingId = null;
+
+  function attachAdminForm(){
+    const form = document.getElementById('property-form');
+    if(!form) return;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if(!submitBtn) return;
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const imageFiles = fd.get('images');
+      let compressedImages = [];
+
+      if(imageFiles && imageFiles instanceof FileList && imageFiles.length > 0){
+        compressedImages = await compressMultiple(imageFiles);
+      } else if(editingId){
+        const orig = cachedProperties.find(x => x.id === editingId);
+        if(orig && orig.imagesCompressed) compressedImages = orig.imagesCompressed;
+      }
+      if(!compressedImages.length) compressedImages = [...SAMPLE_URLS];
+
+      const prop = {
+        id: editingId || Date.now(),
+        title: fd.get('title'),
+        rua: fd.get('rua') || '',
+        numero: fd.get('numero') || '',
+        city: fd.get('city'),
+        neighborhood: fd.get('neighborhood'),
+        price: fd.get('price'),
+        bedrooms: parseInt(fd.get('bedrooms'), 10) || 0,
+        parking: parseInt(fd.get('parking'), 10) || 0,
+        published: fd.get('published') === 'true',
+        imagesCompressed: compressedImages,
+        description: fd.get('description'),
+        createdAt: Date.now()
+      };
+
+      await saveToCloud(prop);
+      editingId = null;
+      submitBtn.textContent = 'Salvar Imóvel';
+      form.reset();
+      const pubSel = document.getElementById('adminPublished');
+      if(pubSel) pubSel.value = 'true';
+      const neighSel = document.getElementById('adminNeighborhood');
+      if(neighSel) neighSel.innerHTML = '<option value="">Selecione o bairro</option>';
+      await renderAdmin();
+      await renderPublic();
+      alert('✅ Imóvel salvo na nuvem!');
     });
-}
 
-// CONTROLE DO CARROSSEL DE FOTOS
-window.mudarFoto = function(id, direcao) {
-    const imgEl = document.getElementById(`img-${id}`);
-    const cardEl = imgEl.closest(".card-imovel");
-    const fotos = JSON.parse(cardEl.dataset.fotos);
-    let indexAtual = parseInt(cardEl.dataset.indexFoto);
+    document.addEventListener('click', async e => {
+      if(e.target.matches('.del-btn')){
+        const id = Number(e.target.dataset.id);
+        if(!id) return;
+        await deleteFromCloud(id);
+        await renderAdmin();
+        await renderPublic();
+      }
+      if(e.target.matches('.edit-btn')){
+        const id = Number(e.target.dataset.id);
+        if(!id) return;
+        const p = cachedProperties.find(x => x.id === id);
+        if(!p) return;
+        editingId = id;
+        submitBtn.textContent = 'Salvar Alterações';
+        form.querySelector('[name="title"]').value = p.title || '';
+        form.querySelector('[name="rua"]').value = p.rua || '';
+        form.querySelector('[name="numero"]').value = p.numero || '';
+        form.querySelector('[name="city"]').value = p.city || '';
+        form.querySelector('[name="price"]').value = p.price || '';
+        form.querySelector('[name="bedrooms"]').value = p.bedrooms || '';
+        form.querySelector('[name="parking"]').value = p.parking || '';
+        form.querySelector('[name="description"]').value = p.description || '';
+        const pubSel = document.getElementById('adminPublished');
+        if(pubSel) pubSel.value = p.published === true ? 'true' : 'false';
+        const citySel = document.getElementById('adminCitySelect');
+        if(citySel){
+          const evt = new Event('change');
+          citySel.dispatchEvent(evt);
+          setTimeout(()=>{
+            const neighSel = document.getElementById('adminNeighborhood');
+            if(neighSel) neighSel.value = p.neighborhood || '';
+          }, 50);
+        }
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
 
-    indexAtual += direcao;
-    if (indexAtual >= fotos.length) indexAtual = 0;
-    if (indexAtual < 0) indexAtual = fotos.length - 1;
+  function escapeHTML(s){
+    if(!s) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
+  }
 
-    cardEl.dataset.indexFoto = indexAtual;
-    imgEl.src = fotos[indexAtual];
-};
+  // ───── Init ─────
+  document.addEventListener('DOMContentLoaded', async () => {
+    await initBlob();
+    await getAllProperties();
+    attachPriceSlider();
+    attachFilters();
+
+    // Admin city/neighborhood sync
+    const citySel = document.getElementById('adminCitySelect');
+    const neighSel = document.getElementById('adminNeighborhood');
+    if(citySel && neighSel){
+      citySel.addEventListener('change', ()=>{
+        const list = CITY_NEIGHBORHOODS[citySel.value] || [];
+        neighSel.innerHTML = '<option value="">Selecione o bairro</option>' + list.map(n => `<option value="${n}">${n}</option>`).join('');
+      });
+    }
+
+    // Render admin if on admin page
+    await renderAdmin();
+    attachAdminForm();
+    await renderPublic();
+
+    // Login handling
+    const loginModal = document.getElementById('admin-login');
+    const adminRoot = document.getElementById('admin-root');
+    if(loginModal){
+      const session = sessionStorage.getItem('adminAuth');
+      if(session === 'true'){
+        loginModal.classList.add('hidden');
+        if(adminRoot) adminRoot.classList.remove('hidden');
+        await renderAdmin();
+      } else {
+        if(adminRoot) adminRoot.classList.add('hidden');
+        loginModal.classList.remove('hidden');
+        const lf = document.getElementById('login-form');
+        if(lf){
+          lf.addEventListener('submit', e => {
+            e.preventDefault();
+            const pw = new FormData(lf).get('password');
+            if(pw === ADMIN_PASSWORD){
+              sessionStorage.setItem('adminAuth', 'true');
+              loginModal.classList.add('hidden');
+              if(adminRoot) adminRoot.classList.remove('hidden');
+              renderAdmin();
+            } else {
+              alert('Senha incorreta');
+            }
+          });
+        }
+      }
+    }
+  });
+})();
