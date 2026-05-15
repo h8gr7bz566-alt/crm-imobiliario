@@ -9,36 +9,24 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="logo">
-      <img src="logo.png" alt="ImobiPro" class="logo-img">
-      <div>
-        <div class="brand">Imobi<span class="accent">Pro</span></div>
-        <div class="tag">Imóveis Luxuosos</div>
-      </div>
-    </div>
-    <nav>
-      <a href="https://wa.me/" class="btn small whatsapp-btn">💬 WhatsApp</a>
-      <a href="admin.html" class="btn small">Área do Corretor</a>
-    </nav>
-  </header>
-
-  <main>
-    <section class="hero">
-      <div class="hero-left">
-        <h1>Encontre a casa dos seus sonhos</h1>
-        <p>Portfólio selecionado de imóveis em SC e PR.</p>
-        <a href="https://wa.me/" class="btn hero-whatsapp">💬 Falar com Corretor via WhatsApp</a>
-      </div>
-      <div class="hero-right" id="hero-gallery">
-        <!-- imagens do Unsplash via JS -->
-      </div>
-    </section>
-
-    <section class="filters-section">
-      <h2>Buscar Imóvel</h2>
-      <div class="filters-grid">
+    <div class="topbar-inner">
+      <a href="index.html" class="logo" aria-label="ImobiPro Home">
+        <img src="logo.png" alt="ImobiPro" class="logo-img">
         <div>
-          <label>Cidade<select id="city-filter">
+          <div class="brand">Imobi<span class="accent">Pro</span></div>
+          <div class="tag">Imóveis Luxuosos</div>
+        </div>
+      </a>
+      <nav class="top-actions">
+        <a href="https://wa.me/5547999701743" class="btn small whatsapp-btn" target="_blank" rel="noopener">💬 WhatsApp</a>
+        <a href="admin.html" class="btn small">Área do Corretor</a>
+      </nav>
+    </div>
+
+    <section class="search-bar-wrap">
+      <div class="filters-grid fly-like-filters">
+        <label>Cidade
+          <select id="city-filter">
             <option value="">Todas as cidades</option>
             <option value="Itapema (SC)">Itapema (SC)</option>
             <option value="Balneário Camboriú (SC)">Balneário Camboriú (SC)</option>
@@ -47,39 +35,56 @@
             <option value="Florianópolis (SC)">Florianópolis (SC)</option>
             <option value="Curitiba (PR)">Curitiba (PR)</option>
             <option value="Ponta Grossa (PR)">Ponta Grossa (PR)</option>
+            <option value="Carambeí (PR)">Carambeí (PR)</option>
             <option value="Maringá (PR)">Maringá (PR)</option>
-          </select></label>
-        </div>
-        <div>
-          <label>Bairro<select id="neighborhood-filter">
+          </select>
+        </label>
+
+        <label>Bairro
+          <select id="neighborhood-filter">
             <option value="">Todos os bairros</option>
-          </select></label>
-        </div>
-        <div>
-          <label>Quartos<select id="bedrooms-filter">
+          </select>
+        </label>
+
+        <label>Dormitórios
+          <select id="bedrooms-filter">
             <option value="">Todos</option>
-            <option value="1">1 quarto</option>
-            <option value="2">2 quartos</option>
-            <option value="3">3 quartos</option>
-            <option value="4+">4+ quartos</option>
-          </select></label>
-        </div>
-        <div>
-          <label>Garagens<select id="parking-filter">
+            <option value="1">1 dormitório</option>
+            <option value="2">2 dormitórios</option>
+            <option value="3">3 dormitórios</option>
+            <option value="4+">4+ dormitórios</option>
+          </select>
+        </label>
+
+        <label>Vagas
+          <select id="parking-filter">
             <option value="">Todas</option>
             <option value="1">1 vaga</option>
             <option value="2">2 vagas</option>
             <option value="3">3 vagas</option>
             <option value="4+">4+ vagas</option>
-          </select></label>
-        </div>
-        <div>
-          <label>Valor Mín.<input id="price-min-filter" type="number" placeholder="Ex: 100000" min="10000"></label>
-        </div>
-        <div>
-          <label>Valor Máx.<input id="price-max-filter" type="number" placeholder="Ex: 1000000" max="130000000"></label>
-        </div>
+          </select>
+        </label>
+
+        <label>Valor mínimo
+          <input id="price-min-filter" type="number" placeholder="R$ 10.000" min="10000" max="130000000" step="1000">
+        </label>
+
+        <label>Valor máximo
+          <input id="price-max-filter" type="number" placeholder="R$ 130.000.000" min="10000" max="130000000" step="1000">
+        </label>
       </div>
+    </section>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-left">
+        <h1>Encontre o imóvel ideal para viver ou investir</h1>
+        <p>Portfólio selecionado de imóveis em SC e PR com atendimento premium.</p>
+        <a href="https://wa.me/5547999701743" class="btn hero-whatsapp" target="_blank" rel="noopener">💬 Falar com Corretor via WhatsApp</a>
+      </div>
+      <div class="hero-right" id="hero-gallery"></div>
     </section>
 
     <section class="listings">
@@ -91,13 +96,15 @@
   <div id="contact-modal" class="modal hidden">
     <div class="modal-content">
       <h3>Fale com o corretor via WhatsApp</h3>
-      <p>Redirecione para o WhatsApp para conversar comigo em tempo real!</p>
+      <p>Você será redirecionado para um atendimento direto no WhatsApp.</p>
       <div class="actions">
-        <a href="https://wa.me/" class="btn">Abrir WhatsApp</a>
+        <a href="https://wa.me/5547999701743" class="btn" target="_blank" rel="noopener">Abrir WhatsApp</a>
         <button type="button" id="close-contact" class="btn secondary">Fechar</button>
       </div>
     </div>
   </div>
+
+  <a href="https://wa.me/5547999701743" class="floating-whatsapp" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
 
   <footer class="footer">
     <small>© 2026 ImobiPro — Corretor</small>
