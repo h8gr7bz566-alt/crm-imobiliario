@@ -115,15 +115,11 @@
     const neighborhood = document.getElementById('neighborhood-filter')?.value || '';
     const bedrooms = document.getElementById('bedrooms-filter')?.value || '';
     const parking = document.getElementById('parking-filter')?.value || '';
-    const priceRange = document.getElementById('price-filter')?.value || '';
 
-    // Parse price range
-    let priceMin = 0, priceMax = Infinity;
-    if(priceRange){
-      const parts = priceRange.split('-');
-      priceMin = parseInt(parts[0], 10) || 0;
-      priceMax = parseInt(parts[1], 10) || Infinity;
-    }
+    // Range slider: passo de 1 milhão, inicia em 130M = mostra todos
+    const slider = document.getElementById('price-slider');
+    const priceMaxVal = slider ? parseInt(slider.value, 10) : 130000000;
+    const priceMin = 0;
 
     const filtered = props.filter(p => {
       if(city && p.city !== city) return false;
@@ -137,7 +133,7 @@
         if(parking !== '4+' && Number(p.parking) !== Number(parking)) return false;
       }
       const price = parseInt(String(p.price || '').replace(/[^0-9]/g, ''), 10) || 0;
-      if(price < priceMin || price > priceMax) return false;
+      if(price < priceMin || price > priceMaxVal) return false;
       return true;
     });
 
@@ -202,6 +198,18 @@
     const el = document.getElementById('hero-gallery');
     if(!el) return;
     el.innerHTML = SAMPLE_URLS.map(u => `<img src="${u}" alt="casa">`).join('');
+  }
+
+  // Atualiza o rótulo do slider em tempo real
+  function attachPriceSlider(){
+    const slider = document.getElementById('price-slider');
+    const label = document.getElementById('price-label');
+    if(!slider || !label) return;
+    slider.addEventListener('input', ()=>{
+      const val = parseInt(slider.value, 10);
+      label.textContent = 'Até R$ ' + val.toLocaleString('pt-BR');
+      renderPublic();
+    });
   }
 
   // ───── Filtros ─────
@@ -394,6 +402,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     await getAllProperties();
     renderHero();
+    attachPriceSlider();
     attachFilters();
     attachAdminCityNeighborhood();
     await renderAdmin();

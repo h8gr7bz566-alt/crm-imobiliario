@@ -76,14 +76,9 @@
           </select>
         </label>
 
-        <label>Faixa de Preço
-          <select id="price-filter">
-            <option value="">Todas as faixas</option>
-            <option value="0-5000000">Até R$ 5 Milhões</option>
-            <option value="5000000-15000000">De R$ 5M a R$ 15 Milhões</option>
-            <option value="15000000-50000000">De R$ 15M a R$ 50 Milhões</option>
-            <option value="50000000-999999999">Acima de R$ 50 Milhões</option>
-          </select>
+        <label class="price-slider-label" style="grid-column:span 2">
+          <span id="price-label" style="display:block;margin-bottom:4px;font-size:12px;color:rgba(245,248,255,0.8)">Até R$ 130.000.000</span>
+          <input id="price-slider" type="range" min="0" max="130000000" value="130000000" step="1000000">
         </label>
       </div>
     </div>
