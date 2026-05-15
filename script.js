@@ -4,7 +4,7 @@
   const WHATSAPP_NUMBER = '5547999701743';
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
-  const LS_KEY = 'imobi-properties';
+  const LS_KEY = 'meus_imoveis_luxo';
 
   const CITY_NEIGHBORHOODS = {
     'Balneário Camboriú (SC)': ['Centro','Barra Sul','Barra Norte','Pioneiros','Praia dos Amores','Nações','Estados','Ariribá'],
@@ -24,7 +24,7 @@
     'https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=3'
   ];
 
-  // ───── LocalStorage (substitui IndexedDB) ─────
+  // ───── LocalStorage com chave UNIFICADA 'meus_imoveis_luxo' ─────
   function getAllProperties(){
     try {
       return JSON.parse(localStorage.getItem(LS_KEY) || '[]');
@@ -87,7 +87,7 @@
     return results;
   }
 
-  // ───── Render Public (Index) ─────
+  // ───── Render Public (Index) — SEM rua/numero por sigilo ─────
   function renderPublic(){
     const container = document.getElementById('properties');
     if(!container) return;
