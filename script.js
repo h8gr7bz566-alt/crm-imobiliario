@@ -312,8 +312,8 @@ function renderCoverPicker(images) {
   const picker = document.getElementById('cover-picker')
   const strip  = document.getElementById('cover-strip')
   if (!picker || !strip) return
-  if (!images.length) { picker.classList.add('hidden'); return }
-  picker.classList.remove('hidden')
+  if (!images.length) { picker.style.display = 'none'; return }
+  picker.style.display = ''
   strip.innerHTML = images.map(url => `
     <div class="cover-thumb-wrap${url === selectedCover ? ' selected' : ''}" data-url="${url}">
       <img src="${url}" class="cover-thumb" alt="">
