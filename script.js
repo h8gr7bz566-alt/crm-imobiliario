@@ -719,12 +719,35 @@ async function initSettings(profile) {
     const section = document.getElementById('settings-corretores-section')
     if (section) section.style.display = ''
     await loadCorretores()
-    document.getElementById('btn-invite-corretor')?.addEventListener('click', () => {
-      const email  = document.getElementById('invite-email')?.value.trim()
-      const noteEl = document.getElementById('invite-note')
-      if (!email || !noteEl) return
-      noteEl.style.display = ''
-      noteEl.textContent = `Para convidar "${email}", acesse o painel do Supabase → Authentication → Users → "Invite user". Após o cadastro, o perfil aparecerá na lista automaticamente (se houver trigger) ou você pode inserir via SQL: INSERT INTO profiles (id, name, role) SELECT id, email, 'corretor' FROM auth.users WHERE email = '${email}';`
+    document.getElementById('btn-invite-corretor')?.addEventListener('click', async () => {
+      const email   = document.getElementById('invite-email')?.value.trim()
+      const noteEl  = document.getElementById('invite-note')
+      const btn     = document.getElementById('btn-invite-corretor')
+      if (!email) return
+      if (btn) { btn.disabled = true; btn.textContent = 'Enviando…' }
+      try {
+        const res = await fetch('https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/invite-user', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabase.supabaseKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email })
+        })
+        const result = await res.json()
+        if (result.success) {
+          alert('Convite enviado com sucesso! O corretor receberá um e-mail.')
+          const emailInput = document.getElementById('invite-email')
+          if (emailInput) emailInput.value = ''
+          if (noteEl) noteEl.style.display = 'none'
+        } else {
+          alert('Erro: ' + (result.error || 'Falha desconhecida'))
+        }
+      } catch (err) {
+        alert('Erro ao chamar a função de convite: ' + err.message)
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Convidar' }
+      }
     })
 
     const locSection = document.getElementById('settings-locations-section')
