@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Painel Admin — Isaac Omar Corretor</title>
   <script type="module" crossorigin src="/crm-imobiliario/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/crm-imobiliario/assets/script-B8nt45I0.js"></script>
-  <link rel="stylesheet" crossorigin href="/crm-imobiliario/assets/admin-BtcI-EJJ.css">
+  <script type="module" crossorigin src="/crm-imobiliario/assets/script-v7jD7mye.js"></script>
+  <link rel="stylesheet" crossorigin href="/crm-imobiliario/assets/admin-BbmCAOpz.css">
 </head>
 <body>
 
@@ -56,6 +56,16 @@
       </nav>
 
       <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user">
+          <div class="sidebar-avatar-wrap">
+            <img id="sidebar-avatar" src="" alt="" class="sidebar-avatar" style="display:none">
+            <div id="sidebar-avatar-initial" class="sidebar-avatar-initial">?</div>
+          </div>
+          <div class="sidebar-user-info">
+            <div id="sidebar-name" class="sidebar-user-name">Carregando…</div>
+            <div id="sidebar-role" class="sidebar-user-role">—</div>
+          </div>
+        </div>
         <a href="index.html" class="sidebar-link">
           <span>🌐</span> Ver Site Público
         </a>
@@ -138,10 +148,50 @@
         <div class="section-topbar">
           <div>
             <div class="section-title">Configurações</div>
-            <div class="section-sub">Preferências do painel</div>
+            <div class="section-sub">Perfil e gerenciamento de usuários</div>
           </div>
         </div>
-        <p style="color:#6b7280;font-size:14px">Em breve.</p>
+
+        <!-- Meu Perfil -->
+        <div class="settings-card">
+          <h3 class="settings-card-title">Meu Perfil</h3>
+          <div class="settings-profile-layout">
+            <div class="settings-avatar-col">
+              <div class="settings-avatar-wrap">
+                <img id="settings-avatar-preview" src="" alt="" class="settings-avatar-img" style="display:none">
+                <div id="settings-avatar-initial" class="settings-avatar-initial">?</div>
+              </div>
+              <label for="settings-avatar-input" class="settings-avatar-btn">Alterar foto</label>
+              <input id="settings-avatar-input" type="file" accept="image/*" style="display:none">
+            </div>
+            <div class="settings-fields-col">
+              <div class="form-group" style="margin-bottom:16px">
+                <label class="form-label">Nome de exibição</label>
+                <input id="settings-name" class="form-control" placeholder="Seu nome completo">
+              </div>
+              <div class="form-group" style="margin-bottom:20px">
+                <label class="form-label">E-mail</label>
+                <input id="settings-email" class="form-control" disabled style="background:#fafbfc;color:#6b7280">
+              </div>
+              <button class="btn-primary" id="settings-save-profile">Salvar Perfil</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gerenciar Corretores — admin only -->
+        <div class="settings-card" id="settings-corretores-section" style="display:none">
+          <h3 class="settings-card-title">Gerenciar Corretores</h3>
+          <div class="settings-invite-row">
+            <div class="form-group" style="flex:1">
+              <label class="form-label">Convidar por E-mail</label>
+              <input id="invite-email" type="email" class="form-control" placeholder="corretor@email.com">
+            </div>
+            <button class="btn-primary" id="btn-invite-corretor" style="align-self:flex-end">Convidar</button>
+          </div>
+          <p id="invite-note" class="settings-note" style="display:none"></p>
+          <div class="settings-divider"></div>
+          <div id="corretores-list" class="corretores-list">Carregando…</div>
+        </div>
       </section>
 
     </main>
