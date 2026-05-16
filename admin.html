@@ -177,6 +177,35 @@
           </div>
         </div>
 
+        <!-- Localização — admin only -->
+        <div class="settings-card" id="settings-locations-section" style="display:none">
+          <h3 class="settings-card-title">Localização (Busca do Site)</h3>
+          <div class="loc-columns">
+
+            <div class="loc-col">
+              <div class="loc-col-title">Cidades</div>
+              <div id="loc-cities-list" class="loc-list">Carregando…</div>
+              <div class="loc-add-row">
+                <input id="loc-new-city" type="text" class="form-control" placeholder="Nova cidade…">
+                <button id="loc-add-city-btn" class="btn-primary">Adicionar</button>
+              </div>
+            </div>
+
+            <div class="loc-col">
+              <div class="loc-col-title">Bairros</div>
+              <div id="loc-neighborhoods-list" class="loc-list">Carregando…</div>
+              <div class="loc-add-row loc-add-row-neigh">
+                <select id="loc-new-neighborhood-city" class="form-control" style="flex:0 0 auto;width:auto">
+                  <option value="">Cidade…</option>
+                </select>
+                <input id="loc-new-neighborhood" type="text" class="form-control" placeholder="Novo bairro…">
+                <button id="loc-add-neighborhood-btn" class="btn-primary">Adicionar</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
         <!-- Gerenciar Corretores — admin only -->
         <div class="settings-card" id="settings-corretores-section" style="display:none">
           <h3 class="settings-card-title">Gerenciar Corretores</h3>
@@ -229,15 +258,6 @@
               <label class="form-label">Cidade *</label>
               <select name="city" id="adminCitySelect" required class="form-control">
                 <option value="">Selecione</option>
-                <option value="Itapema (SC)">Itapema (SC)</option>
-                <option value="Balneário Camboriú (SC)">Balneário Camboriú (SC)</option>
-                <option value="Itajaí (SC)">Itajaí (SC)</option>
-                <option value="Porto Belo (SC)">Porto Belo (SC)</option>
-                <option value="Florianópolis (SC)">Florianópolis (SC)</option>
-                <option value="Curitiba (PR)">Curitiba (PR)</option>
-                <option value="Ponta Grossa (PR)">Ponta Grossa (PR)</option>
-                <option value="Carambeí (PR)">Carambeí (PR)</option>
-                <option value="Maringá (PR)">Maringá (PR)</option>
               </select>
             </div>
             <div class="form-group">

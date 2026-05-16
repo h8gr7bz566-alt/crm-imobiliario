@@ -808,6 +808,52 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 .corretor-you       { font-size: 12px; color: var(--text-muted); font-style: italic; }
 .corretor-actions   { flex-shrink: 0; }
 
+/* ─── Locations settings ──────────────────────────────────────────── */
+.loc-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.loc-col-title {
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text-muted); margin-bottom: 10px;
+}
+.loc-list {
+  min-height: 72px; max-height: 240px; overflow-y: auto;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 4px; margin-bottom: 10px;
+  background: #fafbfc;
+  scrollbar-width: thin; scrollbar-color: #d1d5db transparent;
+}
+.loc-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 8px; border-radius: 6px;
+  font-size: 13px; color: var(--text);
+}
+.loc-item:hover { background: #f0f1f3; }
+.loc-item-name  { flex: 1; font-weight: 500; }
+.loc-item-sub   { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.loc-del-btn {
+  background: none; border: none; cursor: pointer;
+  color: #dc2626; font-size: 13px; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px; line-height: 1;
+  flex-shrink: 0; transition: background 0.15s;
+}
+.loc-del-btn:hover { background: #fef2f2; }
+.loc-add-row {
+  display: flex; gap: 8px; align-items: center;
+}
+.loc-add-row .form-control { flex: 1; min-width: 0; }
+.loc-add-row .btn-primary  { padding: 10px 14px; flex-shrink: 0; font-size: 13px; }
+.loc-empty {
+  color: var(--text-muted); font-size: 13px; padding: 10px 8px;
+}
+@media (max-width: 600px) {
+  .loc-columns { grid-template-columns: 1fr; }
+  .loc-add-row-neigh { flex-wrap: wrap; }
+}
+
 /* ─── Role-based visibility ───────────────────────────────────────── */
 #admin-root[data-role="corretor"] #btn-new-property        { display: none !important; }
 #admin-root[data-role="corretor"] .action-btns             { display: none !important; }

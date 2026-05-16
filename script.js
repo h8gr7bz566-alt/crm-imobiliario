@@ -4,18 +4,6 @@ import { supabase } from './lib/supabase.js'
 const WHATSAPP_NUMBER = '5547999701743'
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`
 
-const CITY_NEIGHBORHOODS = {
-  'Balneário Camboriú (SC)': ['Centro','Barra Sul','Barra Norte','Pioneiros','Praia dos Amores','Nações','Estados','Ariribá'],
-  'Itapema (SC)': ['Meia Praia','Centro','Morretes','Tabuleiro','Ilhota','Alto São Bento'],
-  'Itajaí (SC)': ['Praia Brava','Centro','Fazenda','Cabeçudas','Ressacada','Cordeiros'],
-  'Porto Belo (SC)': ['Perequê','Centro','Balneário Perequê','Alto Perequê'],
-  'Florianópolis (SC)': ['Centro','Jurerê Internacional','Campeche','Trindade','Agronômica','Ingleses'],
-  'Curitiba (PR)': ['Batel','Bigorrilho','Ecoville','Centro','Água Verde','Cabral'],
-  'Ponta Grossa (PR)': ['Olarias','Estrela','Centro','Jardim América','Uvaranas','Nova Rússia','Oficinas'],
-  'Carambeí (PR)': ['Centro','Boqueirão','Novo Horizonte','Jardim Eldorado','AFC','Catanduvas'],
-  'Maringá (PR)': ['Zona 01','Zona 02','Zona 03','Zona 04','Zona 05','Zona 06','Zona 07']
-}
-
 const SAMPLE_URLS = [
   'https://images.unsplash.com/photo-1560184897-e6f6f0d0b1f8?q=80&w=1200&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop',
@@ -25,6 +13,7 @@ const SAMPLE_URLS = [
 // Cache em memória — necessário para o carousel funcionar sem re-fetch
 let cachedProperties = []
 let currentProfile    = null
+let cachedLocations   = []
 
 // ─── Supabase: buscar imóveis publicados (listagem pública) ───────────────
 async function getPublishedProperties() {
@@ -237,10 +226,14 @@ function attachFilters() {
   const cityFilter         = document.getElementById('city-filter')
   const neighborhoodFilter = document.getElementById('neighborhood-filter')
   if (cityFilter && neighborhoodFilter) {
+    const cities = getCities()
+    cityFilter.innerHTML = '<option value="">Todas as cidades</option>' +
+      cities.map(c => `<option value="${c.name}">${escapeHTML(c.name)}</option>`).join('')
     cityFilter.addEventListener('change', () => {
-      const neighborhoods = CITY_NEIGHBORHOODS[cityFilter.value] || []
+      const sel = getCities().find(c => c.name === cityFilter.value)
+      const neighborhoods = sel ? getNeighborhoods(sel.id) : []
       neighborhoodFilter.innerHTML = '<option value="">Todos os bairros</option>' +
-        neighborhoods.map(n => `<option value="${n}">${n}</option>`).join('')
+        neighborhoods.map(n => `<option value="${n.name}">${escapeHTML(n.name)}</option>`).join('')
       renderPublic()
     })
   }
@@ -659,6 +652,32 @@ async function initSettings(profile) {
       noteEl.style.display = ''
       noteEl.textContent = `Para convidar "${email}", acesse o painel do Supabase → Authentication → Users → "Invite user". Após o cadastro, o perfil aparecerá na lista automaticamente (se houver trigger) ou você pode inserir via SQL: INSERT INTO profiles (id, name, role) SELECT id, email, 'corretor' FROM auth.users WHERE email = '${email}';`
     })
+
+    const locSection = document.getElementById('settings-locations-section')
+    if (locSection) locSection.style.display = ''
+    await renderLocationsSettings()
+
+    document.getElementById('loc-add-city-btn')?.addEventListener('click', async () => {
+      const input = document.getElementById('loc-new-city')
+      const name  = input?.value.trim()
+      if (!name) return
+      const { error } = await supabase.from('locations').insert({ type: 'cidade', name })
+      if (error) { alert('Erro ao adicionar cidade.'); return }
+      if (input) input.value = ''
+      await renderLocationsSettings()
+      populateAdminCitySelect()
+    })
+
+    document.getElementById('loc-add-neighborhood-btn')?.addEventListener('click', async () => {
+      const cityId = parseInt(document.getElementById('loc-new-neighborhood-city')?.value, 10)
+      const input  = document.getElementById('loc-new-neighborhood')
+      const name   = input?.value.trim()
+      if (!cityId || !name) { alert('Selecione a cidade e informe o nome do bairro.'); return }
+      const { error } = await supabase.from('locations').insert({ type: 'bairro', name, parent_id: cityId })
+      if (error) { alert('Erro ao adicionar bairro.'); return }
+      if (input) input.value = ''
+      await renderLocationsSettings()
+    })
   }
 }
 
@@ -697,6 +716,93 @@ async function loadCorretores() {
   })
 }
 
+
+
+// ─── Locations: CRUD no Supabase ─────────────────────────────────────────────
+async function loadLocations() {
+  const { data, error } = await supabase
+    .from('locations')
+    .select('*')
+    .order('name')
+  if (error) { console.error('loadLocations:', error); return [] }
+  cachedLocations = data || []
+  return cachedLocations
+}
+
+function getCities() {
+  return cachedLocations.filter(l => l.type === 'cidade')
+}
+
+function getNeighborhoods(cityId) {
+  return cachedLocations.filter(l => l.type === 'bairro' && l.parent_id === cityId)
+}
+
+function populateAdminCitySelect() {
+  const citySel = document.getElementById('adminCitySelect')
+  if (!citySel) return
+  const current = citySel.value
+  const cities  = getCities()
+  citySel.innerHTML = '<option value="">Selecione</option>' +
+    cities.map(c => `<option value="${c.name}">${escapeHTML(c.name)}</option>`).join('')
+  if (current) citySel.value = current
+}
+
+async function renderLocationsSettings() {
+  await loadLocations()
+  const cities    = getCities()
+  const citiesEl  = document.getElementById('loc-cities-list')
+  const neighsEl  = document.getElementById('loc-neighborhoods-list')
+  const neighCity = document.getElementById('loc-new-neighborhood-city')
+  if (!citiesEl || !neighsEl) return
+
+  citiesEl.innerHTML = cities.length
+    ? cities.map(c => `
+        <div class="loc-item">
+          <span class="loc-item-name">${escapeHTML(c.name)}</span>
+          <button class="loc-del-btn" data-id="${c.id}" title="Excluir">✕</button>
+        </div>`).join('')
+    : '<p class="loc-empty">Nenhuma cidade cadastrada.</p>'
+
+  const allNeigh = cachedLocations.filter(l => l.type === 'bairro')
+  neighsEl.innerHTML = allNeigh.length
+    ? allNeigh.map(n => {
+        const city = cities.find(c => c.id === n.parent_id)
+        return `
+          <div class="loc-item">
+            <div>
+              <div class="loc-item-name">${escapeHTML(n.name)}</div>
+              ${city ? `<div class="loc-item-sub">${escapeHTML(city.name)}</div>` : ''}
+            </div>
+            <button class="loc-del-btn" data-id="${n.id}" title="Excluir">✕</button>
+          </div>`
+      }).join('')
+    : '<p class="loc-empty">Nenhum bairro cadastrado.</p>'
+
+  if (neighCity) {
+    neighCity.innerHTML = '<option value="">Cidade…</option>' +
+      cities.map(c => `<option value="${c.id}">${escapeHTML(c.name)}</option>`).join('')
+  }
+
+  citiesEl.querySelectorAll('.loc-del-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const name = btn.closest('.loc-item').querySelector('.loc-item-name').textContent
+      if (!confirm(`Excluir "${name}" e todos os bairros vinculados?`)) return
+      const { error } = await supabase.from('locations').delete().eq('id', btn.dataset.id)
+      if (error) { alert('Erro ao excluir.'); return }
+      await renderLocationsSettings()
+      populateAdminCitySelect()
+    })
+  })
+
+  neighsEl.querySelectorAll('.loc-del-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Excluir este bairro?')) return
+      const { error } = await supabase.from('locations').delete().eq('id', btn.dataset.id)
+      if (error) { alert('Erro ao excluir.'); return }
+      await renderLocationsSettings()
+    })
+  })
+}
 
 function attachAdminUI() {
   // Sidebar navigation
@@ -825,6 +931,7 @@ function attachAdminUI() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  await loadLocations()
   attachPriceSlider()
   attachFilters()
 
@@ -832,10 +939,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const citySel  = document.getElementById('adminCitySelect')
   const neighSel = document.getElementById('adminNeighborhood')
   if (citySel && neighSel) {
+    populateAdminCitySelect()
     citySel.addEventListener('change', () => {
-      const list = CITY_NEIGHBORHOODS[citySel.value] || []
+      const sel  = getCities().find(c => c.name === citySel.value)
+      const list = sel ? getNeighborhoods(sel.id) : []
       neighSel.innerHTML = '<option value="">Selecione a cidade primeiro</option>' +
-        list.map(n => `<option value="${n}">${n}</option>`).join('')
+        list.map(n => `<option value="${n.name}">${escapeHTML(n.name)}</option>`).join('')
     })
   }
 
