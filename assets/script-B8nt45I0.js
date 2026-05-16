@@ -36,7 +36,7 @@ import{s as b}from"./supabase-BcuJ3xoD.js";const z="5547999701743",D=`https://wa
           <button data-id="${i.id}" class="icon-btn del-btn" title="Remover">🗑️</button>
         </div>
       </td>
-    </tr>`}).join("")}let y=null,S="";function j(e){document.getElementById("modal-title").textContent=e||"Novo Imóvel",document.getElementById("property-modal").classList.remove("hidden"),document.body.style.overflow="hidden"}function _(){document.getElementById("property-modal").classList.add("hidden"),document.body.style.overflow=""}function M(e){const t=document.getElementById("cover-picker"),r=document.getElementById("cover-strip");if(!(!t||!r)){if(!e.length){t.classList.add("hidden");return}t.classList.remove("hidden"),r.innerHTML=e.map(n=>`
+    </tr>`}).join("")}let y=null,S="";function j(e){document.getElementById("modal-title").textContent=e||"Novo Imóvel",document.getElementById("property-modal").classList.remove("hidden"),document.body.style.overflow="hidden"}function _(){document.getElementById("property-modal").classList.add("hidden"),document.body.style.overflow=""}function M(e){const t=document.getElementById("cover-picker"),r=document.getElementById("cover-strip");if(!(!t||!r)){if(!e.length){t.style.display="none";return}t.style.display="",r.innerHTML=e.map(n=>`
     <div class="cover-thumb-wrap${n===S?" selected":""}" data-url="${n}">
       <img src="${n}" class="cover-thumb" alt="">
       <span class="cover-star">★</span>
