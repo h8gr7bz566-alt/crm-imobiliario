@@ -156,7 +156,10 @@ async function renderPublic() {
           <div><strong>${escapeHTML(p.price)}</strong></div>
           <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} ${total > 1 ? '| 📸 ' + total : ''}</div>
           <p class="muted">${escapeHTML((p.description || '').slice(0, 110))}</p>
-          <a class="btn hero-whatsapp-btn" href="${WHATSAPP_URL}" target="_blank" rel="noopener" style="width:100%;justify-content:center;margin-top:6px">Falar sobre este imóvel</a>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <a class="btn btn-outline" href="property.html?id=${p.id}" style="flex:1;justify-content:center">Ver Detalhes</a>
+            <a class="btn hero-whatsapp-btn" href="${WHATSAPP_URL}" target="_blank" rel="noopener" style="flex:1;justify-content:center">WhatsApp</a>
+          </div>
         </div>
       </div>
     `
