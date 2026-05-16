@@ -1,6 +1,8 @@
 // script.js — Supabase Integration
 import { supabase } from './lib/supabase.js'
 
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
 const WHATSAPP_NUMBER = '5547999701743'
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`
 
@@ -662,7 +664,7 @@ async function callEdgeFunction(body) {
   const res = await fetch(EDGE_FN_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${supabase.supabaseKey}`,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(body)
@@ -812,6 +814,8 @@ async function loadCorretores() {
     const toggleBtn = isMe ? '' : isActive
       ? `<button class="corretor-toggle-btn" data-uid="${p.id}" data-active="true">Pausar acesso</button>`
       : `<button class="corretor-toggle-btn btn-liberar" data-uid="${p.id}" data-active="false">Liberar acesso</button>`
+    const deleteBtn = isMe ? '' :
+      `<button class="corretor-del-btn icon-btn" data-uid="${p.id}" title="Excluir corretor">🗑️</button>`
     return `<div class="corretor-item">
       <div class="corretor-info">
         ${avatar}
@@ -824,6 +828,7 @@ async function loadCorretores() {
         ${activeBadge}
         ${roleSelect}
         ${toggleBtn}
+        ${deleteBtn}
       </div>
     </div>`
   }).join('')
@@ -836,16 +841,26 @@ async function loadCorretores() {
     btn.addEventListener('click', async () => {
       const uid      = btn.dataset.uid
       const isActive = btn.dataset.active === 'true'
-      const action   = isActive ? 'ban' : 'unban'
       btn.disabled = true
       btn.textContent = 'Aguarde…'
       try {
-        await supabase.from('profiles').update({ active: !isActive }).eq('id', uid)
-        const result = await callEdgeFunction({ action, userId: uid })
-        if (!result.success) {
-          alert('Erro: ' + (result.error || 'Falha desconhecida'))
-          await supabase.from('profiles').update({ active: isActive }).eq('id', uid)
-        }
+        const result = await callEdgeFunction({ action: 'toggle', userId: uid, active: !isActive })
+        if (!result.success) alert('Erro: ' + (result.error || 'Falha desconhecida'))
+      } catch (err) {
+        alert('Erro: ' + err.message)
+      }
+      await loadCorretores()
+    })
+  })
+  listEl.querySelectorAll('.corretor-del-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const uid  = btn.dataset.uid
+      const name = btn.closest('.corretor-item')?.querySelector('.corretor-name')?.textContent || 'este corretor'
+      if (!confirm(`Excluir "${name}"? Esta ação não pode ser desfeita.`)) return
+      btn.disabled = true
+      try {
+        const result = await callEdgeFunction({ action: 'delete', userId: uid })
+        if (!result.success) alert('Erro ao excluir: ' + (result.error || 'Falha desconhecida'))
       } catch (err) {
         alert('Erro: ' + err.message)
       }

@@ -24,29 +24,29 @@ Deno.serve(async (req: Request) => {
     )
 
     const body = await req.json()
-    const { action, email, password, userId } = body
+    const { action, email, password, userId, active } = body
 
-    // ── Ban user ──────────────────────────────────────────────────────────
-    if (action === 'ban') {
+    // ── Toggle ativo/pausado ──────────────────────────────────────────────
+    if (action === 'toggle') {
       if (!userId) return json({ success: false, error: 'userId obrigatório' })
+      await supabase.from('profiles').update({ active }).eq('id', userId)
       const { error } = await supabase.auth.admin.updateUserById(userId, {
-        ban_duration: '87600h',
+        ban_duration: active ? 'none' : '87600h',
       })
       if (error) return json({ success: false, error: error.message })
       return json({ success: true })
     }
 
-    // ── Unban user ────────────────────────────────────────────────────────
-    if (action === 'unban') {
+    // ── Excluir corretor ──────────────────────────────────────────────────
+    if (action === 'delete') {
       if (!userId) return json({ success: false, error: 'userId obrigatório' })
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
-        ban_duration: 'none',
-      })
+      await supabase.from('profiles').delete().eq('id', userId)
+      const { error } = await supabase.auth.admin.deleteUser(userId)
       if (error) return json({ success: false, error: error.message })
       return json({ success: true })
     }
 
-    // ── Create user ───────────────────────────────────────────────────────
+    // ── Criar usuário ─────────────────────────────────────────────────────
     if (!email || !password) {
       return json({ success: false, error: 'Email e senha são obrigatórios' })
     }
@@ -58,7 +58,6 @@ Deno.serve(async (req: Request) => {
     })
     if (error) return json({ success: false, error: error.message })
 
-    // Cria perfil automaticamente
     await supabase.from('profiles').upsert({
       id: data.user.id,
       name: email,
