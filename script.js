@@ -138,6 +138,7 @@ async function renderPublic() {
   const neighborhood = document.getElementById('neighborhood-filter')?.value || ''
   const bedrooms     = document.getElementById('bedrooms-filter')?.value || ''
   const parking      = document.getElementById('parking-filter')?.value || ''
+  const construction = document.getElementById('construction-filter')?.value || ''
   const slider       = document.getElementById('price-slider')
   const priceMaxVal  = slider ? parseInt(slider.value, 10) : 130000000
 
@@ -152,6 +153,7 @@ async function renderPublic() {
       if (parking === '4+' && Number(p.parking) < 4) return false
       if (parking !== '4+' && Number(p.parking) !== Number(parking)) return false
     }
+    if (construction && p.construction_status !== construction) return false
     // Remove símbolo, espaços e centavos (,XX) antes de extrair o número
     const priceStr = String(p.price || '').replace(/,\d{0,2}$/, '').replace(/[^0-9]/g, '')
     const price = parseInt(priceStr, 10) || 0
@@ -380,7 +382,8 @@ function attachAdminForm() {
       owner_phone:  fd.get('owner_phone') || '',
       owner_email:  fd.get('owner_email') || '',
       owner_notes:  fd.get('owner_notes') || '',
-      cover_image:  selectedCover || ''
+      cover_image:  selectedCover || '',
+      construction_status: fd.get('construction_status') || ''
     }
 
     try {
@@ -393,6 +396,8 @@ function attachAdminForm() {
       if (pubSel) pubSel.value = 'true'
       const neighSel = document.getElementById('adminNeighborhood')
       if (neighSel) neighSel.innerHTML = '<option value="">Selecione a cidade primeiro</option>'
+      const constrSel = document.getElementById('adminConstructionStatus')
+      if (constrSel) constrSel.value = ''
       selectedCover = ''
       renderCoverPicker([])
       closeModal()
@@ -434,6 +439,7 @@ function attachAdminForm() {
       form.querySelector('[name="area"]').value        = p.area   || ''
       form.querySelector('[name="parking"]').value     = p.parking || ''
       form.querySelector('[name="description"]').value  = p.description || ''
+      form.querySelector('[name="construction_status"]').value = p.construction_status || ''
       form.querySelector('[name="owner_name"]').value   = p.owner_name || ''
       form.querySelector('[name="owner_phone"]').value  = p.owner_phone || ''
       form.querySelector('[name="owner_email"]').value  = p.owner_email || ''
@@ -773,6 +779,7 @@ function attachAdminUI() {
     form.querySelector('[name="suites"]').value      = p.suites || ''
     form.querySelector('[name="parking"]').value     = p.parking || ''
     form.querySelector('[name="description"]').value = p.description || ''
+    form.querySelector('[name="construction_status"]').value = p.construction_status || ''
     form.querySelector('[name="owner_name"]').value  = p.owner_name || ''
     form.querySelector('[name="owner_phone"]').value = p.owner_phone || ''
     form.querySelector('[name="owner_email"]').value = p.owner_email || ''
