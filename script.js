@@ -737,20 +737,16 @@ async function initSettings(profile) {
     if (section) section.style.display = ''
     await loadCorretores()
     document.getElementById('btn-invite-corretor')?.addEventListener('click', async () => {
-      const email    = document.getElementById('invite-email')?.value.trim()
-      const password = document.getElementById('invite-password')?.value.trim()
-      const btn      = document.getElementById('btn-invite-corretor')
-      if (!email || !password) { alert('Preencha o e-mail e a senha.'); return }
-      if (password.length < 6) { alert('A senha deve ter pelo menos 6 caracteres.'); return }
-      if (btn) { btn.disabled = true; btn.textContent = 'Criando…' }
+      const email = document.getElementById('invite-email')?.value.trim()
+      const btn   = document.getElementById('btn-invite-corretor')
+      if (!email) { alert('Informe o e-mail do corretor.'); return }
+      if (btn) { btn.disabled = true; btn.textContent = 'Enviando…' }
       try {
-        const result = await callEdgeFunction({ email, password })
+        const result = await callEdgeFunction({ email })
         if (result.success) {
-          alert(`Acesso criado com sucesso!\nE-mail: ${email}\nSenha: ${password}\n\nComunique as credenciais ao corretor.`)
+          alert(`Acesso criado! O corretor receberá um e-mail para definir a senha.`)
           const emailInput = document.getElementById('invite-email')
-          const passInput  = document.getElementById('invite-password')
           if (emailInput) emailInput.value = ''
-          if (passInput)  passInput.value  = ''
           await loadCorretores()
         } else {
           alert('Erro: ' + (result.error || 'Falha desconhecida'))
