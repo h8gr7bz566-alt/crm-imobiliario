@@ -55,10 +55,11 @@ function renderProperty(p) {
   addrEl.textContent = addr ? `📍 ${addr}` : ''
 
   // Descrição
-  const descEl = document.getElementById('prop-description')
+  const descWrap = document.getElementById('prop-desc-wrap')
+  const descEl   = document.getElementById('prop-description')
   if (p.description) {
     descEl.textContent = p.description
-    descEl.classList.remove('hidden')
+    descWrap.classList.remove('hidden')
   }
 
   // Botão WhatsApp com mensagem pré-preenchida
