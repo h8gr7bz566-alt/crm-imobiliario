@@ -24,6 +24,7 @@ const SAMPLE_URLS = [
 
 // Cache em memória — necessário para o carousel funcionar sem re-fetch
 let cachedProperties = []
+let currentProfile    = null
 
 // ─── Supabase: buscar imóveis publicados (listagem pública) ───────────────
 async function getPublishedProperties() {
@@ -554,6 +555,143 @@ function renderViewGallery() {
   })
 }
 
+// ─── Profile: load, sidebar, permissions ─────────────────────────────────────
+async function loadProfile(userId) {
+  const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+  return data
+}
+
+function renderSidebarUser(profile) {
+  const imgEl     = document.getElementById('sidebar-avatar')
+  const initEl    = document.getElementById('sidebar-avatar-initial')
+  const nameEl    = document.getElementById('sidebar-name')
+  const roleEl    = document.getElementById('sidebar-role')
+  if (!nameEl) return
+  const name = profile?.name || 'Sem nome'
+  nameEl.textContent = name
+  roleEl.textContent = profile?.role === 'admin' ? 'Administrador' : 'Corretor'
+  if (initEl) initEl.textContent = name[0]?.toUpperCase() || '?'
+  if (imgEl && profile?.avatar_url) {
+    imgEl.src = profile.avatar_url; imgEl.style.display = ''
+    if (initEl) initEl.style.display = 'none'
+  }
+}
+
+function applyRolePermissions(role) {
+  const root = document.getElementById('admin-root')
+  if (root) root.dataset.role = role || 'corretor'
+}
+
+// ─── Settings: profile edit + corretores ─────────────────────────────────────
+async function initSettings(profile) {
+  const nameInput  = document.getElementById('settings-name')
+  const emailInput = document.getElementById('settings-email')
+  const avatarImg  = document.getElementById('settings-avatar-preview')
+  const avatarInit = document.getElementById('settings-avatar-initial')
+  const avatarFile = document.getElementById('settings-avatar-input')
+  const saveBtn    = document.getElementById('settings-save-profile')
+  if (!nameInput) return
+
+  nameInput.value = profile?.name || ''
+  if (emailInput) {
+    const { data: { user } } = await supabase.auth.getUser()
+    emailInput.value = user?.email || ''
+  }
+
+  const initial = (profile?.name || '?')[0].toUpperCase()
+  if (avatarInit) avatarInit.textContent = initial
+  if (profile?.avatar_url && avatarImg) {
+    avatarImg.src = profile.avatar_url; avatarImg.style.display = ''
+    if (avatarInit) avatarInit.style.display = 'none'
+  }
+
+  avatarFile?.addEventListener('change', e => {
+    const file = e.target.files[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    if (avatarImg) { avatarImg.src = url; avatarImg.style.display = '' }
+    if (avatarInit) avatarInit.style.display = 'none'
+  })
+
+  saveBtn?.addEventListener('click', async () => {
+    const name = nameInput.value.trim()
+    let avatar_url = currentProfile?.avatar_url || ''
+    const file = avatarFile?.files[0]
+    const orig = saveBtn.textContent
+    saveBtn.disabled = true; saveBtn.textContent = 'Salvando…'
+
+    if (file) {
+      try {
+        const blob = await compressToBlob(file, 400, 0.85)
+        const path = `avatars/${currentProfile.id}-${Date.now()}.jpg`
+        const { error: upErr } = await supabase.storage.from('imoveis')
+          .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+        if (!upErr) {
+          const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
+          avatar_url = publicUrl
+        }
+      } catch (err) { console.error('Avatar upload:', err) }
+    }
+
+    const { error } = await supabase.from('profiles').update({ name, avatar_url }).eq('id', currentProfile.id)
+    saveBtn.disabled = false; saveBtn.textContent = orig
+    if (error) { alert('Erro ao salvar perfil.'); return }
+    currentProfile = { ...currentProfile, name, avatar_url }
+    renderSidebarUser(currentProfile)
+    const sInit = document.getElementById('settings-avatar-initial')
+    if (sInit) sInit.textContent = name[0]?.toUpperCase() || '?'
+  })
+
+  if (profile?.role === 'admin') {
+    const section = document.getElementById('settings-corretores-section')
+    if (section) section.style.display = ''
+    await loadCorretores()
+    document.getElementById('btn-invite-corretor')?.addEventListener('click', () => {
+      const email  = document.getElementById('invite-email')?.value.trim()
+      const noteEl = document.getElementById('invite-note')
+      if (!email || !noteEl) return
+      noteEl.style.display = ''
+      noteEl.textContent = `Para convidar "${email}", acesse o painel do Supabase → Authentication → Users → "Invite user". Após o cadastro, o perfil aparecerá na lista automaticamente (se houver trigger) ou você pode inserir via SQL: INSERT INTO profiles (id, name, role) SELECT id, email, 'corretor' FROM auth.users WHERE email = '${email}';`
+    })
+  }
+}
+
+async function loadCorretores() {
+  const listEl = document.getElementById('corretores-list')
+  if (!listEl) return
+  const { data, error } = await supabase.from('profiles').select('*').order('created_at')
+  if (error || !data) { listEl.innerHTML = '<p style="color:#6b7280;font-size:14px">Erro ao carregar.</p>'; return }
+  listEl.innerHTML = data.map(p => {
+    const initial = (p.name || '?')[0].toUpperCase()
+    const avatar  = p.avatar_url
+      ? `<img src="${p.avatar_url}" class="corretor-avatar" alt="">`
+      : `<div class="corretor-avatar-initial">${escapeHTML(initial)}</div>`
+    const isMe = p.id === currentProfile?.id
+    const roleSelect = isMe
+      ? `<span class="corretor-you">Você</span>`
+      : `<select class="form-control corretor-role-sel" data-uid="${p.id}" style="width:120px;padding:6px 8px;font-size:13px">
+           <option value="corretor"${p.role === 'corretor' ? ' selected' : ''}>Corretor</option>
+           <option value="admin"${p.role === 'admin' ? ' selected' : ''}>Admin</option>
+         </select>`
+    return `<div class="corretor-item">
+      <div class="corretor-info">
+        ${avatar}
+        <div>
+          <div class="corretor-name">${escapeHTML(p.name || '—')}</div>
+          <div class="corretor-role-badge">${p.role === 'admin' ? '👑 Admin' : '🔑 Corretor'}</div>
+        </div>
+      </div>
+      <div class="corretor-actions">${roleSelect}</div>
+    </div>`
+  }).join('')
+  listEl.querySelectorAll('.corretor-role-sel').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      await supabase.from('profiles').update({ role: sel.value }).eq('id', sel.dataset.uid)
+    })
+  })
+}
+
+
 function attachAdminUI() {
   // Sidebar navigation
   document.querySelectorAll('.nav-item[data-section]').forEach(item => {
@@ -705,6 +843,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       await renderAdmin()
       attachAdminForm()
       attachAdminUI()
+
+      currentProfile = await loadProfile(session.user.id)
+      if (!currentProfile) {
+        loginModal.classList.remove('hidden')
+        if (adminRoot) adminRoot.classList.add('hidden')
+        alert('Perfil não encontrado. Cadastre seu perfil no Supabase primeiro.')
+        return
+      }
+      renderSidebarUser(currentProfile)
+      applyRolePermissions(currentProfile.role)
+      await initSettings(currentProfile)
     } else {
       if (adminRoot) adminRoot.classList.add('hidden')
       loginModal.classList.remove('hidden')
@@ -722,6 +871,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             await renderAdmin()
             attachAdminForm()
             attachAdminUI()
+
+            const { data: { session: s2 } } = await supabase.auth.getSession()
+            currentProfile = s2 ? await loadProfile(s2.user.id) : null
+            if (!currentProfile) { alert('Perfil não encontrado.'); return }
+            renderSidebarUser(currentProfile)
+            applyRolePermissions(currentProfile.role)
+            await initSettings(currentProfile)
           } else {
             alert('E-mail ou senha incorretos')
           }
