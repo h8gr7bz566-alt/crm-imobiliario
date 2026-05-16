@@ -1139,16 +1139,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   const adminRoot  = document.getElementById('admin-root')
   if (loginModal) {
     // ── Detecção de link de convite / recuperação de senha ──────────────
-    const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
-    const urlParams  = new URLSearchParams(window.location.search)
-    const linkType   = hashParams.get('type') || urlParams.get('type') || ''
+    const hashParams  = new URLSearchParams(window.location.hash.replace('#', ''))
+    const urlParams   = new URLSearchParams(window.location.search)
+    const linkType    = hashParams.get('type') || urlParams.get('type') || ''
+    // Cobre fluxo legado (hash tokens) e fluxo PKCE (code na query string)
     const isResetLink = linkType === 'recovery' || linkType === 'invite'
                      || window.location.hash.includes('access_token')
+                     || urlParams.has('code')
+
+    const overlay = document.getElementById('password-reset-overlay')
+
+    // Listener via onAuthStateChange — captura o evento PASSWORD_RECOVERY do Supabase
+    supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        loginModal.style.display = 'none'
+        if (adminRoot) adminRoot.classList.add('hidden')
+        if (overlay) overlay.style.display = 'flex'
+      }
+    })
 
     if (isResetLink) {
       loginModal.style.display = 'none'
       if (adminRoot) adminRoot.classList.add('hidden')
-      const overlay = document.getElementById('password-reset-overlay')
       if (overlay) overlay.style.display = 'flex'
 
       document.getElementById('password-reset-form')?.addEventListener('submit', async e => {
@@ -1174,6 +1186,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Redireciona para o painel limpo (sem hash/token na URL)
         window.location.href = window.location.pathname
       })
+
+      // Fluxo PKCE: trocar o code por sessão (dispara PASSWORD_RECOVERY automaticamente)
+      if (urlParams.has('code')) {
+        await supabase.auth.getSession()
+      }
       return
     }
 
