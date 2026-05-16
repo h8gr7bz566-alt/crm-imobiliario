@@ -3,97 +3,253 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin — Isaac Omar Corretor</title>
-  <script type="module" crossorigin src="/crm-imobiliario/assets/supabase-Do9EbJr0.js"></script>
-  <script type="module" crossorigin src="/crm-imobiliario/assets/script-BVKRUvdl.js"></script>
-  <link rel="stylesheet" crossorigin href="/crm-imobiliario/assets/supabase-Ct4pcosa.css">
+  <title>Painel Admin — Isaac Omar Corretor</title>
+  <script type="module" crossorigin src="/crm-imobiliario/assets/supabase-BcuJ3xoD.js"></script>
+  <script type="module" crossorigin src="/crm-imobiliario/assets/script-89jVgNNc.js"></script>
+  <link rel="stylesheet" crossorigin href="/crm-imobiliario/assets/admin-Cmx-iclG.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <a href="index.html" class="logo" aria-label="Isaac Omar Corretor">
-        <img src="/crm-imobiliario/assets/logo-Bj86NeCe.png" alt="Isaac Omar" class="logo-img">
-        <div class="brand-wrap">
-          <div class="brand-name">Isaac Omar</div>
-          <div class="brand-title">Painel do Corretor</div>
-        </div>
-      </a>
-      <nav class="top-actions">
-        <a href="index.html" class="btn btn-outline">Ver Site Público</a>
-      </nav>
-    </div>
-  </header>
 
-  <div id="admin-login" class="modal">
-    <div class="modal-content">
-      <h3>Entrar no Painel do Corretor</h3>
+  <!-- ── Login ── -->
+  <div id="admin-login">
+    <div class="login-box">
+      <div class="login-logo-name">Isaac Omar Corretor</div>
+      <div class="login-logo-creci">CRECI 69965F</div>
+      <h2>Acessar Painel</h2>
+      <p class="login-sub">Entre com suas credenciais</p>
       <form id="login-form">
-        <label>E-mail<input name="email" type="email" required autocomplete="username"></label>
-        <label>Senha<input name="password" type="password" required autocomplete="current-password"></label>
-        <div class="actions">
-          <button class="btn" type="submit">Entrar</button>
-        </div>
+        <label>E-mail
+          <input name="email" type="email" required autocomplete="username" placeholder="seu@email.com">
+        </label>
+        <label>Senha
+          <input name="password" type="password" required autocomplete="current-password" placeholder="••••••••">
+        </label>
+        <button type="submit" class="btn-login">Entrar</button>
       </form>
     </div>
   </div>
 
-  <main class="admin hidden" id="admin-root">
-    <section class="panel">
-      <h2>Painel de Controle</h2>
-      <div class="panel-grid">
-        <div>
-          <h3>Cadastrar Imóvel</h3>
-          <form id="property-form" class="card">
-            <label>Título<input name="title" required></label>
-            <div style="display:flex;gap:8px">
-              <label style="flex:1">Rua<input name="rua"></label>
-              <label style="flex:0 0 100px">Número<input name="numero" type="number" min="0"></label>
-            </div>
-            <label>Cidade<select name="city" id="adminCitySelect" required>
-              <option value="">Selecione uma cidade</option>
-              <option value="Itapema (SC)">Itapema (SC)</option>
-              <option value="Balneário Camboriú (SC)">Balneário Camboriú (SC)</option>
-              <option value="Itajaí (SC)">Itajaí (SC)</option>
-              <option value="Porto Belo (SC)">Porto Belo (SC)</option>
-              <option value="Florianópolis (SC)">Florianópolis (SC)</option>
-              <option value="Curitiba (PR)">Curitiba (PR)</option>
-              <option value="Ponta Grossa (PR)">Ponta Grossa (PR)</option>
-              <option value="Carambeí (PR)">Carambeí (PR)</option>
-              <option value="Maringá (PR)">Maringá (PR)</option>
-            </select></label>
-            <label>Bairro<select name="neighborhood" id="adminNeighborhood" required>
-              <option value="">Selecione o bairro</option>
-            </select></label>
-            <label>Preço<input name="price" required></label>
-            <label>Quartos<input name="bedrooms" type="number" min="1"></label>
-            <label>Vagas de Garagem<input name="parking" type="number" min="0"></label>
-            <label>Exibir no Site Público?
-              <select name="published" id="adminPublished" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(217,178,77,.3);background:#1c1c1e;color:#f5f0e8;font-size:14px">
-                <option value="true">Sim</option>
-                <option value="false">Não</option>
-              </select>
-            </label>
-            <label>Fotos do Imóvel (múltiplas)<input name="images" type="file" accept="image/*" multiple></label>
-            <label>Descrição<textarea name="description"></textarea></label>
-            <div class="actions">
-              <button type="submit" class="btn">Salvar Imóvel</button>
-            </div>
-          </form>
-        </div>
+  <!-- ── Mobile sidebar toggle ── -->
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">☰</button>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-        <div>
-          <h3>Leads</h3>
-          <div id="leads" class="card small-list"></div>
-        </div>
+  <!-- ── App shell ── -->
+  <div id="admin-root" class="hidden">
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-name">Isaac Omar</div>
+        <div class="sidebar-brand-sub">Painel do Corretor</div>
       </div>
 
-      <h3>Imóveis Cadastrados</h3>
-      <div id="admin-properties" class="grid"></div>
-    </section>
-  </main>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-section="properties">
+          <span class="nav-icon">🏠</span> Imóveis
+        </button>
+        <button class="nav-item" data-section="leads">
+          <span class="nav-icon">👥</span> Leads
+        </button>
+        <button class="nav-item" data-section="settings">
+          <span class="nav-icon">⚙️</span> Configurações
+        </button>
+      </nav>
 
-  <footer class="footer">
-    <small>© 2026 Isaac Omar — Corretor de Imóveis — CRECI 69965F</small>
-  </footer>
+      <div class="sidebar-footer">
+        <a href="index.html" class="sidebar-link">
+          <span>🌐</span> Ver Site Público
+        </a>
+        <button id="logout-btn" class="sidebar-link">
+          <span>🚪</span> Sair da Conta
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="admin-main">
+
+      <!-- ── Imóveis ── -->
+      <section id="section-properties" class="admin-section">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Imóveis</div>
+            <div class="section-sub">Gerencie seu portfólio de imóveis</div>
+          </div>
+          <button id="btn-new-property" class="btn-primary">+ Novo Imóvel</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-card-icon">🏠</div>
+            <div class="stat-card-value" id="stat-total">—</div>
+            <div class="stat-card-label">Total de Imóveis</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">✅</div>
+            <div class="stat-card-value" id="stat-published">—</div>
+            <div class="stat-card-label">Publicados</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">💬</div>
+            <div class="stat-card-value" id="stat-leads">—</div>
+            <div class="stat-card-label">Leads Recebidos</div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-card-header">Todos os Imóveis</div>
+          <div class="table-wrap">
+            <table class="prop-table">
+              <thead>
+                <tr>
+                  <th>Foto</th>
+                  <th>Referência</th>
+                  <th class="col-addr">Endereço</th>
+                  <th>Valor</th>
+                  <th>Dorms</th>
+                  <th>Vagas</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="admin-properties">
+                <tr><td colspan="8" class="empty-row">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Leads ── -->
+      <section id="section-leads" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Leads</div>
+            <div class="section-sub">Contatos recebidos</div>
+          </div>
+        </div>
+        <div id="leads" class="leads-empty">
+          Nenhum lead recebido ainda.<br>Os contatos aparecerão aqui quando clientes entrarem em contato pelo site.
+        </div>
+      </section>
+
+      <!-- ── Configurações ── -->
+      <section id="section-settings" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Configurações</div>
+            <div class="section-sub">Preferências do painel</div>
+          </div>
+        </div>
+        <p style="color:#6b7280;font-size:14px">Em breve.</p>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ── Modal: Cadastro / Edição ── -->
+  <div id="property-modal" class="hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-title">Novo Imóvel</h2>
+        <button class="modal-close" id="modal-close" aria-label="Fechar">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <form id="property-form">
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Título *</label>
+              <input name="title" required class="form-control" placeholder="Ex: Apartamento 3 quartos com vista mar">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Rua</label>
+              <input name="rua" class="form-control" placeholder="Nome da rua">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Número</label>
+              <input name="numero" type="number" min="0" class="form-control" placeholder="Ex: 123">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cidade *</label>
+              <select name="city" id="adminCitySelect" required class="form-control">
+                <option value="">Selecione</option>
+                <option value="Itapema (SC)">Itapema (SC)</option>
+                <option value="Balneário Camboriú (SC)">Balneário Camboriú (SC)</option>
+                <option value="Itajaí (SC)">Itajaí (SC)</option>
+                <option value="Porto Belo (SC)">Porto Belo (SC)</option>
+                <option value="Florianópolis (SC)">Florianópolis (SC)</option>
+                <option value="Curitiba (PR)">Curitiba (PR)</option>
+                <option value="Ponta Grossa (PR)">Ponta Grossa (PR)</option>
+                <option value="Carambeí (PR)">Carambeí (PR)</option>
+                <option value="Maringá (PR)">Maringá (PR)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Bairro *</label>
+              <select name="neighborhood" id="adminNeighborhood" required class="form-control">
+                <option value="">Selecione a cidade primeiro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row triple">
+            <div class="form-group">
+              <label class="form-label">Preço *</label>
+              <input name="price" required class="form-control" placeholder="Ex: R$ 850.000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dormitórios</label>
+              <input name="bedrooms" type="number" min="0" class="form-control" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vagas</label>
+              <input name="parking" type="number" min="0" class="form-control" placeholder="0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Suítes</label>
+              <input name="suites" type="number" min="0" class="form-control" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select name="published" id="adminPublished" class="form-control">
+                <option value="true">Publicado</option>
+                <option value="false">Rascunho</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Fotos (múltiplas)</label>
+              <input name="images" type="file" accept="image/*" multiple class="form-control">
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Descrição</label>
+              <textarea name="description" class="form-control" placeholder="Descreva o imóvel…"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="modal-cancel">Cancelar</button>
+        <button type="submit" form="property-form" class="btn-save" id="form-submit-btn">Salvar Imóvel</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
