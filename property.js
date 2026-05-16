@@ -63,7 +63,7 @@ function renderProperty(p) {
   }
 
   // Botão WhatsApp com mensagem pré-preenchida
-  const msg = encodeURIComponent(`Olá! Tenho interesse no imóvel "${p.title}" (${p.price}). Poderia me dar mais informações?`)
+  const msg = encodeURIComponent(`Olá, tenho interesse no imóvel *${p.title}* que vi no seu site. Poderia me passar mais informações?`)
   document.getElementById('prop-whatsapp').href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`
 
   renderGallery()
