@@ -352,7 +352,11 @@ function attachAdminForm() {
       parking:      parseInt(fd.get('parking'), 10) || 0,
       published:    fd.get('published') === 'true',
       images,
-      description:  fd.get('description') || ''
+      description:  fd.get('description') || '',
+      owner_name:   fd.get('owner_name') || '',
+      owner_phone:  fd.get('owner_phone') || '',
+      owner_email:  fd.get('owner_email') || '',
+      owner_notes:  fd.get('owner_notes') || ''
     }
 
     try {
@@ -402,7 +406,11 @@ function attachAdminForm() {
       form.querySelector('[name="bedrooms"]').value    = p.bedrooms || ''
       form.querySelector('[name="suites"]').value      = p.suites || ''
       form.querySelector('[name="parking"]').value     = p.parking || ''
-      form.querySelector('[name="description"]').value = p.description || ''
+      form.querySelector('[name="description"]').value  = p.description || ''
+      form.querySelector('[name="owner_name"]').value   = p.owner_name || ''
+      form.querySelector('[name="owner_phone"]').value  = p.owner_phone || ''
+      form.querySelector('[name="owner_email"]').value  = p.owner_email || ''
+      form.querySelector('[name="owner_notes"]').value  = p.owner_notes || ''
       const pubSel = document.getElementById('adminPublished')
       if (pubSel) pubSel.value = p.published === true ? 'true' : 'false'
       const citySel = document.getElementById('adminCitySelect')
@@ -427,6 +435,77 @@ function escapeHTML(s) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+let viewImages = []
+let viewIdx    = 0
+
+function openViewModal(p) {
+  document.getElementById('view-modal-title').textContent = p.title || 'Imóvel'
+
+  // Gallery
+  viewImages = p.images?.length ? p.images : SAMPLE_URLS
+  viewIdx    = 0
+  renderViewGallery()
+
+  // Info
+  document.getElementById('view-price').textContent   = p.price || ''
+  document.getElementById('view-address').textContent =
+    [p.rua, p.numero ? `nº ${p.numero}` : '', p.neighborhood, p.city].filter(Boolean).join(', ')
+  document.getElementById('view-description').textContent = p.description || ''
+
+  const chips = document.getElementById('view-chips')
+  chips.innerHTML = [
+    p.bedrooms ? `<span class="view-chip">🛏️ ${p.bedrooms} Dorm${p.bedrooms != 1 ? 's' : ''}</span>` : '',
+    p.suites   ? `<span class="view-chip">🛁 ${p.suites} Suíte${p.suites != 1 ? 's' : ''}</span>`    : '',
+    p.parking  ? `<span class="view-chip">🚗 ${p.parking} Vaga${p.parking != 1 ? 's' : ''}</span>`   : '',
+  ].filter(Boolean).join('')
+
+  // Confidential
+  document.getElementById('conf-name').textContent  = p.owner_name  || '—'
+  document.getElementById('conf-phone').textContent = p.owner_phone || '—'
+  document.getElementById('conf-email').textContent = p.owner_email || '—'
+  document.getElementById('conf-notes').textContent = p.owner_notes || '—'
+
+  // Reset to Principal tab
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+  document.querySelector('.tab-btn[data-tab="principal"]').classList.add('active')
+  document.getElementById('tab-principal').classList.remove('hidden')
+  document.getElementById('tab-confidencial').classList.add('hidden')
+
+  document.getElementById('view-modal').classList.remove('hidden')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeViewModal() {
+  document.getElementById('view-modal').classList.add('hidden')
+  document.body.style.overflow = ''
+}
+
+function renderViewGallery() {
+  const mainImg  = document.getElementById('view-main-img')
+  const counter  = document.getElementById('view-counter')
+  const prev     = document.getElementById('view-prev')
+  const next     = document.getElementById('view-next')
+  const thumbs   = document.getElementById('view-thumbs')
+
+  mainImg.src = viewImages[viewIdx]
+  mainImg.alt = `Foto ${viewIdx + 1}`
+
+  const many = viewImages.length > 1
+  prev.style.display    = many ? 'flex' : 'none'
+  next.style.display    = many ? 'flex' : 'none'
+  counter.textContent   = many ? `${viewIdx + 1} / ${viewImages.length}` : ''
+
+  thumbs.innerHTML = many
+    ? viewImages.map((src, i) =>
+        `<img src="${src}" class="view-thumb${i === viewIdx ? ' active' : ''}" data-i="${i}" alt="Foto ${i + 1}">`
+      ).join('')
+    : ''
+
+  thumbs.querySelectorAll('.view-thumb').forEach(t => {
+    t.addEventListener('click', () => { viewIdx = +t.dataset.i; renderViewGallery() })
+  })
 }
 
 function attachAdminUI() {
@@ -469,6 +548,83 @@ function attachAdminUI() {
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
     await supabase.auth.signOut()
     location.reload()
+  })
+
+  // View modal — nav arrows
+  document.getElementById('view-prev')?.addEventListener('click', () => {
+    viewIdx = (viewIdx - 1 + viewImages.length) % viewImages.length
+    renderViewGallery()
+  })
+  document.getElementById('view-next')?.addEventListener('click', () => {
+    viewIdx = (viewIdx + 1) % viewImages.length
+    renderViewGallery()
+  })
+
+  // View modal — close
+  document.getElementById('view-modal-close')?.addEventListener('click', closeViewModal)
+  document.getElementById('view-modal-close2')?.addEventListener('click', closeViewModal)
+  document.getElementById('view-modal')?.addEventListener('click', e => {
+    if (e.target.id === 'view-modal') closeViewModal()
+  })
+
+  // View modal — Edit button opens edit modal
+  document.getElementById('view-modal-edit')?.addEventListener('click', () => {
+    const title = document.getElementById('view-modal-title').textContent
+    const p = cachedProperties.find(x => x.title === title)
+    if (!p) return
+    closeViewModal()
+    // simulate edit-btn click
+    editingId = p.id
+    const form      = document.getElementById('property-form')
+    const submitBtn = document.getElementById('form-submit-btn')
+    submitBtn.textContent = 'Salvar Alterações'
+    form.querySelector('[name="title"]').value       = p.title || ''
+    form.querySelector('[name="rua"]').value         = p.rua || ''
+    form.querySelector('[name="numero"]').value      = p.numero || ''
+    form.querySelector('[name="city"]').value        = p.city || ''
+    form.querySelector('[name="price"]').value       = p.price || ''
+    form.querySelector('[name="bedrooms"]').value    = p.bedrooms || ''
+    form.querySelector('[name="suites"]').value      = p.suites || ''
+    form.querySelector('[name="parking"]').value     = p.parking || ''
+    form.querySelector('[name="description"]').value = p.description || ''
+    form.querySelector('[name="owner_name"]').value  = p.owner_name || ''
+    form.querySelector('[name="owner_phone"]').value = p.owner_phone || ''
+    form.querySelector('[name="owner_email"]').value = p.owner_email || ''
+    form.querySelector('[name="owner_notes"]').value = p.owner_notes || ''
+    const pubSel = document.getElementById('adminPublished')
+    if (pubSel) pubSel.value = p.published === true ? 'true' : 'false'
+    const citySel = document.getElementById('adminCitySelect')
+    if (citySel) {
+      citySel.value = p.city || ''
+      citySel.dispatchEvent(new Event('change'))
+      setTimeout(() => {
+        const neighSel = document.getElementById('adminNeighborhood')
+        if (neighSel) neighSel.value = p.neighborhood || ''
+      }, 50)
+    }
+    openModal('Editar Imóvel')
+  })
+
+  // View modal — tabs
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'))
+      document.getElementById(`tab-${btn.dataset.tab}`)?.classList.remove('hidden')
+    })
+  })
+
+  // Table row click → open view modal
+  document.getElementById('admin-properties')?.addEventListener('click', e => {
+    if (e.target.closest('.action-btns')) return
+    const row = e.target.closest('tr')
+    if (!row) return
+    const editBtn = row.querySelector('.edit-btn')
+    if (!editBtn) return
+    const id = Number(editBtn.dataset.id)
+    const p  = cachedProperties.find(x => x.id === id)
+    if (p) openViewModal(p)
   })
 }
 
