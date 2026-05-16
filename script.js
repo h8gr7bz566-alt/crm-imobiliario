@@ -1138,6 +1138,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   const loginModal = document.getElementById('admin-login')
   const adminRoot  = document.getElementById('admin-root')
   if (loginModal) {
+    // ── Detecção de link de convite / recuperação de senha ──────────────
+    const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
+    const urlParams  = new URLSearchParams(window.location.search)
+    const linkType   = hashParams.get('type') || urlParams.get('type') || ''
+    const isResetLink = linkType === 'recovery' || linkType === 'invite'
+                     || window.location.hash.includes('access_token')
+
+    if (isResetLink) {
+      loginModal.style.display = 'none'
+      if (adminRoot) adminRoot.classList.add('hidden')
+      const overlay = document.getElementById('password-reset-overlay')
+      if (overlay) overlay.style.display = 'flex'
+
+      document.getElementById('password-reset-form')?.addEventListener('submit', async e => {
+        e.preventDefault()
+        const newPass     = document.getElementById('new-password')?.value || ''
+        const confirmPass = document.getElementById('confirm-password')?.value || ''
+        const msgEl       = document.getElementById('password-reset-msg')
+        const submitBtn   = e.target.querySelector('button[type="submit"]')
+        if (msgEl) msgEl.style.display = 'none'
+
+        if (newPass !== confirmPass) {
+          if (msgEl) { msgEl.textContent = 'As senhas não coincidem.'; msgEl.style.display = '' }
+          return
+        }
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Salvando…' }
+
+        const { error } = await supabase.auth.updateUser({ password: newPass })
+        if (error) {
+          if (msgEl) { msgEl.textContent = 'Erro: ' + error.message; msgEl.style.display = '' }
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Definir Senha' }
+          return
+        }
+        // Redireciona para o painel limpo (sem hash/token na URL)
+        window.location.href = window.location.pathname
+      })
+      return
+    }
+
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       loginModal.classList.add('hidden')

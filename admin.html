@@ -28,6 +28,26 @@
     </div>
   </div>
 
+  <!-- ── Definir Senha (link de convite / recuperação) ── -->
+  <div id="password-reset-overlay" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 55%,#0f3460 100%);align-items:center;justify-content:center;z-index:2000">
+    <div class="login-box">
+      <div class="login-logo-name">Isaac Omar Corretor</div>
+      <div class="login-logo-creci">CRECI 69965F</div>
+      <h2>Definir Senha</h2>
+      <p class="login-sub">Crie uma senha para acessar o painel</p>
+      <form id="password-reset-form">
+        <label>Nova Senha
+          <input id="new-password" type="password" required minlength="6" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+        </label>
+        <label>Confirmar Senha
+          <input id="confirm-password" type="password" required minlength="6" autocomplete="new-password" placeholder="Repita a senha">
+        </label>
+        <button type="submit" class="btn-login">Definir Senha</button>
+      </form>
+      <p id="password-reset-msg" style="display:none;margin-top:14px;font-size:13px;color:#e11d48;text-align:center"></p>
+    </div>
+  </div>
+
   <!-- ── Mobile sidebar toggle ── -->
   <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">☰</button>
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
