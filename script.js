@@ -243,27 +243,15 @@ function attachFilters() {
 }
 
 // ─── Render painel admin ──────────────────────────────────────────────────
-async function renderAdmin() {
+function renderAdminTable(props) {
   const tbody = document.getElementById('admin-properties')
   if (!tbody) return
-  const props = await getAllProperties()
-
-  const total     = props.length
-  const published = props.filter(p => p.published === true).length
-  const elTotal   = document.getElementById('stat-total')
-  const elPub     = document.getElementById('stat-published')
-  const elLeads   = document.getElementById('stat-leads')
-  if (elTotal)  elTotal.textContent  = total
-  if (elPub)    elPub.textContent    = published
-  if (elLeads)  elLeads.textContent  = '—'
-
   if (!props.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Nenhum imóvel cadastrado.</td></tr>'
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Nenhum imóvel encontrado.</td></tr>'
     return
   }
-
   tbody.innerHTML = props.map(p => {
-    const img   = p.images?.[0] || SAMPLE_URLS[0]
+    const img   = p.cover_image || p.images?.[0] || SAMPLE_URLS[0]
     const addr  = [p.rua, p.numero ? `nº ${p.numero}` : '', p.neighborhood, p.city].filter(Boolean).join(', ') || '—'
     const badge = p.published === true
       ? '<span class="badge badge-green">● Publicado</span>'
@@ -272,7 +260,7 @@ async function renderAdmin() {
       <td><img src="${img}" class="table-thumb" alt=""></td>
       <td>
         <div class="cell-title">${escapeHTML(p.title)}</div>
-        <div class="cell-sub">#${p.id}</div>
+        <div class="cell-sub">#${p.id}${p.condominium ? ' · ' + escapeHTML(p.condominium) : ''}</div>
       </td>
       <td class="cell-addr col-addr">${escapeHTML(addr)}</td>
       <td class="cell-price">${escapeHTML(p.price || '—')}</td>
@@ -287,6 +275,86 @@ async function renderAdmin() {
       </td>
     </tr>`
   }).join('')
+}
+
+function populateFilterCitySelect() {
+  const sel = document.getElementById('f-city')
+  if (!sel) return
+  const cities = getCities()
+  const cur = sel.value
+  sel.innerHTML = '<option value="">Todas</option>' +
+    cities.map(c => `<option value="${c.name}">${escapeHTML(c.name)}</option>`).join('')
+  if (cur) sel.value = cur
+}
+
+function getAdminFilterValues() {
+  return {
+    title:        (document.getElementById('f-title')?.value || '').trim().toLowerCase(),
+    type:         document.getElementById('f-type')?.value || '',
+    city:         document.getElementById('f-city')?.value || '',
+    neighborhood: document.getElementById('f-neighborhood')?.value || '',
+    condominium:  (document.getElementById('f-condominium')?.value || '').trim().toLowerCase(),
+    priceMin:     parseFloat(document.getElementById('f-price-min')?.value) || 0,
+    priceMax:     parseFloat(document.getElementById('f-price-max')?.value) || Infinity,
+    areaMin:      parseFloat(document.getElementById('f-area-min')?.value) || 0,
+    areaMax:      parseFloat(document.getElementById('f-area-max')?.value) || Infinity,
+    construction: document.getElementById('f-construction')?.value || '',
+    published:    document.getElementById('f-published')?.value || '',
+    bedrooms:     document.querySelector('#f-bedrooms .filter-btn.active')?.dataset.val || '',
+    suites:       document.querySelector('#f-suites .filter-btn.active')?.dataset.val || '',
+    parking:      document.querySelector('#f-parking .filter-btn.active')?.dataset.val || '',
+  }
+}
+
+function applyAdminFilters(props) {
+  const f = getAdminFilterValues()
+  const hasFilter = Object.values(f).some(v => v !== '' && v !== 0 && v !== Infinity)
+  if (!hasFilter) return props
+  return props.filter(p => {
+    if (f.title && !(p.title || '').toLowerCase().includes(f.title)) return false
+    if (f.type  && !(p.title || '').toLowerCase().includes(f.type.toLowerCase())) return false
+    if (f.city         && p.city         !== f.city)         return false
+    if (f.neighborhood && p.neighborhood !== f.neighborhood) return false
+    if (f.condominium  && !(p.condominium || '').toLowerCase().includes(f.condominium)) return false
+    const priceNum = parseInt(String(p.price || '').replace(/[^0-9]/g, ''), 10) || 0
+    if (f.priceMin > 0        && priceNum < f.priceMin) return false
+    if (f.priceMax < Infinity && priceNum > f.priceMax) return false
+    const area = parseFloat(p.area) || 0
+    if (f.areaMin > 0        && area < f.areaMin) return false
+    if (f.areaMax < Infinity && area > f.areaMax) return false
+    if (f.construction && p.construction_status !== f.construction) return false
+    if (f.published !== '' && String(p.published) !== f.published) return false
+    if (f.bedrooms) {
+      if (f.bedrooms === '5+' && Number(p.bedrooms) < 5) return false
+      if (f.bedrooms !== '5+' && Number(p.bedrooms) !== Number(f.bedrooms)) return false
+    }
+    if (f.suites) {
+      if (f.suites === '5+' && Number(p.suites) < 5) return false
+      if (f.suites !== '5+' && Number(p.suites) !== Number(f.suites)) return false
+    }
+    if (f.parking) {
+      if (f.parking === '5+' && Number(p.parking) < 5) return false
+      if (f.parking !== '5+' && Number(p.parking) !== Number(f.parking)) return false
+    }
+    return true
+  })
+}
+
+async function renderAdmin() {
+  if (!document.getElementById('admin-properties')) return
+  const props = await getAllProperties()
+
+  const total     = props.length
+  const published = props.filter(p => p.published === true).length
+  const elTotal   = document.getElementById('stat-total')
+  const elPub     = document.getElementById('stat-published')
+  const elLeads   = document.getElementById('stat-leads')
+  if (elTotal)  elTotal.textContent  = total
+  if (elPub)    elPub.textContent    = published
+  if (elLeads)  elLeads.textContent  = '—'
+
+  populateFilterCitySelect()
+  renderAdminTable(cachedProperties)
 }
 
 // ─── Formulário admin ─────────────────────────────────────────────────────
@@ -376,7 +444,8 @@ function attachAdminForm() {
       owner_email:  fd.get('owner_email') || '',
       owner_notes:  fd.get('owner_notes') || '',
       cover_image:  selectedCover || '',
-      construction_status: fd.get('construction_status') || ''
+      construction_status: fd.get('construction_status') || '',
+      condominium:  fd.get('condominium') || ''
     }
 
     try {
@@ -437,6 +506,7 @@ function attachAdminForm() {
       form.querySelector('[name="owner_phone"]').value  = p.owner_phone || ''
       form.querySelector('[name="owner_email"]').value  = p.owner_email || ''
       form.querySelector('[name="owner_notes"]').value  = p.owner_notes || ''
+      form.querySelector('[name="condominium"]').value     = p.condominium || ''
       const pubSel = document.getElementById('adminPublished')
       if (pubSel) pubSel.value = p.published === true ? 'true' : 'false'
       const citySel = document.getElementById('adminCitySelect')
@@ -503,6 +573,10 @@ function openViewModal(p) {
   document.getElementById('view-suites').textContent   = p.suites   || '—'
   document.getElementById('view-parking').textContent  = p.parking  || '—'
   document.getElementById('view-area').textContent     = p.area ? `${p.area} m²` : '—'
+  const condItem = document.getElementById('view-condominium-item')
+  const condEl   = document.getElementById('view-condominium')
+  if (condEl) condEl.textContent = p.condominium || ''
+  if (condItem) condItem.style.display = p.condominium ? '' : 'none'
 
   // Detalhes tab
   document.getElementById('view-description').textContent = p.description || 'Sem descrição.'
@@ -805,6 +879,42 @@ async function renderLocationsSettings() {
 }
 
 function attachAdminUI() {
+  // Filter panel
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const group = btn.closest('.filter-btns')
+      const wasActive = btn.classList.contains('active')
+      group.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+      if (!wasActive) btn.classList.add('active')
+    })
+  })
+
+  document.getElementById('f-city')?.addEventListener('change', () => {
+    const cityName = document.getElementById('f-city')?.value
+    const cityObj  = getCities().find(c => c.name === cityName)
+    const hoods    = cityObj ? getNeighborhoods(cityObj.id) : []
+    const sel      = document.getElementById('f-neighborhood')
+    if (sel) {
+      sel.innerHTML = '<option value="">Todos</option>' +
+        hoods.map(n => `<option value="${n.name}">${escapeHTML(n.name)}</option>`).join('')
+    }
+  })
+
+  document.getElementById('f-search-btn')?.addEventListener('click', () => {
+    renderAdminTable(applyAdminFilters(cachedProperties))
+  })
+
+  document.getElementById('f-clear-btn')?.addEventListener('click', () => {
+    const ids = ['f-title','f-condominium','f-price-min','f-price-max','f-area-min','f-area-max']
+    ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
+    const sels = ['f-type','f-city','f-construction','f-published']
+    sels.forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
+    const neigh = document.getElementById('f-neighborhood')
+    if (neigh) neigh.innerHTML = '<option value="">Todos</option>'
+    document.querySelectorAll('.filter-btn.active').forEach(b => b.classList.remove('active'))
+    renderAdminTable(cachedProperties)
+  })
+
   // Sidebar navigation
   document.querySelectorAll('.nav-item[data-section]').forEach(item => {
     item.addEventListener('click', () => {
@@ -890,6 +1000,7 @@ function attachAdminUI() {
     form.querySelector('[name="owner_phone"]').value = p.owner_phone || ''
     form.querySelector('[name="owner_email"]').value = p.owner_email || ''
     form.querySelector('[name="owner_notes"]').value = p.owner_notes || ''
+    form.querySelector('[name="condominium"]').value = p.condominium || ''
     const pubSel = document.getElementById('adminPublished')
     if (pubSel) pubSel.value = p.published === true ? 'true' : 'false'
     const citySel = document.getElementById('adminCitySelect')
