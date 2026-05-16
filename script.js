@@ -75,8 +75,8 @@ async function loginAdmin(email, password) {
   return !error
 }
 
-// ─── Compressão de Imagem via Canvas ─────────────────────────────────────
-function compressImage(file, maxW = 800, quality = 0.5) {
+// ─── Compressão → Blob (sem passar por base64) ───────────────────────────
+function compressToBlob(file, maxW = 1200, quality = 0.78) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
@@ -84,22 +84,45 @@ function compressImage(file, maxW = 800, quality = 0.5) {
       URL.revokeObjectURL(url)
       const canvas = document.createElement('canvas')
       let w = img.width, h = img.height
-      if (w > maxW) { h = h * maxW / w; w = maxW }
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW }
       canvas.width = w; canvas.height = h
       canvas.getContext('2d').drawImage(img, 0, 0, w, h)
-      resolve(canvas.toDataURL('image/jpeg', quality))
+      canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob falhou')),
+        'image/jpeg', quality
+      )
     }
     img.onerror = reject
     img.src = url
   })
 }
 
-async function compressMultiple(files) {
-  const results = []
-  for (const f of Array.from(files)) {
-    if (f.size > 0) results.push(await compressImage(f))
+// ─── Upload para Supabase Storage (bucket "imoveis") ─────────────────────
+async function uploadToStorage(file) {
+  const blob = await compressToBlob(file)
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+
+  const { error } = await supabase.storage
+    .from('imoveis')
+    .upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false })
+
+  if (error) throw error
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('imoveis')
+    .getPublicUrl(path)
+
+  return publicUrl
+}
+
+async function uploadMultiple(files, onProgress) {
+  const list = Array.from(files).filter(f => f.size > 0)
+  const urls = []
+  for (let i = 0; i < list.length; i++) {
+    if (onProgress) onProgress(i + 1, list.length)
+    urls.push(await uploadToStorage(list[i]))
   }
-  return results
+  return urls
 }
 
 // ─── Render listagem pública ──────────────────────────────────────────────
@@ -267,8 +290,21 @@ function attachAdminForm() {
     const imageFiles = fd.getAll('images')
     let images       = []
 
-    if (imageFiles.length && imageFiles[0].size > 0) {
-      images = await compressMultiple(imageFiles)
+    const newFiles = imageFiles.filter(f => f.size > 0)
+    if (newFiles.length) {
+      submitBtn.disabled    = true
+      submitBtn.textContent = `Enviando 0/${newFiles.length} foto…`
+      try {
+        images = await uploadMultiple(newFiles, (done, total) => {
+          submitBtn.textContent = `Enviando ${done}/${total} foto…`
+        })
+      } catch (err) {
+        console.error('Erro no upload:', err)
+        submitBtn.disabled    = false
+        submitBtn.textContent = editingId ? 'Salvar Alterações' : 'Salvar Imóvel'
+        alert('Erro ao enviar fotos.\nVerifique se o bucket "imoveis" existe no Supabase Storage e se as políticas de upload estão configuradas.')
+        return
+      }
     } else if (editingId) {
       const orig = cachedProperties.find(x => x.id === editingId)
       if (orig?.images) images = orig.images
@@ -292,7 +328,8 @@ function attachAdminForm() {
 
     try {
       await saveProperty(prop)
-      editingId = null
+      editingId             = null
+      submitBtn.disabled    = false
       submitBtn.textContent = 'Salvar Imóvel'
       form.reset()
       const pubSel = document.getElementById('adminPublished')
@@ -303,6 +340,8 @@ function attachAdminForm() {
       alert('✅ Imóvel salvo no Supabase!')
     } catch (err) {
       console.error(err)
+      submitBtn.disabled    = false
+      submitBtn.textContent = editingId ? 'Salvar Alterações' : 'Salvar Imóvel'
       alert('Erro ao salvar imóvel. Verifique o console.')
     }
   })
