@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Painel Admin — Isaac Omar Corretor</title>
   <script type="module" crossorigin src="/crm-imobiliario/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/crm-imobiliario/assets/script-BE0aKrsT.js"></script>
-  <link rel="stylesheet" crossorigin href="/crm-imobiliario/assets/admin-Dj3OxKXf.css">
+  <script type="module" crossorigin src="/crm-imobiliario/assets/script-DOHV4Ovt.js"></script>
+  <link rel="stylesheet" crossorigin href="/crm-imobiliario/assets/admin-DsX-6UaK.css">
 </head>
 <body>
 
@@ -103,6 +103,115 @@
             <div class="stat-card-icon">💬</div>
             <div class="stat-card-value" id="stat-leads">—</div>
             <div class="stat-card-label">Leads Recebidos</div>
+          </div>
+        </div>
+
+        <!-- ── Painel de Filtros ── -->
+        <div class="admin-filter-panel">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label class="filter-label">Referência</label>
+              <input id="f-title" type="text" class="form-control" placeholder="Buscar no título…">
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Tipo</label>
+              <select id="f-type" class="form-control">
+                <option value="">Todos</option>
+                <option value="Apartamento">Apartamento</option>
+                <option value="Casa">Casa</option>
+                <option value="Terreno">Terreno</option>
+                <option value="Comercial">Comercial</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Cidade</label>
+              <select id="f-city" class="form-control">
+                <option value="">Todas</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Bairro</label>
+              <select id="f-neighborhood" class="form-control">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Condomínio / Edifício</label>
+              <input id="f-condominium" type="text" class="form-control" placeholder="Nome do condomínio…">
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <div class="filter-group filter-group-sm">
+              <label class="filter-label">Preço De</label>
+              <input id="f-price-min" type="number" min="0" class="form-control" placeholder="R$ mín">
+            </div>
+            <div class="filter-group filter-group-sm">
+              <label class="filter-label">Preço Até</label>
+              <input id="f-price-max" type="number" min="0" class="form-control" placeholder="R$ máx">
+            </div>
+            <div class="filter-group filter-group-sm">
+              <label class="filter-label">Área m² De</label>
+              <input id="f-area-min" type="number" min="0" class="form-control" placeholder="mín">
+            </div>
+            <div class="filter-group filter-group-sm">
+              <label class="filter-label">Área m² Até</label>
+              <input id="f-area-max" type="number" min="0" class="form-control" placeholder="máx">
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Status da Obra</label>
+              <select id="f-construction" class="form-control">
+                <option value="">Todos</option>
+                <option value="pronto">Pronto</option>
+                <option value="pre-lancamento">Pré-lançamento</option>
+                <option value="em-obra">Em obra</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Status</label>
+              <select id="f-published" class="form-control">
+                <option value="">Todos</option>
+                <option value="true">Publicado</option>
+                <option value="false">Rascunho</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-row filter-row-btns">
+            <div class="filter-group">
+              <label class="filter-label">Dormitórios</label>
+              <div class="filter-btns" id="f-bedrooms">
+                <button type="button" class="filter-btn" data-val="1">1</button>
+                <button type="button" class="filter-btn" data-val="2">2</button>
+                <button type="button" class="filter-btn" data-val="3">3</button>
+                <button type="button" class="filter-btn" data-val="4">4</button>
+                <button type="button" class="filter-btn" data-val="5+">5+</button>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Suítes</label>
+              <div class="filter-btns" id="f-suites">
+                <button type="button" class="filter-btn" data-val="1">1</button>
+                <button type="button" class="filter-btn" data-val="2">2</button>
+                <button type="button" class="filter-btn" data-val="3">3</button>
+                <button type="button" class="filter-btn" data-val="4">4</button>
+                <button type="button" class="filter-btn" data-val="5+">5+</button>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Vagas</label>
+              <div class="filter-btns" id="f-parking">
+                <button type="button" class="filter-btn" data-val="1">1</button>
+                <button type="button" class="filter-btn" data-val="2">2</button>
+                <button type="button" class="filter-btn" data-val="3">3</button>
+                <button type="button" class="filter-btn" data-val="4">4</button>
+                <button type="button" class="filter-btn" data-val="5+">5+</button>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button type="button" id="f-search-btn" class="btn-primary">🔍 Buscar</button>
+              <button type="button" id="f-clear-btn" class="btn-cancel">Limpar Filtros</button>
+            </div>
           </div>
         </div>
 
@@ -240,6 +349,13 @@
             <div class="form-group">
               <label class="form-label">Título *</label>
               <input name="title" required class="form-control" placeholder="Ex: Apartamento 3 quartos com vista mar">
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Condomínio / Edifício</label>
+              <input name="condominium" id="imovel-condominium" class="form-control" placeholder="Ex: Residencial Vista Mar">
             </div>
           </div>
 
@@ -467,6 +583,10 @@
             <div class="vm-data-item">
               <div class="vm-data-label">Área (m²)</div>
               <div id="view-area" class="vm-data-value">—</div>
+            </div>
+            <div class="vm-data-item" id="view-condominium-item" style="grid-column:1/-1;display:none">
+              <div class="vm-data-label">Condomínio / Edifício</div>
+              <div id="view-condominium" class="vm-data-value" style="font-size:15px;font-weight:600"></div>
             </div>
           </div>
         </div>
