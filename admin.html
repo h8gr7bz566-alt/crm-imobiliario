@@ -280,13 +280,61 @@
   <!-- ── Modal: Visualização do Imóvel ── -->
   <div id="view-modal" class="hidden">
     <div class="modal-box modal-box-wide">
-      <div class="modal-header">
-        <h2 id="view-modal-title">Imóvel</h2>
-        <button class="modal-close" id="view-modal-close" aria-label="Fechar">✕</button>
+
+      <!-- ── VM Header ── -->
+      <div class="vm-header">
+        <div class="vm-header-top">
+          <div class="vm-id-title">
+            <span class="vm-code">#<span id="view-code"></span></span>
+            <span id="view-modal-title" class="vm-title"></span>
+            <span id="view-status-badge" class="badge"></span>
+          </div>
+          <button class="modal-close" id="view-modal-close" aria-label="Fechar">✕</button>
+        </div>
+
+        <div class="vm-address-row">
+          <span id="view-modal-address" class="vm-address-text"></span>
+          <div class="vm-map-links">
+            <a id="view-map-link" href="#" target="_blank" rel="noopener" class="vm-map-btn">
+              📍 Localização
+            </a>
+            <a id="view-directions-link" href="#" target="_blank" rel="noopener" class="vm-map-btn">
+              🗺️ Como chegar
+            </a>
+          </div>
+        </div>
+
+        <div class="vm-thumb-actions">
+          <img id="view-thumb-preview" src="" alt="" class="vm-thumb-preview">
+          <div class="vm-actions">
+            <button class="vm-action-btn" title="Feedback ao proprietário">
+              <span class="vm-action-icon">💬</span>
+              <span class="vm-action-label">Feedback p/ proprietário</span>
+            </button>
+            <button class="vm-action-btn" title="Roteiros de visitas">
+              <span class="vm-action-icon">🗓️</span>
+              <span class="vm-action-label">Roteiros de visitas</span>
+            </button>
+            <button class="vm-action-btn" title="Adicionar proposta">
+              <span class="vm-action-icon">📝</span>
+              <span class="vm-action-label">Adicionar proposta</span>
+            </button>
+            <button class="vm-action-btn" title="Controle de chaves">
+              <span class="vm-action-icon">🔑</span>
+              <span class="vm-action-label">Controle de chaves</span>
+            </button>
+            <button class="vm-action-btn" title="Radar">
+              <span class="vm-action-icon">📡</span>
+              <span class="vm-action-label">Radar</span>
+            </button>
+          </div>
+        </div>
       </div>
 
+      <!-- Tabs -->
       <div class="modal-tabs">
         <button class="tab-btn active" data-tab="principal">Principal</button>
+        <button class="tab-btn" data-tab="detalhes">Detalhes</button>
         <button class="tab-btn" data-tab="confidencial">🔒 Confidencial</button>
       </div>
 
@@ -302,12 +350,36 @@
             </div>
             <div id="view-thumbs" class="view-thumbs"></div>
           </div>
-          <div class="view-info">
-            <div id="view-price" class="view-price"></div>
-            <div id="view-chips" class="view-chips"></div>
-            <div id="view-address" class="view-address"></div>
-            <div id="view-description" class="view-description"></div>
+          <div class="vm-data-grid">
+            <div class="vm-data-item vm-price-item">
+              <div class="vm-data-label">Valor</div>
+              <div id="view-price" class="vm-data-value vm-price"></div>
+            </div>
+            <div class="vm-data-item">
+              <div class="vm-data-label">Dormitórios</div>
+              <div id="view-bedrooms" class="vm-data-value">—</div>
+            </div>
+            <div class="vm-data-item">
+              <div class="vm-data-label">Suítes</div>
+              <div id="view-suites" class="vm-data-value">—</div>
+            </div>
+            <div class="vm-data-item">
+              <div class="vm-data-label">Vagas</div>
+              <div id="view-parking" class="vm-data-value">—</div>
+            </div>
+            <div class="vm-data-item">
+              <div class="vm-data-label">Área (m²)</div>
+              <div id="view-area" class="vm-data-value">—</div>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Tab: Detalhes -->
+      <div id="tab-detalhes" class="tab-panel hidden">
+        <div class="modal-body">
+          <p class="vm-data-label" style="margin-bottom:10px">Descrição completa</p>
+          <div id="view-description" class="vm-description"></div>
         </div>
       </div>
 

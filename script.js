@@ -441,37 +441,54 @@ let viewImages = []
 let viewIdx    = 0
 
 function openViewModal(p) {
-  document.getElementById('view-modal-title').textContent = p.title || 'Imóvel'
+  // Header: code, title, status badge
+  document.getElementById('view-code').textContent         = p.id || ''
+  document.getElementById('view-modal-title').textContent  = p.title || 'Imóvel'
+  const badge = document.getElementById('view-status-badge')
+  if (p.published) {
+    badge.textContent  = '● Publicado'
+    badge.className    = 'badge badge-green'
+  } else {
+    badge.textContent  = '○ Rascunho'
+    badge.className    = 'badge badge-gray'
+  }
 
-  // Gallery
+  // Address + Google Maps
+  const addr = [p.rua, p.numero ? `nº ${p.numero}` : '', p.neighborhood, p.city].filter(Boolean)
+  document.getElementById('view-modal-address').textContent = addr.length ? `📍 ${addr.join(', ')}` : ''
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr.join(' '))}`
+  document.getElementById('view-map-link').href        = mapsUrl
+  document.getElementById('view-directions-link').href = mapsUrl
+
+  // Thumbnail preview (header)
+  const firstImg = p.images?.[0] || SAMPLE_URLS[0]
+  document.getElementById('view-thumb-preview').src = firstImg
+
+  // Gallery (Principal tab)
   viewImages = p.images?.length ? p.images : SAMPLE_URLS
   viewIdx    = 0
   renderViewGallery()
 
-  // Info
-  document.getElementById('view-price').textContent   = p.price || ''
-  document.getElementById('view-address').textContent =
-    [p.rua, p.numero ? `nº ${p.numero}` : '', p.neighborhood, p.city].filter(Boolean).join(', ')
-  document.getElementById('view-description').textContent = p.description || ''
+  // Data grid
+  document.getElementById('view-price').textContent    = p.price    || '—'
+  document.getElementById('view-bedrooms').textContent = p.bedrooms || '—'
+  document.getElementById('view-suites').textContent   = p.suites   || '—'
+  document.getElementById('view-parking').textContent  = p.parking  || '—'
 
-  const chips = document.getElementById('view-chips')
-  chips.innerHTML = [
-    p.bedrooms ? `<span class="view-chip">🛏️ ${p.bedrooms} Dorm${p.bedrooms != 1 ? 's' : ''}</span>` : '',
-    p.suites   ? `<span class="view-chip">🛁 ${p.suites} Suíte${p.suites != 1 ? 's' : ''}</span>`    : '',
-    p.parking  ? `<span class="view-chip">🚗 ${p.parking} Vaga${p.parking != 1 ? 's' : ''}</span>`   : '',
-  ].filter(Boolean).join('')
+  // Detalhes tab
+  document.getElementById('view-description').textContent = p.description || 'Sem descrição.'
 
-  // Confidential
+  // Confidencial tab
   document.getElementById('conf-name').textContent  = p.owner_name  || '—'
   document.getElementById('conf-phone').textContent = p.owner_phone || '—'
   document.getElementById('conf-email').textContent = p.owner_email || '—'
   document.getElementById('conf-notes').textContent = p.owner_notes || '—'
 
-  // Reset to Principal tab
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
-  document.querySelector('.tab-btn[data-tab="principal"]').classList.add('active')
+  // Reset tabs to Principal
+  document.querySelectorAll('#view-modal .tab-btn').forEach(b => b.classList.remove('active'))
+  document.querySelectorAll('#view-modal .tab-panel').forEach(t => t.classList.add('hidden'))
+  document.querySelector('#view-modal .tab-btn[data-tab="principal"]').classList.add('active')
   document.getElementById('tab-principal').classList.remove('hidden')
-  document.getElementById('tab-confidencial').classList.add('hidden')
 
   document.getElementById('view-modal').classList.remove('hidden')
   document.body.style.overflow = 'hidden'
