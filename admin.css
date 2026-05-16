@@ -666,3 +666,41 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   .vm-actions      { gap: 4px; }
   .vm-action-btn   { padding: 5px 7px; }
 }
+
+/* ─── Cover picker ────────────────────────────────────────────────── */
+.cover-picker-hint {
+  font-size: 11px; font-weight: 400; text-transform: none;
+  letter-spacing: 0; color: var(--text-muted);
+}
+
+.cover-strip {
+  display: flex; gap: 8px;
+  overflow-x: auto; padding: 4px 0 6px;
+  scrollbar-width: thin; scrollbar-color: #d1d5db transparent;
+}
+
+.cover-thumb-wrap {
+  position: relative; flex-shrink: 0; cursor: pointer;
+  border-radius: 8px; overflow: hidden;
+  border: 2px solid var(--border);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.cover-thumb-wrap:hover   { border-color: var(--gold); }
+.cover-thumb-wrap.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(201,168,76,0.3);
+}
+
+.cover-thumb {
+  width: 80px; height: 56px;
+  object-fit: cover; display: block;
+}
+
+.cover-star {
+  position: absolute; top: 3px; right: 4px;
+  font-size: 15px; line-height: 1;
+  color: var(--gold);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  opacity: 0; transition: opacity 0.15s;
+}
+.cover-thumb-wrap.selected .cover-star { opacity: 1; }

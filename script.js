@@ -169,7 +169,7 @@ async function renderPublic() {
     return `
       <div class="card property-card">
         <div class="carousel-wrap" style="position:relative" data-total="${total}" data-idx="0" data-pid="${p.id}">
-          <img src="${images[0]}" alt="${escapeHTML(p.title)}" class="carousel-img" style="width:100%;height:180px;object-fit:cover;border-radius:10px;display:block">
+          <img src="${p.cover_image || images[0]}" alt="${escapeHTML(p.title)}" class="carousel-img" style="width:100%;height:180px;object-fit:cover;border-radius:10px;display:block">
           ${total > 1 ? `
             <button class="carousel-btn carousel-prev" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;line-height:1">&lt;</button>
             <button class="carousel-btn carousel-next" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;line-height:1">&gt;</button>
@@ -295,6 +295,7 @@ async function renderAdmin() {
 
 // ─── Formulário admin ─────────────────────────────────────────────────────
 let editingId = null
+let selectedCover = ''
 
 function openModal(title) {
   document.getElementById('modal-title').textContent = title || 'Novo Imóvel'
@@ -305,6 +306,26 @@ function openModal(title) {
 function closeModal() {
   document.getElementById('property-modal').classList.add('hidden')
   document.body.style.overflow = ''
+}
+
+function renderCoverPicker(images) {
+  const picker = document.getElementById('cover-picker')
+  const strip  = document.getElementById('cover-strip')
+  if (!picker || !strip) return
+  if (!images.length) { picker.classList.add('hidden'); return }
+  picker.classList.remove('hidden')
+  strip.innerHTML = images.map(url => `
+    <div class="cover-thumb-wrap${url === selectedCover ? ' selected' : ''}" data-url="${url}">
+      <img src="${url}" class="cover-thumb" alt="">
+      <span class="cover-star">★</span>
+    </div>`).join('')
+  strip.querySelectorAll('.cover-thumb-wrap').forEach(wrap => {
+    wrap.addEventListener('click', () => {
+      selectedCover = wrap.dataset.url
+      strip.querySelectorAll('.cover-thumb-wrap').forEach(w => w.classList.remove('selected'))
+      wrap.classList.add('selected')
+    })
+  })
 }
 
 function attachAdminForm() {
@@ -357,7 +378,8 @@ function attachAdminForm() {
       owner_name:   fd.get('owner_name') || '',
       owner_phone:  fd.get('owner_phone') || '',
       owner_email:  fd.get('owner_email') || '',
-      owner_notes:  fd.get('owner_notes') || ''
+      owner_notes:  fd.get('owner_notes') || '',
+      cover_image:  selectedCover || ''
     }
 
     try {
@@ -370,6 +392,8 @@ function attachAdminForm() {
       if (pubSel) pubSel.value = 'true'
       const neighSel = document.getElementById('adminNeighborhood')
       if (neighSel) neighSel.innerHTML = '<option value="">Selecione a cidade primeiro</option>'
+      selectedCover = ''
+      renderCoverPicker([])
       closeModal()
       await renderAdmin()
     } catch (err) {
@@ -424,6 +448,8 @@ function attachAdminForm() {
           if (neighSel) neighSel.value = p.neighborhood || ''
         }, 50)
       }
+      selectedCover = p.cover_image || p.images?.[0] || ''
+      renderCoverPicker(p.images || [])
       openModal('Editar Imóvel')
     }
   })
@@ -561,6 +587,8 @@ function attachAdminUI() {
     document.getElementById('adminPublished').value = 'true'
     document.getElementById('adminNeighborhood').innerHTML = '<option value="">Selecione a cidade primeiro</option>'
     document.getElementById('form-submit-btn').textContent = 'Salvar Imóvel'
+    selectedCover = ''
+    renderCoverPicker([])
     openModal('Novo Imóvel')
   })
 
@@ -622,6 +650,8 @@ function attachAdminUI() {
         if (neighSel) neighSel.value = p.neighborhood || ''
       }, 50)
     }
+    selectedCover = p.cover_image || p.images?.[0] || ''
+    renderCoverPicker(p.images || [])
     openModal('Editar Imóvel')
   })
 
