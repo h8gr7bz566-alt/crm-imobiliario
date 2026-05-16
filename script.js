@@ -655,6 +655,21 @@ function applyRolePermissions(role) {
   if (root) root.dataset.role = role || 'corretor'
 }
 
+// ─── Edge Function helper ────────────────────────────────────────────────────
+const EDGE_FN_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/invite-user'
+
+async function callEdgeFunction(body) {
+  const res = await fetch(EDGE_FN_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${supabase.supabaseKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  })
+  return res.json()
+}
+
 // ─── Settings: profile edit + corretores ─────────────────────────────────────
 async function initSettings(profile) {
   const nameInput  = document.getElementById('settings-name')
@@ -720,33 +735,28 @@ async function initSettings(profile) {
     if (section) section.style.display = ''
     await loadCorretores()
     document.getElementById('btn-invite-corretor')?.addEventListener('click', async () => {
-      const email   = document.getElementById('invite-email')?.value.trim()
-      const noteEl  = document.getElementById('invite-note')
-      const btn     = document.getElementById('btn-invite-corretor')
-      if (!email) return
-      if (btn) { btn.disabled = true; btn.textContent = 'Enviando…' }
+      const email    = document.getElementById('invite-email')?.value.trim()
+      const password = document.getElementById('invite-password')?.value.trim()
+      const btn      = document.getElementById('btn-invite-corretor')
+      if (!email || !password) { alert('Preencha o e-mail e a senha.'); return }
+      if (password.length < 6) { alert('A senha deve ter pelo menos 6 caracteres.'); return }
+      if (btn) { btn.disabled = true; btn.textContent = 'Criando…' }
       try {
-        const res = await fetch('https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/invite-user', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabase.supabaseKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ email })
-        })
-        const result = await res.json()
+        const result = await callEdgeFunction({ email, password })
         if (result.success) {
-          alert('Convite enviado com sucesso! O corretor receberá um e-mail.')
+          alert(`Acesso criado com sucesso!\nE-mail: ${email}\nSenha: ${password}\n\nComunique as credenciais ao corretor.`)
           const emailInput = document.getElementById('invite-email')
+          const passInput  = document.getElementById('invite-password')
           if (emailInput) emailInput.value = ''
-          if (noteEl) noteEl.style.display = 'none'
+          if (passInput)  passInput.value  = ''
+          await loadCorretores()
         } else {
           alert('Erro: ' + (result.error || 'Falha desconhecida'))
         }
       } catch (err) {
-        alert('Erro ao chamar a função de convite: ' + err.message)
+        alert('Erro ao criar acesso: ' + err.message)
       } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Convidar' }
+        if (btn) { btn.disabled = false; btn.textContent = '+ Criar Acesso' }
       }
     })
 
@@ -788,13 +798,20 @@ async function loadCorretores() {
     const avatar  = p.avatar_url
       ? `<img src="${p.avatar_url}" class="corretor-avatar" alt="">`
       : `<div class="corretor-avatar-initial">${escapeHTML(initial)}</div>`
-    const isMe = p.id === currentProfile?.id
+    const isMe   = p.id === currentProfile?.id
+    const isActive = p.active !== false
+    const activeBadge = isActive
+      ? '<span class="badge badge-green">Ativo</span>'
+      : '<span class="badge badge-gray">Pausado</span>'
     const roleSelect = isMe
       ? `<span class="corretor-you">Você</span>`
-      : `<select class="form-control corretor-role-sel" data-uid="${p.id}" style="width:120px;padding:6px 8px;font-size:13px">
+      : `<select class="form-control corretor-role-sel" data-uid="${p.id}" style="width:110px;padding:6px 8px;font-size:13px">
            <option value="corretor"${p.role === 'corretor' ? ' selected' : ''}>Corretor</option>
            <option value="admin"${p.role === 'admin' ? ' selected' : ''}>Admin</option>
          </select>`
+    const toggleBtn = isMe ? '' : isActive
+      ? `<button class="corretor-toggle-btn" data-uid="${p.id}" data-active="true">Pausar acesso</button>`
+      : `<button class="corretor-toggle-btn btn-liberar" data-uid="${p.id}" data-active="false">Liberar acesso</button>`
     return `<div class="corretor-item">
       <div class="corretor-info">
         ${avatar}
@@ -803,12 +820,36 @@ async function loadCorretores() {
           <div class="corretor-role-badge">${p.role === 'admin' ? '👑 Admin' : '🔑 Corretor'}</div>
         </div>
       </div>
-      <div class="corretor-actions">${roleSelect}</div>
+      <div class="corretor-actions">
+        ${activeBadge}
+        ${roleSelect}
+        ${toggleBtn}
+      </div>
     </div>`
   }).join('')
   listEl.querySelectorAll('.corretor-role-sel').forEach(sel => {
     sel.addEventListener('change', async () => {
       await supabase.from('profiles').update({ role: sel.value }).eq('id', sel.dataset.uid)
+    })
+  })
+  listEl.querySelectorAll('.corretor-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const uid      = btn.dataset.uid
+      const isActive = btn.dataset.active === 'true'
+      const action   = isActive ? 'ban' : 'unban'
+      btn.disabled = true
+      btn.textContent = 'Aguarde…'
+      try {
+        await supabase.from('profiles').update({ active: !isActive }).eq('id', uid)
+        const result = await callEdgeFunction({ action, userId: uid })
+        if (!result.success) {
+          alert('Erro: ' + (result.error || 'Falha desconhecida'))
+          await supabase.from('profiles').update({ active: isActive }).eq('id', uid)
+        }
+      } catch (err) {
+        alert('Erro: ' + err.message)
+      }
+      await loadCorretores()
     })
   })
 }
@@ -1101,6 +1142,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert('Perfil não encontrado. Cadastre seu perfil no Supabase primeiro.')
         return
       }
+      if (currentProfile.active === false) {
+        await supabase.auth.signOut()
+        loginModal.classList.remove('hidden')
+        if (adminRoot) adminRoot.classList.add('hidden')
+        alert('Seu acesso está pausado. Entre em contato com o administrador.')
+        return
+      }
       renderSidebarUser(currentProfile)
       applyRolePermissions(currentProfile.role)
       await initSettings(currentProfile)
@@ -1125,6 +1173,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session: s2 } } = await supabase.auth.getSession()
             currentProfile = s2 ? await loadProfile(s2.user.id) : null
             if (!currentProfile) { alert('Perfil não encontrado.'); return }
+            if (currentProfile.active === false) {
+              await supabase.auth.signOut()
+              loginModal.classList.remove('hidden')
+              if (adminRoot) adminRoot.classList.add('hidden')
+              alert('Seu acesso está pausado. Entre em contato com o administrador.')
+              return
+            }
             renderSidebarUser(currentProfile)
             applyRolePermissions(currentProfile.role)
             await initSettings(currentProfile)
