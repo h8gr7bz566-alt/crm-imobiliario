@@ -248,41 +248,69 @@ function attachFilters() {
 
 // ─── Render painel admin ──────────────────────────────────────────────────
 async function renderAdmin() {
-  const el = document.getElementById('admin-properties')
-  if (!el) return
+  const tbody = document.getElementById('admin-properties')
+  if (!tbody) return
   const props = await getAllProperties()
-  el.innerHTML = props.length
-    ? props.map(p => {
-        const images   = p.images?.length ? p.images : SAMPLE_URLS
-        const pubLabel = p.published === true
-          ? '<span style="color:#4caf50;font-weight:700">✔ Publicado</span>'
-          : '<span style="color:#ff6b6b;font-weight:600">✖ Não publicado</span>'
-        return `
-          <div class="card">
-            <img src="${images[0]}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;border:1px solid rgba(217,178,77,.35)">
-            <div class="property-info">
-              <strong>${escapeHTML(p.title)}</strong>
-              <div class="muted">${escapeHTML(p.rua || '')}, ${escapeHTML(p.numero || '')} — ${escapeHTML(p.neighborhood || '')}, ${escapeHTML(p.city || '')}</div>
-              <div><strong>${escapeHTML(p.price)}</strong> · ${pubLabel}</div>
-              <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} | 📸 ${images.length}</div>
-              <p class="muted">${escapeHTML((p.description || '').slice(0, 100))}</p>
-              <div style="margin-top:8px;display:flex;gap:6px">
-                <button data-id="${p.id}" class="btn btn-outline edit-btn" style="flex:1">Editar</button>
-                <button data-id="${p.id}" class="btn btn-outline del-btn" style="flex:1;color:#ff6b6b;border-color:rgba(255,107,107,0.3)">Remover</button>
-              </div>
-            </div>
-          </div>`
-      }).join('')
-    : '<div class="muted">Nenhum imóvel cadastrado.</div>'
+
+  const total     = props.length
+  const published = props.filter(p => p.published === true).length
+  const elTotal   = document.getElementById('stat-total')
+  const elPub     = document.getElementById('stat-published')
+  const elLeads   = document.getElementById('stat-leads')
+  if (elTotal)  elTotal.textContent  = total
+  if (elPub)    elPub.textContent    = published
+  if (elLeads)  elLeads.textContent  = '—'
+
+  if (!props.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Nenhum imóvel cadastrado.</td></tr>'
+    return
+  }
+
+  tbody.innerHTML = props.map(p => {
+    const img   = p.images?.[0] || SAMPLE_URLS[0]
+    const addr  = [p.rua, p.numero ? `nº ${p.numero}` : '', p.neighborhood, p.city].filter(Boolean).join(', ') || '—'
+    const badge = p.published === true
+      ? '<span class="badge badge-green">● Publicado</span>'
+      : '<span class="badge badge-gray">○ Rascunho</span>'
+    return `<tr>
+      <td><img src="${img}" class="table-thumb" alt=""></td>
+      <td>
+        <div class="cell-title">${escapeHTML(p.title)}</div>
+        <div class="cell-sub">#${p.id}</div>
+      </td>
+      <td class="cell-addr col-addr">${escapeHTML(addr)}</td>
+      <td class="cell-price">${escapeHTML(p.price || '—')}</td>
+      <td>${p.bedrooms ?? '—'}</td>
+      <td>${p.parking ?? '—'}</td>
+      <td>${badge}</td>
+      <td>
+        <div class="action-btns">
+          <button data-id="${p.id}" class="icon-btn edit-btn" title="Editar">✏️</button>
+          <button data-id="${p.id}" class="icon-btn del-btn" title="Remover">🗑️</button>
+        </div>
+      </td>
+    </tr>`
+  }).join('')
 }
 
 // ─── Formulário admin ─────────────────────────────────────────────────────
 let editingId = null
 
+function openModal(title) {
+  document.getElementById('modal-title').textContent = title || 'Novo Imóvel'
+  document.getElementById('property-modal').classList.remove('hidden')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeModal() {
+  document.getElementById('property-modal').classList.add('hidden')
+  document.body.style.overflow = ''
+}
+
 function attachAdminForm() {
   const form      = document.getElementById('property-form')
   if (!form) return
-  const submitBtn = form.querySelector('button[type="submit"]')
+  const submitBtn = document.getElementById('form-submit-btn')
 
   form.addEventListener('submit', async e => {
     e.preventDefault()
@@ -320,6 +348,7 @@ function attachAdminForm() {
       neighborhood: fd.get('neighborhood'),
       price:        fd.get('price'),
       bedrooms:     parseInt(fd.get('bedrooms'), 10) || 0,
+      suites:       parseInt(fd.get('suites'), 10) || 0,
       parking:      parseInt(fd.get('parking'), 10) || 0,
       published:    fd.get('published') === 'true',
       images,
@@ -335,9 +364,9 @@ function attachAdminForm() {
       const pubSel = document.getElementById('adminPublished')
       if (pubSel) pubSel.value = 'true'
       const neighSel = document.getElementById('adminNeighborhood')
-      if (neighSel) neighSel.innerHTML = '<option value="">Selecione o bairro</option>'
+      if (neighSel) neighSel.innerHTML = '<option value="">Selecione a cidade primeiro</option>'
+      closeModal()
       await renderAdmin()
-      alert('✅ Imóvel salvo no Supabase!')
     } catch (err) {
       console.error(err)
       submitBtn.disabled    = false
@@ -371,19 +400,21 @@ function attachAdminForm() {
       form.querySelector('[name="city"]').value        = p.city || ''
       form.querySelector('[name="price"]').value       = p.price || ''
       form.querySelector('[name="bedrooms"]').value    = p.bedrooms || ''
+      form.querySelector('[name="suites"]').value      = p.suites || ''
       form.querySelector('[name="parking"]').value     = p.parking || ''
       form.querySelector('[name="description"]').value = p.description || ''
       const pubSel = document.getElementById('adminPublished')
       if (pubSel) pubSel.value = p.published === true ? 'true' : 'false'
       const citySel = document.getElementById('adminCitySelect')
       if (citySel) {
+        citySel.value = p.city || ''
         citySel.dispatchEvent(new Event('change'))
         setTimeout(() => {
           const neighSel = document.getElementById('adminNeighborhood')
           if (neighSel) neighSel.value = p.neighborhood || ''
         }, 50)
       }
-      form.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      openModal('Editar Imóvel')
     }
   })
 }
@@ -398,7 +429,50 @@ function escapeHTML(s) {
     .replace(/'/g, '&#39;')
 }
 
-// ─── Init ─────────────────────────────────────────────────────────────────
+function attachAdminUI() {
+  // Sidebar navigation
+  document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+      item.classList.add('active')
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'))
+      document.getElementById(`section-${item.dataset.section}`)?.classList.remove('hidden')
+    })
+  })
+
+  // Mobile sidebar toggle
+  const sidebar  = document.getElementById('admin-sidebar')
+  const overlay  = document.getElementById('sidebar-overlay')
+  const toggle   = document.getElementById('sidebar-toggle')
+  const closeSb  = () => { sidebar?.classList.remove('open'); overlay?.classList.remove('open') }
+  toggle?.addEventListener('click', () => { sidebar?.classList.toggle('open'); overlay?.classList.toggle('open') })
+  overlay?.addEventListener('click', closeSb)
+
+  // Modal close
+  document.getElementById('modal-close')?.addEventListener('click', closeModal)
+  document.getElementById('modal-cancel')?.addEventListener('click', closeModal)
+  document.getElementById('property-modal')?.addEventListener('click', e => {
+    if (e.target.id === 'property-modal') closeModal()
+  })
+
+  // Novo Imóvel button
+  document.getElementById('btn-new-property')?.addEventListener('click', () => {
+    editingId = null
+    document.getElementById('property-form').reset()
+    document.getElementById('adminPublished').value = 'true'
+    document.getElementById('adminNeighborhood').innerHTML = '<option value="">Selecione a cidade primeiro</option>'
+    document.getElementById('form-submit-btn').textContent = 'Salvar Imóvel'
+    openModal('Novo Imóvel')
+  })
+
+  // Logout
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    await supabase.auth.signOut()
+    location.reload()
+  })
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   attachPriceSlider()
   attachFilters()
@@ -409,7 +483,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (citySel && neighSel) {
     citySel.addEventListener('change', () => {
       const list = CITY_NEIGHBORHOODS[citySel.value] || []
-      neighSel.innerHTML = '<option value="">Selecione o bairro</option>' +
+      neighSel.innerHTML = '<option value="">Selecione a cidade primeiro</option>' +
         list.map(n => `<option value="${n}">${n}</option>`).join('')
     })
   }
@@ -424,6 +498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (adminRoot) adminRoot.classList.remove('hidden')
       await renderAdmin()
       attachAdminForm()
+      attachAdminUI()
     } else {
       if (adminRoot) adminRoot.classList.add('hidden')
       loginModal.classList.remove('hidden')
@@ -440,6 +515,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (adminRoot) adminRoot.classList.remove('hidden')
             await renderAdmin()
             attachAdminForm()
+            attachAdminUI()
           } else {
             alert('E-mail ou senha incorretos')
           }
