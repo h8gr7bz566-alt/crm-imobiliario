@@ -349,6 +349,7 @@ function attachAdminForm() {
       price:        fd.get('price'),
       bedrooms:     parseInt(fd.get('bedrooms'), 10) || 0,
       suites:       parseInt(fd.get('suites'), 10) || 0,
+      area:         parseFloat(fd.get('area')) || 0,
       parking:      parseInt(fd.get('parking'), 10) || 0,
       published:    fd.get('published') === 'true',
       images,
@@ -405,6 +406,7 @@ function attachAdminForm() {
       form.querySelector('[name="price"]').value       = p.price || ''
       form.querySelector('[name="bedrooms"]').value    = p.bedrooms || ''
       form.querySelector('[name="suites"]').value      = p.suites || ''
+      form.querySelector('[name="area"]').value        = p.area   || ''
       form.querySelector('[name="parking"]').value     = p.parking || ''
       form.querySelector('[name="description"]').value  = p.description || ''
       form.querySelector('[name="owner_name"]').value   = p.owner_name || ''
@@ -474,6 +476,7 @@ function openViewModal(p) {
   document.getElementById('view-bedrooms').textContent = p.bedrooms || '—'
   document.getElementById('view-suites').textContent   = p.suites   || '—'
   document.getElementById('view-parking').textContent  = p.parking  || '—'
+  document.getElementById('view-area').textContent     = p.area ? `${p.area} m²` : '—'
 
   // Detalhes tab
   document.getElementById('view-description').textContent = p.description || 'Sem descrição.'
