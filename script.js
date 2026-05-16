@@ -128,7 +128,9 @@ async function renderPublic() {
       if (parking === '4+' && Number(p.parking) < 4) return false
       if (parking !== '4+' && Number(p.parking) !== Number(parking)) return false
     }
-    const price = parseInt(String(p.price || '').replace(/[^0-9]/g, ''), 10) || 0
+    // Remove símbolo, espaços e centavos (,XX) antes de extrair o número
+    const priceStr = String(p.price || '').replace(/,\d{0,2}$/, '').replace(/[^0-9]/g, '')
+    const price = parseInt(priceStr, 10) || 0
     if (price < 0 || price > priceMaxVal) return false
     return true
   })
