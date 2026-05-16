@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Painel Admin — Isaac Omar Corretor</title>
   <script type="module" crossorigin src="/crm-imobiliario/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/crm-imobiliario/assets/script-BZsUeDBe.js"></script>
+  <script type="module" crossorigin src="/crm-imobiliario/assets/script-B8uHXYfu.js"></script>
   <link rel="stylesheet" crossorigin href="/crm-imobiliario/assets/admin-Civ5Tn2B.css">
 </head>
 <body>
@@ -319,17 +319,13 @@
         <!-- Gerenciar Corretores — admin only -->
         <div class="settings-card" id="settings-corretores-section" style="display:none">
           <h3 class="settings-card-title">Gerenciar Corretores</h3>
-          <div class="form-row">
-            <div class="form-group">
+          <div class="settings-invite-row">
+            <div class="form-group" style="flex:1">
               <label class="form-label">E-mail do Corretor</label>
               <input id="invite-email" type="email" class="form-control" placeholder="corretor@email.com">
             </div>
-            <div class="form-group">
-              <label class="form-label">Senha Inicial</label>
-              <input id="invite-password" type="password" class="form-control" placeholder="Mínimo 6 caracteres">
-            </div>
+            <button class="btn-primary" id="btn-invite-corretor" style="align-self:flex-end">+ Criar Acesso</button>
           </div>
-          <button class="btn-primary" id="btn-invite-corretor" style="margin-bottom:16px">+ Criar Acesso</button>
           <p id="invite-note" class="settings-note" style="display:none"></p>
           <div class="settings-divider"></div>
           <div id="corretores-list" class="corretores-list">Carregando…</div>
