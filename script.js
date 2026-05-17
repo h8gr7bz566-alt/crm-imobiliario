@@ -17,6 +17,15 @@ let cachedProperties = []
 let currentProfile    = null
 let cachedLocations   = []
 
+// Flag: captura PASSWORD_RECOVERY antes do DOMContentLoaded
+// O Supabase troca o código PKCE durante a inicialização, antes do DOM estar pronto
+let pendingPasswordRecovery = false
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    pendingPasswordRecovery = true
+  }
+})
+
 // ─── Supabase: buscar imóveis publicados (listagem pública) ───────────────
 async function getPublishedProperties() {
   const { data, error } = await supabase
@@ -1142,21 +1151,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hashParams  = new URLSearchParams(window.location.hash.replace('#', ''))
     const urlParams   = new URLSearchParams(window.location.search)
     const linkType    = hashParams.get('type') || urlParams.get('type') || ''
-    // Cobre fluxo legado (hash tokens) e fluxo PKCE (code na query string)
-    const isResetLink = linkType === 'recovery' || linkType === 'invite'
+    // Cobre: flag PKCE (evento disparado antes do DOM), hash tokens, code na URL
+    const isResetLink = pendingPasswordRecovery
+                     || linkType === 'recovery' || linkType === 'invite'
                      || window.location.hash.includes('access_token')
                      || urlParams.has('code')
 
     const overlay = document.getElementById('password-reset-overlay')
-
-    // Listener via onAuthStateChange — captura o evento PASSWORD_RECOVERY do Supabase
-    supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        loginModal.style.display = 'none'
-        if (adminRoot) adminRoot.classList.add('hidden')
-        if (overlay) overlay.style.display = 'flex'
-      }
-    })
 
     if (isResetLink) {
       loginModal.style.display = 'none'
