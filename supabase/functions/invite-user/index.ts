@@ -67,6 +67,7 @@ Deno.serve(async (req: Request) => {
         name: email,
         role: 'corretor',
         active: true,
+        needs_password_reset: true,
       }, { onConflict: 'id' })
     }
 

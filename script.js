@@ -1218,6 +1218,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert('Seu acesso está pausado. Entre em contato com o administrador.')
         return
       }
+      // Se o corretor foi convidado e ainda não definiu a senha, mostrar overlay
+      if (currentProfile.needs_password_reset) {
+        loginModal.style.display = 'none'
+        if (adminRoot) adminRoot.classList.add('hidden')
+        const overlay = document.getElementById('password-reset-overlay')
+        if (overlay) overlay.style.display = 'flex'
+        document.getElementById('password-reset-form')?.addEventListener('submit', async e => {
+          e.preventDefault()
+          const newPass     = document.getElementById('new-password')?.value || ''
+          const confirmPass = document.getElementById('confirm-password')?.value || ''
+          const msgEl       = document.getElementById('password-reset-msg')
+          const submitBtn   = e.target.querySelector('button[type="submit"]')
+          if (msgEl) msgEl.style.display = 'none'
+          if (newPass !== confirmPass) {
+            if (msgEl) { msgEl.textContent = 'As senhas não coincidem.'; msgEl.style.display = '' }
+            return
+          }
+          if (newPass.length < 6) {
+            if (msgEl) { msgEl.textContent = 'Mínimo 6 caracteres.'; msgEl.style.display = '' }
+            return
+          }
+          if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Salvando…' }
+          const { error } = await supabase.auth.updateUser({ password: newPass })
+          if (error) {
+            if (msgEl) { msgEl.textContent = 'Erro: ' + error.message; msgEl.style.display = '' }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Definir Senha' }
+            return
+          }
+          // Marcar que a senha foi definida
+          await supabase.from('profiles').update({ needs_password_reset: false }).eq('id', currentProfile.id)
+          window.location.href = window.location.pathname
+        })
+        return
+      }
       renderSidebarUser(currentProfile)
       applyRolePermissions(currentProfile.role)
       await initSettings(currentProfile)
