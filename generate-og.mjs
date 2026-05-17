@@ -68,7 +68,7 @@ ${ogImage ? `<meta property="og:image"       content="${esc(ogImage)}">
 <meta name="twitter:description" content="${ogDesc}">
 ${ogImage ? `<meta name="twitter:image" content="${esc(ogImage)}">` : ''}
 <link rel="canonical" href="${esc(target)}">
-<script>window.location.replace("${target}")<\/script>
+<meta http-equiv="refresh" content="0;url=${target}">
 </head>
 <body style="font-family:sans-serif;text-align:center;padding:40px;color:#555">
 <p>Redirecionando... <a href="${target}">Clique aqui</a></p>
