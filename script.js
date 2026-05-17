@@ -666,6 +666,24 @@ function applyRolePermissions(role) {
   if (root) root.dataset.role = role || 'corretor'
 }
 
+// Clicar no avatar/nome da sidebar abre Configurações
+function attachSidebarUserClick() {
+  const sidebarUser = document.getElementById('sidebar-user')
+  if (!sidebarUser) return
+  sidebarUser.addEventListener('click', () => {
+    // Ativa a seção de configurações
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'))
+    const settingsBtn = document.querySelector('.nav-item[data-section="settings"]')
+    if (settingsBtn) settingsBtn.classList.add('active')
+    document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'))
+    const settingsSection = document.getElementById('section-settings')
+    if (settingsSection) settingsSection.classList.remove('hidden')
+    // Fechar sidebar no mobile
+    document.getElementById('admin-sidebar')?.classList.remove('open')
+    document.getElementById('sidebar-overlay')?.classList.remove('active')
+  })
+}
+
 // ─── Edge Function helper ────────────────────────────────────────────────────
 const EDGE_FN_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/invite-user'
 
@@ -1234,6 +1252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       await renderAdmin()
       attachAdminForm()
       attachAdminUI()
+      attachSidebarUserClick()
 
       currentProfile = await loadProfile(session.user.id)
       if (!currentProfile) {

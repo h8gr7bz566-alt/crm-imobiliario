@@ -707,6 +707,9 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 
 /* ─── Sidebar user card ───────────────────────────────────────────── */
 .sidebar-user {
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 8px;
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px 10px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -928,7 +931,8 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 /* ─── Role-based visibility ───────────────────────────────────────── */
 #admin-root[data-role="corretor"] #btn-new-property        { display: none !important; }
 #admin-root[data-role="corretor"] .action-btns             { display: none !important; }
-#admin-root[data-role="corretor"] .nav-item[data-section="settings"] { display: none !important; }
+/* Corretor pode acessar configurações (perfil + alterar senha) */
+/* #admin-root[data-role="corretor"] .nav-item[data-section="settings"] { display: none !important; } */
 
 /* ─── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 600px) {
