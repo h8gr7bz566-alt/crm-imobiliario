@@ -712,18 +712,30 @@ async function initSettings(profile) {
     if (avatarInit) avatarInit.style.display = 'none'
   })
 
-  // Botão Alterar Senha
-  document.getElementById('settings-change-password')?.addEventListener('click', async () => {
-    const nova = prompt('Nova senha (mínimo 6 caracteres):')
-    if (!nova) return
-    if (nova.length < 6) { alert('Senha muito curta. Mínimo 6 caracteres.'); return }
-    const confirma = prompt('Confirme a nova senha:')
-    if (nova !== confirma) { alert('As senhas não coincidem.'); return }
+  // Card Alterar Senha
+  document.getElementById('btn-change-password')?.addEventListener('click', async () => {
+    const nova     = document.getElementById('change-password-new')?.value || ''
+    const confirma = document.getElementById('change-password-confirm')?.value || ''
+    const msgEl    = document.getElementById('change-password-msg')
+    const btn      = document.getElementById('btn-change-password')
+    if (msgEl) msgEl.style.display = 'none'
+    if (nova.length < 6) {
+      if (msgEl) { msgEl.textContent = 'Mínimo 6 caracteres.'; msgEl.style.display = '' }
+      return
+    }
+    if (nova !== confirma) {
+      if (msgEl) { msgEl.textContent = 'As senhas não coincidem.'; msgEl.style.display = '' }
+      return
+    }
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando…' }
     const { error } = await supabase.auth.updateUser({ password: nova })
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar Nova Senha' }
     if (error) {
-      alert('Erro ao alterar senha: ' + error.message)
+      if (msgEl) { msgEl.textContent = 'Erro: ' + error.message; msgEl.style.display = '' }
     } else {
-      alert('Senha alterada com sucesso!')
+      if (msgEl) { msgEl.style.color = '#16a34a'; msgEl.textContent = 'Senha alterada com sucesso!'; msgEl.style.display = '' }
+      document.getElementById('change-password-new').value = ''
+      document.getElementById('change-password-confirm').value = ''
     }
   })
 
