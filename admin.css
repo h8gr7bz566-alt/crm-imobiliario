@@ -29,22 +29,48 @@ body {
 #admin-login {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 55%, #0f3460 100%);
   display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: 1000;
 }
 #admin-login.hidden { display: none; }
+
+/* Left illustration panel */
+.login-left {
+  flex: 1 1 55%;
+  background: linear-gradient(145deg, #0a1628 0%, #0f1c2e 40%, #1a2f4a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.login-left svg { width: 100%; height: 100%; position: absolute; inset: 0; }
+
+/* Right form panel */
+.login-right {
+  flex: 0 0 420px;
+  background: #f8f9fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.25);
+}
 
 .login-box {
   background: #fff;
   border-radius: 20px;
   padding: 48px 40px;
   width: 100%;
-  max-width: 420px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+  max-width: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10);
   text-align: center;
+}
+
+@media (max-width: 768px) {
+  #admin-login { flex-direction: column; }
+  .login-left { display: none; }
+  .login-right { flex: 1; width: 100%; }
 }
 .login-logo-name  { font-size: 20px; font-weight: 700; color: var(--text); }
 .login-logo-creci { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 28px; }
