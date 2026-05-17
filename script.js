@@ -712,6 +712,21 @@ async function initSettings(profile) {
     if (avatarInit) avatarInit.style.display = 'none'
   })
 
+  // Botão Alterar Senha
+  document.getElementById('settings-change-password')?.addEventListener('click', async () => {
+    const nova = prompt('Nova senha (mínimo 6 caracteres):')
+    if (!nova) return
+    if (nova.length < 6) { alert('Senha muito curta. Mínimo 6 caracteres.'); return }
+    const confirma = prompt('Confirme a nova senha:')
+    if (nova !== confirma) { alert('As senhas não coincidem.'); return }
+    const { error } = await supabase.auth.updateUser({ password: nova })
+    if (error) {
+      alert('Erro ao alterar senha: ' + error.message)
+    } else {
+      alert('Senha alterada com sucesso!')
+    }
+  })
+
   saveBtn?.addEventListener('click', async () => {
     const name = nameInput.value.trim()
     let avatar_url = currentProfile?.avatar_url || ''
@@ -746,16 +761,20 @@ async function initSettings(profile) {
     if (section) section.style.display = ''
     await loadCorretores()
     document.getElementById('btn-invite-corretor')?.addEventListener('click', async () => {
-      const email = document.getElementById('invite-email')?.value.trim()
-      const btn   = document.getElementById('btn-invite-corretor')
+      const email    = document.getElementById('invite-email')?.value.trim()
+      const password = document.getElementById('invite-password')?.value.trim()
+      const btn      = document.getElementById('btn-invite-corretor')
       if (!email) { alert('Informe o e-mail do corretor.'); return }
-      if (btn) { btn.disabled = true; btn.textContent = 'Enviando…' }
+      if (!password || password.length < 6) { alert('A senha precisa ter no mínimo 6 caracteres.'); return }
+      if (btn) { btn.disabled = true; btn.textContent = 'Criando…' }
       try {
-        const result = await callEdgeFunction({ email })
+        const result = await callEdgeFunction({ email, password })
         if (result.success) {
-          alert(`Acesso criado! O corretor receberá um e-mail para definir a senha.`)
+          alert('Acesso criado! O corretor receberá um e-mail com o login e a senha que você definiu.')
           const emailInput = document.getElementById('invite-email')
+          const passInput  = document.getElementById('invite-password')
           if (emailInput) emailInput.value = ''
+          if (passInput)  passInput.value  = ''
           await loadCorretores()
         } else {
           alert('Erro: ' + (result.error || 'Falha desconhecida'))

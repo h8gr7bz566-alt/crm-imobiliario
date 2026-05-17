@@ -24,7 +24,7 @@ Deno.serve(async (req: Request) => {
     )
 
     const body = await req.json()
-    const { action, email, userId, active } = body
+    const { action, email, password, userId, active } = body
 
     // ── Toggle ativo/pausado ──────────────────────────────────────────────
     if (action === 'toggle') {
@@ -46,40 +46,40 @@ Deno.serve(async (req: Request) => {
       return json({ success: true })
     }
 
-    // ── Enviar convite ────────────────────────────────────────────────────
-    if (!email) return json({ success: false, error: 'Email obrigatorio' })
-
-    // generateLink type invite cria o usuario (se nao existir) e gera link correto
-    // Esse link pede para o usuario definir a senha na primeira vez que acessar
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: 'invite',
-      email,
-      options: { redirectTo: 'https://omarcorretor.com.br/admin.html' }
-    })
-
-    if (linkError) return json({ success: false, error: linkError.message })
-
-    // Criar/atualizar perfil com role corretor
-    const newUserId = linkData?.user?.id
-    if (newUserId) {
-      await supabase.from('profiles').upsert({
-        id: newUserId,
-        name: email,
-        role: 'corretor',
-        active: true,
-        needs_password_reset: true,
-      }, { onConflict: 'id' })
+    // ── Criar corretor com senha definida pelo admin ──────────────────────
+    if (!email || !password) {
+      return json({ success: false, error: 'Email e senha sao obrigatorios' })
     }
 
-    const accessLink = linkData?.properties?.action_link ?? 'https://omarcorretor.com.br/admin.html'
+    // Criar usuario com a senha definida pelo admin
+    const { data, error: createError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    })
+    if (createError) return json({ success: false, error: createError.message })
 
+    // Criar perfil
+    await supabase.from('profiles').upsert({
+      id: data.user.id,
+      name: email,
+      role: 'corretor',
+      active: true,
+      needs_password_reset: false,
+    }, { onConflict: 'id' })
+
+    // Enviar email com as credenciais de acesso via Resend
+    const loginUrl = 'https://omarcorretor.com.br/admin.html'
     const emailHtml = [
       '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">',
       '<h2 style="color:#1a1a2e;">Bem-vindo ao CRM Omar Corretor!</h2>',
-      '<p>Seu acesso foi criado. Clique no botao abaixo para definir sua senha e acessar o sistema:</p>',
-      '<a href="' + accessLink + '" style="display:inline-block;background:#b8962e;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin:16px 0;">Acessar o CRM</a>',
-      '<p style="color:#666;font-size:14px;">Se o botao nao funcionar, copie este link:<br>' + accessLink + '</p>',
-      '<p style="color:#999;font-size:12px;">Este link expira em 24 horas.</p>',
+      '<p>Seu acesso foi criado. Use as credenciais abaixo para entrar no sistema:</p>',
+      '<div style="background:#f5f5f5;border-radius:8px;padding:16px;margin:16px 0;">',
+      '<p style="margin:4px 0;"><strong>E-mail:</strong> ' + email + '</p>',
+      '<p style="margin:4px 0;"><strong>Senha:</strong> ' + password + '</p>',
+      '</div>',
+      '<a href="' + loginUrl + '" style="display:inline-block;background:#b8962e;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin:16px 0;">Acessar o CRM</a>',
+      '<p style="color:#999;font-size:12px;margin-top:16px;">Recomendamos alterar sua senha apos o primeiro acesso.</p>',
       '<hr style="border:none;border-top:1px solid #eee;margin:24px 0;">',
       '<p style="color:#999;font-size:12px;">Omar Corretor de Imoveis - CRECI 69965F</p>',
       '</div>',
