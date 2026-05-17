@@ -14,6 +14,7 @@ export default defineConfig({
         main:     resolve(__dirname, 'index.html'),
         admin:    resolve(__dirname, 'admin.html'),
         property: resolve(__dirname, 'property.html'),
+        servicos: resolve(__dirname, 'servicos.html'),
       },
       external: []
     }
