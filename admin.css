@@ -931,6 +931,9 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 /* ─── Role-based visibility ───────────────────────────────────────── */
 #admin-root[data-role="corretor"] #btn-new-property        { display: none !important; }
 #admin-root[data-role="corretor"] .action-btns             { display: none !important; }
+#admin-root[data-role="corretor"] #view-modal-edit         { display: none !important; }
+#admin-root[data-role="corretor"] .edit-btn                { display: none !important; }
+#admin-root[data-role="corretor"] .delete-btn              { display: none !important; }
 /* Corretor pode acessar configurações (perfil + alterar senha) */
 /* #admin-root[data-role="corretor"] .nav-item[data-section="settings"] { display: none !important; } */
 
