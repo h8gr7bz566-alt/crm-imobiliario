@@ -104,6 +104,67 @@
     </section>
   </main>
 
+
+  <!-- ── Serviços ─────────────────────────────────────────────────────── -->
+  <section id="servicos" style="padding:72px 24px;background:#f9fafb;">
+    <div style="max-width:520px;margin:0 auto;text-align:center;">
+      <p style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#b8962e;margin:0 0 10px;">Serviços</p>
+      <h2 style="font-size:28px;font-weight:700;color:#0f1c2e;margin:0 0 12px;line-height:1.2;">Cadastre seu Imóvel</h2>
+      <p style="color:#6b7280;font-size:15px;margin:0 0 36px;line-height:1.6;">Preencha o formulário abaixo e entraremos em contato para avaliar e divulgar seu imóvel.</p>
+
+      <form id="cadastro-imovel-form" style="display:flex;flex-direction:column;gap:14px;text-align:left;">
+        <div>
+          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">Nome completo</label>
+          <input id="cad-nome" type="text" placeholder="Seu nome completo" required
+            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
+            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
+        </div>
+        <div>
+          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">Telefone / WhatsApp</label>
+          <input id="cad-telefone" type="tel" placeholder="(47) 99999-9999" required
+            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
+            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
+        </div>
+        <div>
+          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">E-mail</label>
+          <input id="cad-email" type="email" placeholder="seuemail@exemplo.com"
+            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
+            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
+        </div>
+        <div>
+          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">Cidade do imóvel</label>
+          <input id="cad-cidade" type="text" placeholder="Ex: Balneário Camboriú"
+            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
+            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
+        </div>
+        <button type="submit"
+          style="width:100%;padding:13px;background:#b8962e;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;transition:background 0.2s;"
+          onmouseover="this.style.background='#a07d22'" onmouseout="this.style.background='#b8962e'">
+          Enviar pelo WhatsApp
+        </button>
+      </form>
+
+      <script>
+        document.getElementById('cadastro-imovel-form').addEventListener('submit', function(e) {
+          e.preventDefault()
+          const nome     = document.getElementById('cad-nome').value.trim()
+          const telefone = document.getElementById('cad-telefone').value.trim()
+          const email    = document.getElementById('cad-email').value.trim()
+          const cidade   = document.getElementById('cad-cidade').value.trim()
+          const msg = [
+            '📋 *Cadastro de Imóvel*',
+            '',
+            '👤 *Nome:* ' + nome,
+            '📞 *Telefone:* ' + telefone,
+            email  ? '✉️ *E-mail:* ' + email   : '',
+            cidade ? '📍 *Cidade:* ' + cidade   : '',
+          ].filter(Boolean).join('\n')
+          window.open('https://wa.me/5547999701743?text=' + encodeURIComponent(msg), '_blank')
+        })
+      </script>
+    </div>
+  </section>
+
   <footer class="footer">
     <small>© 2026 Isaac Omar — Corretor de Imóveis — CRECI 69965F</small>
   </footer>
