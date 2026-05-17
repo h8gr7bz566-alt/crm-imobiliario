@@ -280,8 +280,8 @@ function renderAdminTable(props) {
       <td>${badge}</td>
       <td>
         <div class="action-btns">
-          <button data-id="${p.id}" class="icon-btn edit-btn" title="Editar">✏️</button>
-          <button data-id="${p.id}" class="icon-btn del-btn" title="Remover">🗑️</button>
+          ${currentProfile?.role === 'admin' ? `<button data-id="${p.id}" class="icon-btn edit-btn" title="Editar">✏️</button>` : ''}
+          ${currentProfile?.role === 'admin' ? `<button data-id="${p.id}" class="icon-btn del-btn" title="Remover">🗑️</button>` : ''}
         </div>
       </td>
     </tr>`
