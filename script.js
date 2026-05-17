@@ -606,8 +606,8 @@ function openViewModal(p) {
   document.getElementById('tab-principal').classList.remove('hidden')
 
   // Preencher link de compartilhamento
-  // Usamos a Edge Function para gerar preview rico (OG tags) no WhatsApp/redes
-  const shareUrl = 'https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/property-og?id=' + p.id
+  // Usa página OG estática gerada no build (omarcorretor.com.br/og/[id].html)
+  const shareUrl = 'https://omarcorretor.com.br/og/' + p.id + '.html'
   const shareLinkInput = document.getElementById('share-link-input')
   if (shareLinkInput) shareLinkInput.value = shareUrl
   // Fechar share panel ao abrir novo modal
