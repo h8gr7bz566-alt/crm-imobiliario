@@ -8,24 +8,24 @@
   <script type="module" src="./script.js"></script>
 </head>
 <body>
-  <!-- ── Seletor de idiomas ──────────────────────────────────────────── -->
-  <div id="lang-bar" style="background:#0f1c2e;border-bottom:1px solid rgba(255,255,255,0.08);padding:5px 20px;display:flex;align-items:center;gap:6px;">
-    <button onclick="setLang('pt')" id="lang-pt" title="Português"
-      style="background:none;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.7);display:flex;align-items:center;gap:5px;transition:all 0.2s;">
-      🇧🇷 <span style="font-size:11px;font-weight:600;letter-spacing:0.04em;">PT</span>
-    </button>
-    <button onclick="setLang('en')" id="lang-en" title="English"
-      style="background:none;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.7);display:flex;align-items:center;gap:5px;transition:all 0.2s;">
-      🇺🇸 <span style="font-size:11px;font-weight:600;letter-spacing:0.04em;">EN</span>
-    </button>
-    <button onclick="setLang('es')" id="lang-es" title="Español"
-      style="background:none;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.7);display:flex;align-items:center;gap:5px;transition:all 0.2s;">
-      🇪🇸 <span style="font-size:11px;font-weight:600;letter-spacing:0.04em;">ES</span>
-    </button>
-  </div>
-
   <header class="topbar">
     <div class="topbar-inner">
+
+      <!-- Language Switcher -->
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button onclick="setLang('pt')" id="lang-pt" title="Português"
+          style="background:none;border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:2px 8px;cursor:pointer;font-size:12px;color:rgba(255,255,255,0.65);display:flex;align-items:center;gap:3px;transition:all 0.2s;">
+          🇧🇷 <span style="font-size:10px;font-weight:600;">PT</span>
+        </button>
+        <button onclick="setLang('en')" id="lang-en" title="English"
+          style="background:none;border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:2px 8px;cursor:pointer;font-size:12px;color:rgba(255,255,255,0.65);display:flex;align-items:center;gap:3px;transition:all 0.2s;">
+          🇺🇸 <span style="font-size:10px;font-weight:600;">EN</span>
+        </button>
+        <button onclick="setLang('es')" id="lang-es" title="Español"
+          style="background:none;border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:2px 8px;cursor:pointer;font-size:12px;color:rgba(255,255,255,0.65);display:flex;align-items:center;gap:3px;transition:all 0.2s;">
+          🇪🇸 <span style="font-size:10px;font-weight:600;">ES</span>
+        </button>
+      </div>
       <a href="index.html" class="logo" aria-label="Isaac Omar Corretor">
         <img src="logo.png" alt="Isaac Omar" class="logo-img">
         <div class="brand-wrap">
@@ -38,8 +38,8 @@
         <div class="nav-dropdown">
           <button class="nav-link nav-dropdown-btn" data-i18n="nav.servicos">Serviços <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>
           <div class="nav-dropdown-menu">
-            <a href="#cadastre-imovel" class="nav-dropdown-item" data-i18n="nav.cadastre">Cadastre seu imóvel</a>
-            <a href="#avaliacao-imovel" class="nav-dropdown-item" data-i18n="nav.avaliacao">Avaliação de imóvel</a>
+            <a href="servicos.html#cadastre-imovel" class="nav-dropdown-item" data-i18n="nav.cadastre">Cadastre seu imóvel</a>
+            <a href="servicos.html#avaliacao-imovel" class="nav-dropdown-item" data-i18n="nav.avaliacao">Avaliação de imóvel</a>
           </div>
         </div>
         <a href="#institucional" class="nav-link" data-i18n="nav.institucional">Institucional</a>
@@ -124,177 +124,6 @@
       <div id="properties" class="grid"></div>
     </section>
   </main>
-
-
-  <!-- ── Serviços ─────────────────────────────────────────────────────── -->
-  <section id="cadastre-imovel" style="padding:72px 24px;background:#f9fafb;scroll-margin-top:70px;">
-    <div style="max-width:520px;margin:0 auto;text-align:center;">
-      <p style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#b8962e;margin:0 0 10px;">Serviços</p>
-      <h2 style="font-size:28px;font-weight:700;color:#0f1c2e;margin:0 0 12px;line-height:1.2;">Cadastre seu Imóvel</h2>
-      <p style="color:#6b7280;font-size:15px;margin:0 0 36px;line-height:1.6;">Preencha o formulário abaixo e entraremos em contato para avaliar e divulgar seu imóvel.</p>
-
-      <form id="cadastro-imovel-form" style="display:flex;flex-direction:column;gap:14px;text-align:left;">
-        <div>
-          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">Nome completo</label>
-          <input id="cad-nome" type="text" placeholder="Seu nome completo" required
-            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
-            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
-        </div>
-        <div>
-          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">Telefone / WhatsApp</label>
-          <input id="cad-telefone" type="tel" placeholder="(47) 99999-9999" required
-            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
-            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
-        </div>
-        <div>
-          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">E-mail</label>
-          <input id="cad-email" type="email" placeholder="seuemail@exemplo.com"
-            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
-            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
-        </div>
-        <div>
-          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">Cidade do imóvel</label>
-          <input id="cad-cidade" type="text" placeholder="Ex: Balneário Camboriú"
-            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
-            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
-        </div>
-        <button type="submit"
-          style="width:100%;padding:13px;background:#b8962e;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;transition:background 0.2s;"
-          onmouseover="this.style.background='#a07d22'" onmouseout="this.style.background='#b8962e'">
-          Enviar pelo WhatsApp
-        </button>
-      </form>
-
-      <script>
-        document.getElementById('cadastro-imovel-form').addEventListener('submit', function(e) {
-          e.preventDefault()
-          const nome     = document.getElementById('cad-nome').value.trim()
-          const telefone = document.getElementById('cad-telefone').value.trim()
-          const email    = document.getElementById('cad-email').value.trim()
-          const cidade   = document.getElementById('cad-cidade').value.trim()
-          const msg = [
-            '📋 *Cadastro de Imóvel*',
-            '',
-            '👤 *Nome:* ' + nome,
-            '📞 *Telefone:* ' + telefone,
-            email  ? '✉️ *E-mail:* ' + email   : '',
-            cidade ? '📍 *Cidade:* ' + cidade   : '',
-          ].filter(Boolean).join('\n')
-
-          // Mostrar confirmação na página
-          const form = document.getElementById('cadastro-imovel-form')
-          form.style.display = 'none'
-          document.getElementById('cad-sucesso').style.display = 'flex'
-
-          // Abrir WhatsApp na mesma aba após breve delay
-          setTimeout(function() {
-            window.location.href = 'https://wa.me/5547999701743?text=' + encodeURIComponent(msg)
-          }, 1200)
-        })
-      </script>
-
-      <!-- Mensagem de sucesso (oculta por padrão) -->
-      <div id="cad-sucesso" style="display:none;flex-direction:column;align-items:center;gap:16px;padding:32px 0;text-align:center;">
-        <div style="width:56px;height:56px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <div>
-          <p style="font-size:17px;font-weight:700;color:#111827;margin:0 0 6px;">Mensagem enviada!</p>
-          <p style="font-size:14px;color:#6b7280;margin:0;">Abrindo o WhatsApp agora…</p>
-        </div>
-        <button onclick="document.getElementById('cad-sucesso').style.display='none';document.getElementById('cadastro-imovel-form').reset();document.getElementById('cadastro-imovel-form').style.display='flex';"
-          style="font-size:13px;color:#b8962e;background:none;border:none;cursor:pointer;text-decoration:underline;">
-          Enviar outro cadastro
-        </button>
-      </div>
-    </div>
-  </section>
-
-
-  <!-- ── Avaliação de Imóvel ──────────────────────────────────────────── -->
-  <section id="avaliacao-imovel" style="padding:72px 24px;background:#fff;scroll-margin-top:70px;">
-    <div style="max-width:520px;margin:0 auto;text-align:center;">
-      <p style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#b8962e;margin:0 0 10px;">Serviços</p>
-      <h2 style="font-size:28px;font-weight:700;color:#0f1c2e;margin:0 0 12px;line-height:1.2;">Avaliação de Imóvel</h2>
-      <p style="color:#6b7280;font-size:15px;margin:0 0 36px;line-height:1.6;">Descubra o valor de mercado do seu imóvel. Preencha e entraremos em contato com uma análise gratuita.</p>
-
-      <form id="avaliacao-form" style="display:flex;flex-direction:column;gap:14px;text-align:left;">
-        <div>
-          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">Nome completo</label>
-          <input id="av-nome" type="text" placeholder="Seu nome completo" required
-            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
-            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
-        </div>
-        <div>
-          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">Telefone / WhatsApp</label>
-          <input id="av-telefone" type="tel" placeholder="(47) 99999-9999" required
-            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
-            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
-        </div>
-        <div>
-          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">Endereço do imóvel</label>
-          <input id="av-endereco" type="text" placeholder="Rua, número, bairro, cidade"
-            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;transition:border 0.2s;"
-            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
-        </div>
-        <div>
-          <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px;">Tipo do imóvel</label>
-          <select id="av-tipo"
-            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;outline:none;background:#fff;transition:border 0.2s;"
-            onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='#d1d5db'">
-            <option value="">Selecione...</option>
-            <option>Apartamento</option>
-            <option>Casa</option>
-            <option>Terreno</option>
-            <option>Comercial</option>
-            <option>Outro</option>
-          </select>
-        </div>
-        <button type="submit"
-          style="width:100%;padding:13px;background:#b8962e;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;transition:background 0.2s;"
-          onmouseover="this.style.background='#a07d22'" onmouseout="this.style.background='#b8962e'">
-          Solicitar Avaliação pelo WhatsApp
-        </button>
-      </form>
-
-      <div id="av-sucesso" style="display:none;flex-direction:column;align-items:center;gap:16px;padding:32px 0;text-align:center;">
-        <div style="width:56px;height:56px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <div>
-          <p style="font-size:17px;font-weight:700;color:#111827;margin:0 0 6px;">Solicitação enviada!</p>
-          <p style="font-size:14px;color:#6b7280;margin:0;">Abrindo o WhatsApp agora…</p>
-        </div>
-        <button onclick="document.getElementById('av-sucesso').style.display='none';document.getElementById('avaliacao-form').reset();document.getElementById('avaliacao-form').style.display='flex';"
-          style="font-size:13px;color:#b8962e;background:none;border:none;cursor:pointer;text-decoration:underline;">
-          Fazer outra solicitação
-        </button>
-      </div>
-
-      <script>
-        document.getElementById('avaliacao-form').addEventListener('submit', function(e) {
-          e.preventDefault()
-          const nome     = document.getElementById('av-nome').value.trim()
-          const telefone = document.getElementById('av-telefone').value.trim()
-          const endereco = document.getElementById('av-endereco').value.trim()
-          const tipo     = document.getElementById('av-tipo').value.trim()
-          const msg = [
-            '🏠 *Solicitação de Avaliação de Imóvel*',
-            '',
-            '👤 *Nome:* ' + nome,
-            '📞 *Telefone:* ' + telefone,
-            endereco ? '📍 *Endereço:* ' + endereco : '',
-            tipo     ? '🏢 *Tipo:* ' + tipo         : '',
-          ].filter(Boolean).join('\n')
-          document.getElementById('avaliacao-form').style.display = 'none'
-          document.getElementById('av-sucesso').style.display = 'flex'
-          setTimeout(function() {
-            window.location.href = 'https://wa.me/5547999701743?text=' + encodeURIComponent(msg)
-          }, 1200)
-        })
-      </script>
-    </div>
-  </section>
 
 
   <!-- ── Institucional ────────────────────────────────────────────────── -->
