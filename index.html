@@ -159,9 +159,33 @@
             email  ? '✉️ *E-mail:* ' + email   : '',
             cidade ? '📍 *Cidade:* ' + cidade   : '',
           ].filter(Boolean).join('\n')
-          window.open('https://wa.me/5547999701743?text=' + encodeURIComponent(msg), '_blank')
+
+          // Mostrar confirmação na página
+          const form = document.getElementById('cadastro-imovel-form')
+          form.style.display = 'none'
+          document.getElementById('cad-sucesso').style.display = 'flex'
+
+          // Abrir WhatsApp na mesma aba após breve delay
+          setTimeout(function() {
+            window.location.href = 'https://wa.me/5547999701743?text=' + encodeURIComponent(msg)
+          }, 1200)
         })
       </script>
+
+      <!-- Mensagem de sucesso (oculta por padrão) -->
+      <div id="cad-sucesso" style="display:none;flex-direction:column;align-items:center;gap:16px;padding:32px 0;text-align:center;">
+        <div style="width:56px;height:56px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div>
+          <p style="font-size:17px;font-weight:700;color:#111827;margin:0 0 6px;">Mensagem enviada!</p>
+          <p style="font-size:14px;color:#6b7280;margin:0;">Abrindo o WhatsApp agora…</p>
+        </div>
+        <button onclick="document.getElementById('cad-sucesso').style.display='none';document.getElementById('cadastro-imovel-form').reset();document.getElementById('cadastro-imovel-form').style.display='flex';"
+          style="font-size:13px;color:#b8962e;background:none;border:none;cursor:pointer;text-decoration:underline;">
+          Enviar outro cadastro
+        </button>
+      </div>
     </div>
   </section>
 
