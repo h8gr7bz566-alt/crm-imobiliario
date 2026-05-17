@@ -1187,9 +1187,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = window.location.pathname
       })
 
-      // Fluxo PKCE: trocar o code por sessão (dispara PASSWORD_RECOVERY automaticamente)
+      // Fluxo PKCE: trocar o code por sessão explicitamente
+      // exchangeCodeForSession funciona mesmo que já exista sessão salva
       if (urlParams.has('code')) {
-        await supabase.auth.getSession()
+        await supabase.auth.exchangeCodeForSession(urlParams.get('code') ?? '')
       }
       return
     }
@@ -1224,6 +1225,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       loginModal.classList.remove('hidden')
       const lf = document.getElementById('login-form')
       if (lf) {
+        // Botão "Esqueci minha senha"
+        document.getElementById('forgot-password-btn')?.addEventListener('click', async () => {
+          const emailVal = lf.querySelector('input[name="email"]')?.value?.trim()
+          if (!emailVal) { alert('Digite seu e-mail no campo acima primeiro.'); return }
+          const { error } = await supabase.auth.resetPasswordForEmail(emailVal, {
+            redirectTo: 'https://omarcorretor.com.br/admin.html'
+          })
+          if (error) {
+            alert('Erro: ' + error.message)
+          } else {
+            alert('E-mail de redefinição enviado! Verifique sua caixa de entrada.')
+          }
+        })
+
         lf.addEventListener('submit', async e => {
           e.preventDefault()
           const fd       = new FormData(lf)
