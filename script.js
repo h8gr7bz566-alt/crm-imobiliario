@@ -267,7 +267,7 @@ function renderAdminTable(props) {
     const badge = p.published === true
       ? '<span class="badge badge-green">● Publicado</span>'
       : '<span class="badge badge-gray">○ Rascunho</span>'
-    return `<tr>
+    return `<tr data-id="${p.id}">
       <td><img src="${img}" class="table-thumb" alt=""></td>
       <td>
         <div class="cell-title">${escapeHTML(p.title)}</div>
@@ -1167,10 +1167,10 @@ function attachAdminUI() {
     if (e.target.closest('.action-btns')) return
     const row = e.target.closest('tr')
     if (!row) return
-    const editBtn = row.querySelector('.edit-btn')
-    if (!editBtn) return
-    const id = Number(editBtn.dataset.id)
-    const p  = cachedProperties.find(x => x.id === id)
+    // Usa data-id da linha (funciona para admin e corretor)
+    const id = Number(row.dataset.id)
+    if (!id) return
+    const p = cachedProperties.find(x => x.id === id)
     if (p) openViewModal(p)
   })
 }
