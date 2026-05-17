@@ -496,6 +496,7 @@ function attachAdminForm() {
     }
 
     if (e.target.matches('.edit-btn')) {
+      if (currentProfile?.role !== 'admin') return
       const id = Number(e.target.dataset.id)
       if (!id) return
       const p = cachedProperties.find(x => x.id === id)
@@ -1110,6 +1111,7 @@ function attachAdminUI() {
 
   // View modal — Edit button opens edit modal
   document.getElementById('view-modal-edit')?.addEventListener('click', () => {
+    if (currentProfile?.role !== 'admin') return
     const title = document.getElementById('view-modal-title').textContent
     const p = cachedProperties.find(x => x.title === title)
     if (!p) return
