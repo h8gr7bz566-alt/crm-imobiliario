@@ -59,14 +59,23 @@ Deno.serve(async (req: Request) => {
     })
     if (createError) return json({ success: false, error: createError.message })
 
-    // Criar perfil
-    await supabase.from('profiles').upsert({
+    // Criar perfil (sem needs_password_reset para evitar erros de coluna inexistente)
+    const { error: profileError } = await supabase.from('profiles').upsert({
       id: data.user.id,
       name: email,
       role: 'corretor',
       active: true,
-      needs_password_reset: false,
     }, { onConflict: 'id' })
+    if (profileError) {
+      console.error('Erro ao criar perfil:', profileError.message)
+      // Tenta insert simples se upsert falhar
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        name: email,
+        role: 'corretor',
+        active: true,
+      }).select()
+    }
 
     // Enviar email com as credenciais de acesso via Resend
     const loginUrl = 'https://omarcorretor.com.br/admin.html'

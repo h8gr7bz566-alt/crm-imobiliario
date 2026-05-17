@@ -1225,9 +1225,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       currentProfile = await loadProfile(session.user.id)
       if (!currentProfile) {
+        // Sessão inválida (usuário deletado ou perfil não encontrado) — faz logout e volta ao login
+        await supabase.auth.signOut()
         loginModal.classList.remove('hidden')
         if (adminRoot) adminRoot.classList.add('hidden')
-        alert('Perfil não encontrado. Cadastre seu perfil no Supabase primeiro.')
         return
       }
       if (currentProfile.active === false) {
@@ -1308,7 +1309,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const { data: { session: s2 } } = await supabase.auth.getSession()
             currentProfile = s2 ? await loadProfile(s2.user.id) : null
-            if (!currentProfile) { alert('Perfil não encontrado.'); return }
+            if (!currentProfile) {
+              await supabase.auth.signOut()
+              return
+            }
             if (currentProfile.active === false) {
               await supabase.auth.signOut()
               loginModal.classList.remove('hidden')
