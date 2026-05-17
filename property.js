@@ -36,6 +36,8 @@ function renderProperty(p) {
 
   images     = p.images?.length ? p.images : SAMPLE_URLS
   currentIdx = 0
+  window._galleryImages = images
+  window._lbIdx = 0
 
   document.getElementById('prop-title').textContent = p.title || ''
   document.getElementById('prop-price').textContent = p.price || ''
@@ -82,6 +84,8 @@ function renderGallery() {
 
   mainImg.src = images[currentIdx]
   mainImg.alt = `Foto ${currentIdx + 1}`
+  mainImg.style.cursor = 'zoom-in'
+  mainImg.onclick = () => openLightbox(currentIdx)
 
   const hasMany = images.length > 1
   prevBtn.style.display  = hasMany ? 'flex' : 'none'
