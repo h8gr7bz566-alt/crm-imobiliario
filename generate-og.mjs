@@ -33,7 +33,7 @@ function esc(str) {
     .replace(/[^\x00-\x7F]/g, c => `&#${c.charCodeAt(0)};`)
 }
 
-const ogDir = path.join('dist', 'og')
+const ogDir = path.join('public', 'og')
 fs.mkdirSync(ogDir, { recursive: true })
 
 for (const p of properties ?? []) {

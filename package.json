@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node generate-og.mjs",
-    "preview": "vite preview"
+    "build": "vite build",
+    "preview": "vite preview",
+    "generate-og": "node generate-og.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
