@@ -605,6 +605,14 @@ function openViewModal(p) {
   document.querySelector('#view-modal .tab-btn[data-tab="principal"]').classList.add('active')
   document.getElementById('tab-principal').classList.remove('hidden')
 
+  // Preencher link de compartilhamento
+  const shareUrl = 'https://omarcorretor.com.br/property.html?id=' + p.id
+  const shareLinkInput = document.getElementById('share-link-input')
+  if (shareLinkInput) shareLinkInput.value = shareUrl
+  // Fechar share panel ao abrir novo modal
+  const sharePanel = document.getElementById('share-panel')
+  if (sharePanel) sharePanel.style.display = 'none'
+
   document.getElementById('view-modal').classList.remove('hidden')
   document.body.style.overflow = 'hidden'
 }
@@ -1110,6 +1118,49 @@ function attachAdminUI() {
   })
 
   // View modal — Edit button opens edit modal
+  // ── Botão Compartilhar ─────────────────────────────────────────────
+  document.getElementById('view-modal-share')?.addEventListener('click', () => {
+    const sharePanel = document.getElementById('share-panel')
+    if (!sharePanel) return
+    const isOpen = sharePanel.style.display !== 'none'
+    sharePanel.style.display = isOpen ? 'none' : 'block'
+  })
+
+  document.getElementById('share-whatsapp')?.addEventListener('click', () => {
+    const link = document.getElementById('share-link-input')?.value
+    if (!link) return
+    const title = document.getElementById('view-modal-title')?.textContent || 'Imóvel'
+    const msg = encodeURIComponent('Olha esse imóvel que encontrei: ' + title + '\n' + link)
+    window.open('https://wa.me/?text=' + msg, '_blank')
+  })
+
+  document.getElementById('share-instagram')?.addEventListener('click', () => {
+    const link = document.getElementById('share-link-input')?.value
+    if (!link) return
+    navigator.clipboard?.writeText(link)
+    alert('Link copiado! Cole na bio ou nos Stories do Instagram.')
+  })
+
+  document.getElementById('share-email')?.addEventListener('click', () => {
+    const link = document.getElementById('share-link-input')?.value
+    if (!link) return
+    const title = document.getElementById('view-modal-title')?.textContent || 'Imóvel'
+    const subject = encodeURIComponent('Imóvel: ' + title)
+    const body = encodeURIComponent('Olá! Segue o link do imóvel:\n\n' + link)
+    window.open('mailto:?subject=' + subject + '&body=' + body, '_blank')
+  })
+
+  document.getElementById('share-copy')?.addEventListener('click', () => {
+    const input = document.getElementById('share-link-input')
+    if (!input) return
+    navigator.clipboard?.writeText(input.value).then(() => {
+      const btn = document.getElementById('share-copy')
+      const orig = btn.textContent
+      btn.textContent = '✅ Copiado!'
+      setTimeout(() => { btn.textContent = orig }, 2000)
+    })
+  })
+
   document.getElementById('view-modal-edit')?.addEventListener('click', () => {
     if (currentProfile?.role !== 'admin') return
     const title = document.getElementById('view-modal-title').textContent
