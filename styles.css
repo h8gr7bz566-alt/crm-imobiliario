@@ -454,6 +454,37 @@ select option { background: #0c1830; color: var(--text); }
   transform: scale(1.08);
 }
 
+
+/* ───── Nav links & social icons ─────────────────────────────────────────── */
+.nav-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  text-decoration: none;
+  padding: 6px 2px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.nav-link:hover {
+  color: #fff;
+  border-bottom-color: var(--accent, #b8962e);
+}
+.social-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: rgba(255,255,255,0.75);
+  transition: color 0.2s, transform 0.2s;
+}
+.social-icon-link:hover {
+  color: #fff;
+  transform: scale(1.12);
+}
+
 /* ───── Hero WhatsApp Button ───── */
 .hero-whatsapp-btn {
   display: inline-flex;
