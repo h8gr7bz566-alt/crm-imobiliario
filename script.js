@@ -1,10 +1,15 @@
 // script.js — Supabase Integration
 import { supabase } from './lib/supabase.js'
+import {
+  loadAllSettings, getSetting, getContent,
+  saveMultipleSettings, saveSetting, saveContent, saveIntegration,
+  applyVisualSettings, applyDynamicContent, applyWhatsAppLinks
+} from './lib/settings.js'
 
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-const WHATSAPP_NUMBER = '5547999701743'
-const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`
+let WHATSAPP_NUMBER = '5547999701743'
+let WHATSAPP_URL    = `https://wa.me/${WHATSAPP_NUMBER}`
 
 const SAMPLE_URLS = [
   'https://images.unsplash.com/photo-1560184897-e6f6f0d0b1f8?q=80&w=1200&auto=format&fit=crop',
@@ -823,6 +828,25 @@ function renderSidebarUser(profile) {
 function applyRolePermissions(role) {
   const root = document.getElementById('admin-root')
   if (root) root.dataset.role = role || 'corretor'
+
+  if (role === 'admin') {
+    // Revelar itens admin no sidebar
+    document.querySelectorAll('.admin-only').forEach(el => { el.style.display = '' })
+
+    // Conectar seções admin (lazy render: só inicializa ao clicar pela 1ª vez)
+    const sections = {
+      'empresa':      initEmpresaSection,
+      'visual':       initVisualSection,
+      'site-config':  initSiteConfigSection,
+      'crm-config':   initCRMConfigSection,
+      'integracoes':  initIntegracoesSection,
+      'midia':        initMidiaSection,
+    }
+    Object.entries(sections).forEach(([name, fn]) => {
+      const btn = document.querySelector(`.nav-item[data-section="${name}"]`)
+      if (btn) btn.addEventListener('click', () => fn(), { once: true })
+    })
+  }
 }
 
 // Clicar no avatar/nome da sidebar abre Configurações
@@ -1378,7 +1402,14 @@ function attachAdminUI() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadLocations()
+  // Carrega settings e locations em paralelo
+  await Promise.all([loadAllSettings(), loadLocations()])
+
+  // Aplica configurações visuais e de contato
+  WHATSAPP_NUMBER = getSetting('company.whatsapp', WHATSAPP_NUMBER)
+  WHATSAPP_URL    = `https://wa.me/${WHATSAPP_NUMBER}`
+  applyVisualSettings()
+
   attachPriceSlider()
   attachFilters()
 
@@ -1569,6 +1600,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await renderPublic()
+
+  // Aplica conteúdo dinâmico do banco (site público)
+  const lang = (() => { try { return localStorage.getItem('lang') || 'pt' } catch(e) { return 'pt' } })()
+  applyDynamicContent(lang)
+  applyWhatsAppLinks(WHATSAPP_NUMBER)
 })
 
 
@@ -1697,4 +1733,923 @@ async function applyWatermarkToUrl(imageUrl) {
     console.error('applyWatermarkToUrl error:', e)
     return imageUrl
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEÇÕES ADMINISTRATIVAS — renderizadas sob demanda (lazy)
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── Helper: feedback de salvamento ──────────────────────────────────────────
+function showSaveMsg(el, ok) {
+  if (!el) return
+  el.textContent = ok ? '✓ Salvo com sucesso!' : '✗ Erro ao salvar.'
+  el.className   = 'cfg-save-msg ' + (ok ? 'ok' : 'err')
+  el.style.display = ''
+  setTimeout(() => { el.style.display = 'none' }, 3000)
+}
+
+// ─── Helper: upload de imagem para storage ────────────────────────────────────
+async function uploadImageToStorage(file, folder = 'assets') {
+  const blob = await compressToBlob(file, 1200, 0.85)
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+  const { error } = await supabase.storage.from('imoveis')
+    .upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false })
+  if (error) throw error
+  const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
+  return publicUrl
+}
+
+// ─── 1. EMPRESA ──────────────────────────────────────────────────────────────
+async function initEmpresaSection() {
+  const section = document.getElementById('section-empresa')
+  if (!section || section.dataset.loaded) return
+  section.dataset.loaded = '1'
+
+  const { data: rows } = await supabase.from('settings').select('key,value')
+  const v = {}
+  rows?.forEach(r => { v[r.key] = r.value || '' })
+
+  const g = k => escapeHTML(String(v[k] || ''))
+
+  section.innerHTML = `
+    <div class="section-topbar">
+      <div><div class="section-title">Empresa</div><div class="section-sub">Identidade, contatos e redes sociais</div></div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>🏢</span> Identidade</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nome da Empresa</label>
+          <input id="co-name" class="form-control" value="${g('company.name')}" placeholder="Nome completo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">CRECI</label>
+          <input id="co-creci" class="form-control" value="${g('company.creci')}" placeholder="Ex: 69965F">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Logo</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="co-logo-url" class="form-control" value="${g('company.logo_url')}" placeholder="/logo.png ou https://...">
+          <label class="btn-secondary" style="cursor:pointer;white-space:nowrap;padding:8px 14px;font-size:13px">
+            <input id="co-logo-file" type="file" accept="image/*" style="display:none"> Upload
+          </label>
+        </div>
+        <div class="logo-preview-box" style="margin-top:10px">
+          <img id="co-logo-preview" src="${g('company.logo_url') || '/logo.png'}" alt="Preview">
+          <span style="font-size:12px;color:#9ca3af">Preview do logotipo</span>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Favicon (URL)</label>
+        <input id="co-favicon-url" class="form-control" value="${g('company.favicon_url')}" placeholder="/favicon.ico">
+      </div>
+      <div class="cfg-save-row">
+        <button class="btn-primary" id="co-save-identity">Salvar Identidade</button>
+        <span id="co-identity-msg" class="cfg-save-msg" style="display:none"></span>
+      </div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>📞</span> Contatos</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">WhatsApp <small style="color:#9ca3af">(somente números, com DDI)</small></label>
+          <input id="co-whatsapp" class="form-control" value="${g('company.whatsapp')}" placeholder="5547999701743">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telefone (exibição)</label>
+          <input id="co-phone" class="form-control" value="${g('company.phone')}" placeholder="(47) 99970-1743">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input id="co-email" type="email" class="form-control" value="${g('company.email')}" placeholder="contato@empresa.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Endereço (resumido)</label>
+          <input id="co-address" class="form-control" value="${g('company.address')}" placeholder="Cidade, UF">
+        </div>
+      </div>
+      <div class="cfg-save-row">
+        <button class="btn-primary" id="co-save-contacts">Salvar Contatos</button>
+        <span id="co-contacts-msg" class="cfg-save-msg" style="display:none"></span>
+      </div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>📱</span> Redes Sociais</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Instagram</label>
+          <input id="co-instagram" class="form-control" value="${g('company.instagram_url')}" placeholder="https://instagram.com/...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Facebook</label>
+          <input id="co-facebook" class="form-control" value="${g('company.facebook_url')}" placeholder="https://facebook.com/...">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">YouTube</label>
+          <input id="co-youtube" class="form-control" value="${g('company.youtube_url')}" placeholder="https://youtube.com/...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">TikTok</label>
+          <input id="co-tiktok" class="form-control" value="${g('company.tiktok_url')}" placeholder="https://tiktok.com/@...">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">LinkedIn</label>
+        <input id="co-linkedin" class="form-control" value="${g('company.linkedin_url')}" placeholder="https://linkedin.com/in/...">
+      </div>
+      <div class="cfg-save-row">
+        <button class="btn-primary" id="co-save-social">Salvar Redes Sociais</button>
+        <span id="co-social-msg" class="cfg-save-msg" style="display:none"></span>
+      </div>
+    </div>
+  `
+
+  // Logo: preview ao digitar URL
+  document.getElementById('co-logo-url').addEventListener('input', e => {
+    document.getElementById('co-logo-preview').src = e.target.value || '/logo.png'
+  })
+
+  // Logo: upload de arquivo
+  document.getElementById('co-logo-file').addEventListener('change', async e => {
+    const file = e.target.files[0]
+    if (!file) return
+    try {
+      const url = await uploadImageToStorage(file, 'logos')
+      document.getElementById('co-logo-url').value = url
+      document.getElementById('co-logo-preview').src = url
+    } catch(err) { alert('Erro no upload: ' + err.message) }
+  })
+
+  // Save: Identidade
+  document.getElementById('co-save-identity').addEventListener('click', async () => {
+    const btn = document.getElementById('co-save-identity')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    const ok = await saveMultipleSettings([
+      ['company.name',       document.getElementById('co-name').value.trim()],
+      ['company.creci',      document.getElementById('co-creci').value.trim()],
+      ['company.logo_url',   document.getElementById('co-logo-url').value.trim()],
+      ['company.favicon_url',document.getElementById('co-favicon-url').value.trim()],
+    ])
+    if (ok) applyVisualSettings()
+    btn.disabled = false; btn.textContent = 'Salvar Identidade'
+    showSaveMsg(document.getElementById('co-identity-msg'), ok)
+  })
+
+  // Save: Contatos
+  document.getElementById('co-save-contacts').addEventListener('click', async () => {
+    const btn = document.getElementById('co-save-contacts')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    const wa = document.getElementById('co-whatsapp').value.trim()
+    const ok = await saveMultipleSettings([
+      ['company.whatsapp', wa],
+      ['company.phone',    document.getElementById('co-phone').value.trim()],
+      ['company.email',    document.getElementById('co-email').value.trim()],
+      ['company.address',  document.getElementById('co-address').value.trim()],
+    ])
+    if (ok && wa) { WHATSAPP_NUMBER = wa; WHATSAPP_URL = `https://wa.me/${wa}` }
+    btn.disabled = false; btn.textContent = 'Salvar Contatos'
+    showSaveMsg(document.getElementById('co-contacts-msg'), ok)
+  })
+
+  // Save: Redes Sociais
+  document.getElementById('co-save-social').addEventListener('click', async () => {
+    const btn = document.getElementById('co-save-social')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    const ok = await saveMultipleSettings([
+      ['company.instagram_url', document.getElementById('co-instagram').value.trim()],
+      ['company.facebook_url',  document.getElementById('co-facebook').value.trim()],
+      ['company.youtube_url',   document.getElementById('co-youtube').value.trim()],
+      ['company.tiktok_url',    document.getElementById('co-tiktok').value.trim()],
+      ['company.linkedin_url',  document.getElementById('co-linkedin').value.trim()],
+    ])
+    btn.disabled = false; btn.textContent = 'Salvar Redes Sociais'
+    showSaveMsg(document.getElementById('co-social-msg'), ok)
+  })
+}
+
+// ─── 2. VISUAL ────────────────────────────────────────────────────────────────
+async function initVisualSection() {
+  const section = document.getElementById('section-visual')
+  if (!section || section.dataset.loaded) return
+  section.dataset.loaded = '1'
+
+  const { data: rows } = await supabase.from('settings').select('key,value')
+  const v = {}
+  rows?.forEach(r => { v[r.key] = r.value || '' })
+
+  const accent  = v['visual.accent_color']  || '#b8962e'
+  const primBg  = v['visual.primary_bg']    || '#0f1c2e'
+  const secBg   = v['visual.secondary_bg']  || '#1a2f4a'
+  const heroBg  = v['visual.hero_bg_url']   || ''
+  const priceMax = v['visual.price_max_slider'] || 130000000
+
+  section.innerHTML = `
+    <div class="section-topbar">
+      <div><div class="section-title">Visual</div><div class="section-sub">Cores, identidade visual e imagens</div></div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>🎨</span> Preview ao Vivo</div>
+      <div class="visual-preview">
+        <div class="visual-preview-bar" id="vp-bar"></div>
+        <div class="visual-preview-body">
+          <div class="visual-preview-dot" id="vp-dot"></div>
+          <div class="visual-preview-text">Cor de destaque do sistema</div>
+          <div class="visual-preview-btn" id="vp-btn">Botão</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>🖌️</span> Paleta de Cores</div>
+
+      <div class="color-row">
+        <label class="form-label">Cor de Destaque (Dourado)</label>
+        <div class="color-swatch">
+          <input type="color" id="col-accent" value="${accent}">
+          <input type="text"  id="col-accent-hex" value="${accent}" maxlength="7" placeholder="#b8962e">
+        </div>
+      </div>
+      <div class="color-row">
+        <label class="form-label">Fundo Principal (Site Público)</label>
+        <div class="color-swatch">
+          <input type="color" id="col-primary" value="${primBg}">
+          <input type="text"  id="col-primary-hex" value="${primBg}" maxlength="7">
+        </div>
+      </div>
+      <div class="color-row">
+        <label class="form-label">Fundo Secundário (Seções)</label>
+        <div class="color-swatch">
+          <input type="color" id="col-secondary" value="${secBg}">
+          <input type="text"  id="col-secondary-hex" value="${secBg}" maxlength="7">
+        </div>
+      </div>
+      <div class="cfg-save-row">
+        <button class="btn-primary" id="visual-save-colors">Salvar Cores</button>
+        <button class="btn-cancel"  id="visual-reset-colors">Restaurar Padrão</button>
+        <span id="visual-colors-msg" class="cfg-save-msg" style="display:none"></span>
+      </div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>🖼️</span> Imagens do Site</div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label class="form-label">Imagem de Fundo do Hero (URL)</label>
+        <div style="display:flex;gap:8px">
+          <input id="vis-hero-url" class="form-control" value="${escapeHTML(heroBg)}" placeholder="https://... ou deixe vazio para padrão">
+          <label class="btn-secondary" style="cursor:pointer;white-space:nowrap;padding:8px 14px;font-size:13px">
+            <input id="vis-hero-file" type="file" accept="image/*" style="display:none"> Upload
+          </label>
+        </div>
+        <div id="vis-hero-preview" style="margin-top:10px;display:${heroBg ? '' : 'none'}">
+          <img src="${escapeHTML(heroBg)}" style="max-width:100%;max-height:120px;border-radius:8px;object-fit:cover">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Preço Máximo do Slider de Busca</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="vis-price-max" type="number" class="form-control" value="${priceMax}" min="100000" step="1000000" style="max-width:200px">
+          <span style="font-size:13px;color:#9ca3af">R$</span>
+        </div>
+      </div>
+      <div class="cfg-save-row">
+        <button class="btn-primary" id="visual-save-images">Salvar Imagens</button>
+        <span id="visual-images-msg" class="cfg-save-msg" style="display:none"></span>
+      </div>
+    </div>
+  `
+
+  // Sincroniza color picker ↔ hex input e atualiza preview
+  function syncColor(pickerId, hexId, previewFn) {
+    const picker = document.getElementById(pickerId)
+    const hex    = document.getElementById(hexId)
+    picker?.addEventListener('input', e => { hex.value = e.target.value; previewFn() })
+    hex?.addEventListener('input', e => {
+      if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) {
+        picker.value = e.target.value; previewFn()
+      }
+    })
+  }
+
+  function updatePreview() {
+    const a = document.getElementById('col-accent-hex')?.value || '#b8962e'
+    document.getElementById('vp-bar')?.style.setProperty('background', a)
+    document.getElementById('vp-dot')?.style.setProperty('background', a)
+    document.getElementById('vp-btn')?.style.setProperty('background', a)
+    document.documentElement.style.setProperty('--accent', a)
+  }
+
+  syncColor('col-accent',    'col-accent-hex',    updatePreview)
+  syncColor('col-primary',   'col-primary-hex',   () => {})
+  syncColor('col-secondary', 'col-secondary-hex', () => {})
+  updatePreview()
+
+  // Hero file upload
+  document.getElementById('vis-hero-file').addEventListener('change', async e => {
+    const file = e.target.files[0]
+    if (!file) return
+    try {
+      const url = await uploadImageToStorage(file, 'hero')
+      document.getElementById('vis-hero-url').value = url
+      const prev = document.getElementById('vis-hero-preview')
+      prev.innerHTML = `<img src="${url}" style="max-width:100%;max-height:120px;border-radius:8px;object-fit:cover">`
+      prev.style.display = ''
+    } catch(err) { alert('Erro no upload: ' + err.message) }
+  })
+
+  // Save cores
+  document.getElementById('visual-save-colors').addEventListener('click', async () => {
+    const btn = document.getElementById('visual-save-colors')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    const ok = await saveMultipleSettings([
+      ['visual.accent_color', document.getElementById('col-accent-hex').value],
+      ['visual.primary_bg',   document.getElementById('col-primary-hex').value],
+      ['visual.secondary_bg', document.getElementById('col-secondary-hex').value],
+    ])
+    if (ok) applyVisualSettings()
+    btn.disabled = false; btn.textContent = 'Salvar Cores'
+    showSaveMsg(document.getElementById('visual-colors-msg'), ok)
+  })
+
+  // Reset cores
+  document.getElementById('visual-reset-colors').addEventListener('click', async () => {
+    if (!confirm('Restaurar cores padrão?')) return
+    document.getElementById('col-accent').value        = '#b8962e'
+    document.getElementById('col-accent-hex').value    = '#b8962e'
+    document.getElementById('col-primary').value       = '#0f1c2e'
+    document.getElementById('col-primary-hex').value   = '#0f1c2e'
+    document.getElementById('col-secondary').value     = '#1a2f4a'
+    document.getElementById('col-secondary-hex').value = '#1a2f4a'
+    updatePreview()
+  })
+
+  // Save imagens
+  document.getElementById('visual-save-images').addEventListener('click', async () => {
+    const btn = document.getElementById('visual-save-images')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    const ok = await saveMultipleSettings([
+      ['visual.hero_bg_url',       document.getElementById('vis-hero-url').value.trim()],
+      ['visual.price_max_slider',  parseInt(document.getElementById('vis-price-max').value, 10) || 130000000],
+    ])
+    btn.disabled = false; btn.textContent = 'Salvar Imagens'
+    showSaveMsg(document.getElementById('visual-images-msg'), ok)
+  })
+}
+
+// ─── 3. SITE & SEO ────────────────────────────────────────────────────────────
+async function initSiteConfigSection() {
+  const section = document.getElementById('section-site-config')
+  if (!section || section.dataset.loaded) return
+  section.dataset.loaded = '1'
+
+  const { data: rows } = await supabase.from('site_content').select('*')
+  const v = {}
+  rows?.forEach(r => { v[r.key] = r })
+  const g = (key, lang) => escapeHTML(v[key]?.[`value_${lang}`] || '')
+
+  const langs   = ['pt', 'en', 'es']
+  const langMap = { pt: '🇧🇷 Português', en: '🇺🇸 English', es: '🇪🇸 Español' }
+
+  const renderLangTabs = (activeLang) => langs.map(l =>
+    `<button class="content-tab${l === activeLang ? ' active' : ''}" data-lang="${l}">${langMap[l]}</button>`
+  ).join('')
+
+  const renderFields = (lang) => `
+    <div class="content-field">
+      <label class="form-label">Título do Hero</label>
+      <input class="form-control sc-field" data-key="hero.title" data-lang="${lang}" value="${g('hero.title', lang)}">
+    </div>
+    <div class="content-field">
+      <label class="form-label">Subtítulo do Hero</label>
+      <textarea class="form-control sc-field" data-key="hero.subtitle" data-lang="${lang}" rows="3">${g('hero.subtitle', lang)}</textarea>
+    </div>
+    <div class="content-field">
+      <label class="form-label">Bio — Parágrafo 1 <small style="color:#9ca3af">(suporta &lt;strong&gt;)</small></label>
+      <textarea class="form-control sc-field" data-key="inst.bio_p1" data-lang="${lang}" rows="4">${g('inst.bio_p1', lang)}</textarea>
+    </div>
+    <div class="content-field">
+      <label class="form-label">Bio — Parágrafo 2</label>
+      <textarea class="form-control sc-field" data-key="inst.bio_p2" data-lang="${lang}" rows="3">${g('inst.bio_p2', lang)}</textarea>
+    </div>
+    <div class="content-field">
+      <label class="form-label">Bio — Parágrafo 3</label>
+      <textarea class="form-control sc-field" data-key="inst.bio_p3" data-lang="${lang}" rows="3">${g('inst.bio_p3', lang)}</textarea>
+    </div>
+    <div class="form-row triple">
+      <div class="form-group">
+        <label class="form-label">Stat 1 — Número</label>
+        <input class="form-control sc-field" data-key="inst.stat1_num" data-lang="${lang}" value="${g('inst.stat1_num', lang)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Stat 2 — Número</label>
+        <input class="form-control sc-field" data-key="inst.stat2_num" data-lang="${lang}" value="${g('inst.stat2_num', lang)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Stat 3 — Número</label>
+        <input class="form-control sc-field" data-key="inst.stat3_num" data-lang="${lang}" value="${g('inst.stat3_num', lang)}">
+      </div>
+    </div>
+    <div class="form-row triple">
+      <div class="form-group">
+        <label class="form-label">Stat 1 — Legenda</label>
+        <input class="form-control sc-field" data-key="inst.stat1_label" data-lang="${lang}" value="${g('inst.stat1_label', lang)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Stat 2 — Legenda</label>
+        <input class="form-control sc-field" data-key="inst.stat2_label" data-lang="${lang}" value="${g('inst.stat2_label', lang)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Stat 3 — Legenda</label>
+        <input class="form-control sc-field" data-key="inst.stat3_label" data-lang="${lang}" value="${g('inst.stat3_label', lang)}">
+      </div>
+    </div>
+    <div class="content-field">
+      <label class="form-label">Rodapé</label>
+      <input class="form-control sc-field" data-key="footer.text" data-lang="${lang}" value="${g('footer.text', lang)}">
+    </div>
+  `
+
+  section.innerHTML = `
+    <div class="section-topbar">
+      <div><div class="section-title">Site &amp; SEO</div><div class="section-sub">Textos, conteúdo multilíngue e configurações de SEO</div></div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>📝</span> Conteúdo do Site</div>
+      <div class="content-tabs" id="sc-tabs">${renderLangTabs('pt')}</div>
+      <div id="sc-panels">
+        ${langs.map(l => `<div class="content-panel${l === 'pt' ? ' active' : ''}" data-panel="${l}">${renderFields(l)}</div>`).join('')}
+      </div>
+      <div class="cfg-save-row">
+        <button class="btn-primary" id="sc-save-btn">Salvar Conteúdo</button>
+        <span id="sc-save-msg" class="cfg-save-msg" style="display:none"></span>
+      </div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>🔍</span> SEO</div>
+      <div class="content-field">
+        <label class="form-label">Title da Página (PT)</label>
+        <input id="seo-title" class="form-control" value="${g('seo.title_pt', 'pt')}" placeholder="Nome — Cargo">
+      </div>
+      <div class="content-field">
+        <label class="form-label">Meta Description (PT)</label>
+        <textarea id="seo-desc" class="form-control" rows="2" placeholder="Descrição curta para o Google…">${g('seo.description_pt', 'pt')}</textarea>
+      </div>
+      <div class="cfg-save-row">
+        <button class="btn-primary" id="seo-save-btn">Salvar SEO</button>
+        <span id="seo-save-msg" class="cfg-save-msg" style="display:none"></span>
+      </div>
+    </div>
+  `
+
+  // Tabs de idioma
+  document.getElementById('sc-tabs').addEventListener('click', e => {
+    const tab = e.target.closest('.content-tab')
+    if (!tab) return
+    document.querySelectorAll('#sc-tabs .content-tab').forEach(t => t.classList.remove('active'))
+    document.querySelectorAll('#sc-panels .content-panel').forEach(p => p.classList.remove('active'))
+    tab.classList.add('active')
+    document.querySelector(`#sc-panels [data-panel="${tab.dataset.lang}"]`)?.classList.add('active')
+  })
+
+  // Save conteúdo: agrupa campos por key + lang
+  document.getElementById('sc-save-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('sc-save-btn')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    const byKey = {}
+    document.querySelectorAll('.sc-field').forEach(el => {
+      const key  = el.dataset.key
+      const lang = el.dataset.lang
+      if (!byKey[key]) byKey[key] = {}
+      byKey[key][lang] = el.value
+    })
+    let ok = true
+    for (const [key, vals] of Object.entries(byKey)) {
+      const res = await saveContent(key, { pt: vals.pt, en: vals.en, es: vals.es })
+      if (!res) ok = false
+    }
+    btn.disabled = false; btn.textContent = 'Salvar Conteúdo'
+    showSaveMsg(document.getElementById('sc-save-msg'), ok)
+  })
+
+  // Save SEO
+  document.getElementById('seo-save-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('seo-save-btn')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    const title = document.getElementById('seo-title').value.trim()
+    const desc  = document.getElementById('seo-desc').value.trim()
+    const ok    = await saveContent('seo.title_pt', { pt: title, en: title, es: title })
+                  && await saveContent('seo.description_pt', { pt: desc, en: desc, es: desc })
+    btn.disabled = false; btn.textContent = 'Salvar SEO'
+    showSaveMsg(document.getElementById('seo-save-msg'), ok)
+  })
+}
+
+// ─── 4. CRM CONFIG ────────────────────────────────────────────────────────────
+async function initCRMConfigSection() {
+  const section = document.getElementById('section-crm-config')
+  if (!section || section.dataset.loaded) return
+  section.dataset.loaded = '1'
+
+  section.innerHTML = `
+    <div class="section-topbar">
+      <div><div class="section-title">CRM</div><div class="section-sub">Funis, etapas, tags e status de leads</div></div>
+    </div>
+    <div id="crm-body"><div class="empty-row" style="padding:40px;text-align:center">Carregando…</div></div>
+  `
+  await renderCRMConfig()
+}
+
+async function renderCRMConfig() {
+  const body = document.getElementById('crm-body')
+  if (!body) return
+
+  const [{ data: pipes }, { data: stages }, { data: tags }, { data: statuses }] = await Promise.all([
+    supabase.from('crm_pipelines').select('*').order('sort_order'),
+    supabase.from('crm_stages').select('*').order('sort_order'),
+    supabase.from('crm_tags').select('*').order('name'),
+    supabase.from('crm_lead_statuses').select('*').order('sort_order'),
+  ])
+
+  const pipeList = pipes || []
+  const defaultPipe = pipeList.find(p => p.is_default) || pipeList[0]
+
+  const pipeOptions = pipeList.map(p =>
+    `<option value="${p.id}"${p.id === defaultPipe?.id ? ' selected' : ''}>${escapeHTML(p.name)}</option>`
+  ).join('')
+
+  const stagesForPipe = (stages || []).filter(s => s.pipeline_id === defaultPipe?.id)
+  const stageItems = stagesForPipe.map(s => `
+    <div class="stage-item" data-id="${s.id}">
+      <div class="stage-color-dot" style="background:${s.color}"></div>
+      <span class="stage-name">${escapeHTML(s.name)}</span>
+      <input type="color" value="${s.color}" data-sid="${s.id}" class="stage-color-pick">
+      <button class="icon-btn del-btn stage-del" data-id="${s.id}" title="Remover etapa">🗑️</button>
+    </div>`).join('') || '<p style="color:#9ca3af;font-size:14px;margin:0">Nenhuma etapa cadastrada.</p>'
+
+  const tagItems = (tags || []).map(t =>
+    `<span class="tag-chip" style="background:${t.color}" data-id="${t.id}">
+      ${escapeHTML(t.name)}
+      <button class="tag-chip-del" data-id="${t.id}" title="Remover">✕</button>
+    </span>`
+  ).join('') || '<p style="color:#9ca3af;font-size:13px;margin:0">Nenhuma tag cadastrada.</p>'
+
+  const statusItems = (statuses || []).map(s => `
+    <div class="stage-item" data-id="${s.id}">
+      <div class="stage-color-dot" style="background:${s.color}"></div>
+      <span class="stage-name">${escapeHTML(s.name)}</span>
+      <span style="font-size:11px;color:#9ca3af;margin-left:auto;margin-right:8px">${s.is_final ? 'Final' : ''}</span>
+      <button class="icon-btn del-btn status-del" data-id="${s.id}" title="Remover">🗑️</button>
+    </div>`).join('') || '<p style="color:#9ca3af;font-size:14px;margin:0">Nenhum status cadastrado.</p>'
+
+  body.innerHTML = `
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>🔀</span> Funis e Etapas</div>
+      <div class="pipeline-header">
+        <select class="pipeline-select" id="crm-pipe-sel">${pipeOptions}</select>
+        <button class="btn-secondary" id="crm-add-pipeline" style="font-size:13px;padding:7px 14px">+ Novo Funil</button>
+      </div>
+      <div class="stages-list" id="crm-stages-list">${stageItems}</div>
+      <div class="stage-add-row">
+        <input id="crm-new-stage" type="text" class="form-control" placeholder="Nome da etapa…">
+        <input type="color" id="crm-new-stage-color" value="#3b82f6" style="width:44px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:2px">
+        <button class="btn-primary" id="crm-add-stage">Adicionar Etapa</button>
+      </div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>🏷️</span> Tags</div>
+      <div class="tags-grid" id="crm-tags-grid">${tagItems}</div>
+      <div class="tag-add-row">
+        <input id="crm-new-tag" type="text" class="form-control" placeholder="Nome da tag…">
+        <input type="color" id="crm-new-tag-color" value="#b8962e">
+        <button class="btn-primary" id="crm-add-tag">Adicionar</button>
+      </div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>📋</span> Status de Leads</div>
+      <div class="stages-list" id="crm-status-list">${statusItems}</div>
+      <div class="stage-add-row">
+        <input id="crm-new-status" type="text" class="form-control" placeholder="Nome do status…">
+        <input type="color" id="crm-new-status-color" value="#3b82f6" style="width:44px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:2px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);white-space:nowrap">
+          <input type="checkbox" id="crm-new-status-final"> Status final
+        </label>
+        <button class="btn-primary" id="crm-add-status">Adicionar</button>
+      </div>
+    </div>
+  `
+
+  // Adicionar etapa
+  document.getElementById('crm-add-stage').addEventListener('click', async () => {
+    const name  = document.getElementById('crm-new-stage').value.trim()
+    const color = document.getElementById('crm-new-stage-color').value
+    const pipeId = parseInt(document.getElementById('crm-pipe-sel').value, 10)
+    if (!name) return
+    await supabase.from('crm_stages').insert({ pipeline_id: pipeId, name, color, sort_order: 99 })
+    document.getElementById('crm-new-stage').value = ''
+    await renderCRMConfig()
+  })
+
+  // Remover etapa
+  body.querySelectorAll('.stage-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Remover esta etapa?')) return
+      await supabase.from('crm_stages').delete().eq('id', btn.dataset.id)
+      await renderCRMConfig()
+    })
+  })
+
+  // Cor da etapa ao vivo
+  body.querySelectorAll('.stage-color-pick').forEach(pick => {
+    pick.addEventListener('change', async e => {
+      await supabase.from('crm_stages').update({ color: e.target.value }).eq('id', pick.dataset.sid)
+      const dot = pick.closest('.stage-item').querySelector('.stage-color-dot')
+      if (dot) dot.style.background = e.target.value
+    })
+  })
+
+  // Adicionar tag
+  document.getElementById('crm-add-tag').addEventListener('click', async () => {
+    const name  = document.getElementById('crm-new-tag').value.trim()
+    const color = document.getElementById('crm-new-tag-color').value
+    if (!name) return
+    await supabase.from('crm_tags').insert({ name, color })
+    document.getElementById('crm-new-tag').value = ''
+    await renderCRMConfig()
+  })
+
+  // Remover tag
+  body.querySelectorAll('.tag-chip-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await supabase.from('crm_tags').delete().eq('id', btn.dataset.id)
+      await renderCRMConfig()
+    })
+  })
+
+  // Adicionar status
+  document.getElementById('crm-add-status').addEventListener('click', async () => {
+    const name     = document.getElementById('crm-new-status').value.trim()
+    const color    = document.getElementById('crm-new-status-color').value
+    const is_final = document.getElementById('crm-new-status-final').checked
+    if (!name) return
+    await supabase.from('crm_lead_statuses').insert({ name, color, is_final, sort_order: 99 })
+    document.getElementById('crm-new-status').value = ''
+    await renderCRMConfig()
+  })
+
+  // Remover status
+  body.querySelectorAll('.status-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Remover este status?')) return
+      await supabase.from('crm_lead_statuses').delete().eq('id', btn.dataset.id)
+      await renderCRMConfig()
+    })
+  })
+
+  // Novo funil
+  document.getElementById('crm-add-pipeline').addEventListener('click', async () => {
+    const name = prompt('Nome do novo funil:')?.trim()
+    if (!name) return
+    await supabase.from('crm_pipelines').insert({ name, sort_order: 99 })
+    await renderCRMConfig()
+  })
+}
+
+// ─── 5. INTEGRAÇÕES ───────────────────────────────────────────────────────────
+async function initIntegracoesSection() {
+  const section = document.getElementById('section-integracoes')
+  if (!section || section.dataset.loaded) return
+  section.dataset.loaded = '1'
+
+  const { data: rows } = await supabase.from('integrations').select('*')
+  const v = {}
+  rows?.forEach(r => { v[r.key] = r })
+  const val = k => escapeHTML(v[k]?.value || '')
+  const en  = k => v[k]?.enabled ? 'checked' : ''
+
+  const integList = [
+    { key: 'meta_pixel_id',     icon: '📘', label: 'Meta Pixel', desc: 'ID do Pixel do Facebook/Instagram para rastreamento de conversões', placeholder: '123456789012345' },
+    { key: 'ga_measurement_id', icon: '📊', label: 'Google Analytics 4', desc: 'Measurement ID do GA4 (ex: G-XXXXXXXXXX)', placeholder: 'G-XXXXXXXXXX' },
+    { key: 'gtm_container_id',  icon: '🏷️', label: 'Google Tag Manager', desc: 'ID do container do GTM (ex: GTM-XXXXXXX)', placeholder: 'GTM-XXXXXXX' },
+    { key: 'webhook_new_lead',  icon: '🔔', label: 'Webhook — Novo Lead', desc: 'URL chamada quando um novo lead chega (POST com JSON)', placeholder: 'https://...' },
+    { key: 'webhook_new_property', icon: '🏠', label: 'Webhook — Novo Imóvel', desc: 'URL chamada quando um imóvel é publicado', placeholder: 'https://...' },
+  ]
+
+  const smtpFields = [
+    { key: 'smtp_host', label: 'Host SMTP', placeholder: 'smtp.gmail.com' },
+    { key: 'smtp_port', label: 'Porta',      placeholder: '587' },
+    { key: 'smtp_user', label: 'Usuário',    placeholder: 'email@dominio.com' },
+    { key: 'smtp_from_name', label: 'Nome do remetente', placeholder: 'Omar Corretor' },
+  ]
+
+  section.innerHTML = `
+    <div class="section-topbar">
+      <div><div class="section-title">Integrações</div><div class="section-sub">Analytics, pixels, webhooks e e-mail</div></div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>🔗</span> Analytics &amp; Tracking</div>
+      ${integList.map(i => `
+        <div class="integration-row">
+          <div class="integration-icon">${i.icon}</div>
+          <div class="integration-info">
+            <div class="integration-label">${i.label}</div>
+            <div class="integration-desc">${i.desc}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            <label class="toggle-switch">
+              <input type="checkbox" class="intg-toggle" data-key="${i.key}" ${en(i.key)}>
+              <span class="toggle-slider"></span>
+            </label>
+            <input type="text" class="integration-value intg-val" data-key="${i.key}"
+              value="${val(i.key)}" placeholder="${i.placeholder}">
+          </div>
+        </div>
+      `).join('')}
+      <div class="cfg-save-row">
+        <button class="btn-primary" id="intg-save-tracking">Salvar Integrações</button>
+        <span id="intg-tracking-msg" class="cfg-save-msg" style="display:none"></span>
+      </div>
+    </div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>📧</span> Configurações de E-mail (SMTP)</div>
+      <p style="font-size:13px;color:#9ca3af;margin:0 0 16px">Configure para enviar e-mails via servidor próprio.</p>
+      ${smtpFields.map(f => `
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label">${f.label}</label>
+          <input class="form-control smtp-field" data-key="${f.key}" value="${val(f.key)}" placeholder="${f.placeholder}">
+        </div>
+      `).join('')}
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Senha SMTP <small style="color:#9ca3af">(salva de forma segura)</small></label>
+        <input type="password" id="smtp-pass" class="form-control" placeholder="••••••••••">
+      </div>
+      <div class="cfg-save-row">
+        <button class="btn-primary" id="intg-save-smtp">Salvar SMTP</button>
+        <span id="intg-smtp-msg" class="cfg-save-msg" style="display:none"></span>
+      </div>
+    </div>
+  `
+
+  // Save tracking
+  document.getElementById('intg-save-tracking').addEventListener('click', async () => {
+    const btn = document.getElementById('intg-save-tracking')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    let ok = true
+    const vals  = document.querySelectorAll('.intg-val')
+    const togls = document.querySelectorAll('.intg-toggle')
+    for (let i = 0; i < vals.length; i++) {
+      const key  = vals[i].dataset.key
+      const val  = vals[i].value.trim()
+      const enbl = togls[i]?.checked ?? false
+      const r = await saveIntegration(key, val, enbl)
+      if (!r) ok = false
+    }
+    btn.disabled = false; btn.textContent = 'Salvar Integrações'
+    showSaveMsg(document.getElementById('intg-tracking-msg'), ok)
+  })
+
+  // Save SMTP
+  document.getElementById('intg-save-smtp').addEventListener('click', async () => {
+    const btn = document.getElementById('intg-save-smtp')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    const fields = document.querySelectorAll('.smtp-field')
+    let ok = true
+    for (const f of fields) {
+      const r = await saveIntegration(f.dataset.key, f.value.trim(), true)
+      if (!r) ok = false
+    }
+    const pass = document.getElementById('smtp-pass').value
+    if (pass) {
+      const r = await saveIntegration('smtp_pass', pass, true)
+      if (!r) ok = false
+    }
+    btn.disabled = false; btn.textContent = 'Salvar SMTP'
+    showSaveMsg(document.getElementById('intg-smtp-msg'), ok)
+  })
+}
+
+// ─── 6. MÍDIA ─────────────────────────────────────────────────────────────────
+async function initMidiaSection() {
+  const section = document.getElementById('section-midia')
+  if (!section || section.dataset.loaded) return
+  section.dataset.loaded = '1'
+
+  section.innerHTML = `
+    <div class="section-topbar">
+      <div><div class="section-title">Biblioteca de Mídia</div><div class="section-sub">Gerencie imagens e arquivos do sistema</div></div>
+    </div>
+    <div class="cfg-card">
+      <div class="cfg-card-title"><span>📤</span> Upload de Arquivos</div>
+      <div class="media-upload-area" id="media-drop-area">
+        <input type="file" id="media-file-input" accept="image/*" multiple>
+        <div class="media-upload-icon">🖼️</div>
+        <div class="media-upload-text">
+          <strong>Clique para selecionar</strong> ou arraste as imagens aqui<br>
+          <small style="color:#9ca3af">JPG, PNG, WEBP — máximo 10MB por arquivo</small>
+        </div>
+      </div>
+      <div class="upload-progress" id="media-upload-progress">
+        <div class="upload-progress-bar"><div class="upload-progress-fill" id="media-progress-fill"></div></div>
+        <div class="upload-progress-text" id="media-progress-text">Enviando…</div>
+      </div>
+    </div>
+    <div class="cfg-card">
+      <div class="cfg-card-title" style="margin-bottom:12px"><span>📁</span> Arquivos Enviados</div>
+      <div class="media-grid" id="media-grid">
+        <div class="media-empty">Carregando…</div>
+      </div>
+    </div>
+  `
+
+  await loadMediaGrid()
+
+  // Upload handler
+  document.getElementById('media-file-input').addEventListener('change', async e => {
+    const files = Array.from(e.target.files)
+    if (!files.length) return
+    const progress = document.getElementById('media-upload-progress')
+    const fill     = document.getElementById('media-progress-fill')
+    const text     = document.getElementById('media-progress-text')
+    progress.style.display = ''
+    let done = 0
+    for (const file of files) {
+      text.textContent = `Enviando ${done + 1}/${files.length}…`
+      fill.style.width = `${Math.round(done / files.length * 100)}%`
+      try {
+        const url  = await uploadImageToStorage(file, 'media')
+        const name = file.name.replace(/\.[^.]+$/, '').slice(0, 60)
+        await supabase.from('media_library').insert({
+          name, url, type: 'image', size: file.size, created_by: (await supabase.auth.getUser()).data?.user?.id
+        })
+      } catch(err) { console.error('Media upload error:', err) }
+      done++
+    }
+    fill.style.width = '100%'
+    text.textContent = `✓ ${done} arquivo(s) enviado(s)`
+    setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0' }, 2000)
+    await loadMediaGrid()
+    e.target.value = ''
+  })
+
+  // Drag and drop
+  const dropArea = document.getElementById('media-drop-area')
+  dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('drag-over') })
+  dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag-over'))
+  dropArea.addEventListener('drop', e => {
+    e.preventDefault()
+    dropArea.classList.remove('drag-over')
+    document.getElementById('media-file-input').files = e.dataTransfer.files
+    document.getElementById('media-file-input').dispatchEvent(new Event('change'))
+  })
+}
+
+async function loadMediaGrid() {
+  const grid = document.getElementById('media-grid')
+  if (!grid) return
+  const { data, error } = await supabase.from('media_library')
+    .select('*').order('created_at', { ascending: false }).limit(100)
+  if (error || !data?.length) {
+    grid.innerHTML = '<div class="media-empty">Nenhuma imagem enviada ainda.</div>'
+    return
+  }
+  grid.innerHTML = data.map(item => `
+    <div class="media-item" data-id="${item.id}" data-url="${escapeHTML(item.url)}">
+      <img src="${escapeHTML(item.url)}" alt="${escapeHTML(item.name || '')}">
+      <div class="media-item-overlay">
+        <button class="media-copy-btn" data-url="${escapeHTML(item.url)}">📋 Copiar URL</button>
+        <button class="media-del-btn" data-id="${item.id}">🗑️ Excluir</button>
+      </div>
+      <div class="media-item-name">${escapeHTML(item.name || 'imagem')}</div>
+    </div>
+  `).join('')
+
+  grid.querySelectorAll('.media-copy-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation()
+      navigator.clipboard?.writeText(btn.dataset.url)
+        .then(() => { const orig = btn.textContent; btn.textContent = '✓ Copiado!'; setTimeout(() => { btn.textContent = orig }, 1500) })
+    })
+  })
+
+  grid.querySelectorAll('.media-del-btn').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation()
+      if (!confirm('Excluir esta imagem da biblioteca?')) return
+      await supabase.from('media_library').delete().eq('id', btn.dataset.id)
+      await loadMediaGrid()
+    })
+  })
 }
