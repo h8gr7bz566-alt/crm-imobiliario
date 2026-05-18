@@ -14,8 +14,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IOS Imobi">
   <script type="module" crossorigin src="/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/assets/script-BgnkFLTJ.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/admin-jR778YUx.css">
+  <script type="module" crossorigin src="/assets/script-CquXJvOZ.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-ooi9ol1O.css">
 </head>
 <body>
 
@@ -308,6 +308,11 @@
           <span class="nav-icon">👥</span> Leads
         </button>
 
+        <div class="sidebar-nav-divider super-admin-only" style="display:none">⚡ Plataforma</div>
+        <button class="nav-item super-admin-only" data-section="super-admin" style="display:none">
+          <span class="nav-icon">🌐</span> Super Admin
+        </button>
+
         <div class="sidebar-nav-divider admin-only" style="display:none">Administração</div>
 
         <button class="nav-item admin-only" data-section="empresa" style="display:none">
@@ -533,6 +538,9 @@
           Nenhum lead recebido ainda.<br>Os contatos aparecerão aqui quando clientes entrarem em contato pelo site.
         </div>
       </section>
+
+      <!-- ── Super Admin ── -->
+      <section id="section-super-admin" class="admin-section hidden"></section>
 
       <!-- ── Empresa ── -->
       <section id="section-empresa" class="admin-section hidden"></section>
