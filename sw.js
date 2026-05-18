@@ -1,4 +1,4 @@
-const CACHE = "ios-imobi-v2";
+const CACHE = "ios-imobi-v3";
 const ASSETS = [
   "/",
   "/index.html",
