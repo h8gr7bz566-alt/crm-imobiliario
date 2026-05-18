@@ -286,6 +286,18 @@ body {
   object-fit: cover; border-radius: 8px;
   display: block; border: 1px solid var(--border);
 }
+.cell-ref {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #b8962e;
+  background: rgba(184,150,46,0.1);
+  border: 1px solid rgba(184,150,46,0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
 .cell-title  { font-weight: 600; }
 .cell-sub    { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .cell-addr   { color: var(--text-muted); max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
