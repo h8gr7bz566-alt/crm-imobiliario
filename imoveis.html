@@ -144,11 +144,49 @@
       })
       if (typeof renderPublic === 'function') renderPublic()
     }
+    // Lê filtros passados via URL e pré-preenche os selects
+    function applyUrlFilters() {
+      const params = new URLSearchParams(window.location.search)
+      const map = {
+        city:         'city-filter',
+        neighborhood: 'neighborhood-filter',
+        bedrooms:     'bedrooms-filter',
+        parking:      'parking-filter',
+        construction: 'construction-filter',
+      }
+      Object.entries(map).forEach(([param, id]) => {
+        const val = params.get(param)
+        if (val) {
+          const el = document.getElementById(id)
+          if (el) {
+            // Cria a option se não existir (para cidade/bairro populados via JS)
+            if (!el.querySelector(`option[value="${val}"]`)) {
+              const opt = document.createElement('option')
+              opt.value = val
+              opt.textContent = val
+              el.appendChild(opt)
+            }
+            el.value = val
+          }
+        }
+      })
+      const price = params.get('price')
+      if (price) {
+        const slider = document.getElementById('price-slider')
+        const label  = document.getElementById('price-label')
+        if (slider) slider.value = price
+        if (label)  label.textContent = 'Até R$ ' + parseInt(price).toLocaleString('pt-BR')
+      }
+    }
+
     // Restaura idioma salvo
     try {
       const saved = localStorage.getItem('lang') || 'pt'
       window.currentLang = saved
-      document.addEventListener('DOMContentLoaded', () => setLang(saved))
+      document.addEventListener('DOMContentLoaded', () => {
+        applyUrlFilters()
+        setLang(saved)
+      })
     } catch(e) { window.currentLang = 'pt' }
   </script>
 

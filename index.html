@@ -125,9 +125,37 @@
           <span id="price-label" style="display:block;margin-bottom:4px;font-size:12px;color:rgba(245,248,255,0.8)">Até R$ 130.000.000</span>
           <input id="price-slider" type="range" min="0" max="130000000" value="130000000" step="1000000">
         </label>
+
+        <!-- Botão Buscar -->
+        <div style="grid-column:span 6;display:flex;justify-content:flex-end;margin-top:4px;">
+          <button id="buscar-btn" onclick="buscarImoveis()" style="background:var(--accent);color:#0f1c2e;font-weight:700;font-size:14px;padding:11px 32px;border:none;border-radius:8px;cursor:pointer;transition:background 0.2s;letter-spacing:0.02em;"
+            onmouseover="this.style.background='#c9a23c'" onmouseout="this.style.background='var(--accent)'">
+            Buscar Imóveis
+          </button>
+        </div>
       </div>
     </div>
   </section>
+
+  <script>
+    function buscarImoveis() {
+      const params = new URLSearchParams()
+      const city         = document.getElementById('city-filter')?.value
+      const neighborhood = document.getElementById('neighborhood-filter')?.value
+      const bedrooms     = document.getElementById('bedrooms-filter')?.value
+      const parking      = document.getElementById('parking-filter')?.value
+      const construction = document.getElementById('construction-filter')?.value
+      const price        = document.getElementById('price-slider')?.value
+      if (city)         params.set('city', city)
+      if (neighborhood) params.set('neighborhood', neighborhood)
+      if (bedrooms)     params.set('bedrooms', bedrooms)
+      if (parking)      params.set('parking', parking)
+      if (construction) params.set('construction', construction)
+      if (price && price !== '130000000') params.set('price', price)
+      const qs = params.toString()
+      window.location.href = 'imoveis.html' + (qs ? '?' + qs : '')
+    }
+  </script>
 
   <!-- ── Imóveis na Planta ─────────────────────────────────────────── -->
   <section class="planta-section" id="lancamentos-section">
