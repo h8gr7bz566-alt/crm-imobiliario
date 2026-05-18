@@ -129,10 +129,12 @@ body {
   background: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  z-index: 200;
 }
 
 .sidebar-brand {
@@ -190,7 +192,7 @@ body {
 .sidebar-link:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.06); }
 
 /* ─── Main ────────────────────────────────────────────────────────── */
-.admin-main { flex: 1; min-width: 0; overflow-x: hidden; max-width: 100%; }
+.admin-main { flex: 1; min-width: 0; overflow-x: hidden; max-width: 100%; margin-left: 236px; }
 
 .admin-section          { padding: 32px; }
 .admin-section.hidden   { display: none; }
@@ -453,9 +455,11 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 
   .admin-sidebar {
     position: fixed; left: -240px; top: 0;
-    z-index: 100; transition: left 0.25s ease; height: 100%;
+    z-index: 300; transition: left 0.25s ease; height: 100%;
   }
   .admin-sidebar.open { left: 0; }
+
+  .admin-main { margin-left: 0; }
 
   .admin-section { padding: 16px 12px; padding-top: 68px; max-width: 100vw; box-sizing: border-box; }
   .section-title { font-size: 20px; }
