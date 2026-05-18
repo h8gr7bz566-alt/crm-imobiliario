@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IOS Imobi">
   <script type="module" crossorigin src="/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/assets/script-mZUuL5YB.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/admin-Bnu5TMGx.css">
+  <script type="module" crossorigin src="/assets/script-s7DLxxL6.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-CrMas3kV.css">
 </head>
 <body>
 
@@ -342,6 +342,9 @@
             <div class="section-sub">Gerencie seu portfólio de imóveis</div>
           </div>
           <button id="btn-new-property" class="btn-primary">+ Novo Imóvel</button>
+          <button onclick="migrateReferences()" class="btn-outline" title="Gera IO-XXXX para imóveis sem referência" style="font-size:12px;padding:8px 12px;">🔢 Gerar Referências</button>
+          <button onclick="migrateWatermarks()" class="btn-outline" title="Aplica marca d'água nas fotos existentes" style="font-size:12px;padding:8px 12px;">💧 Aplicar Marca D'água</button>
+          <span id="migration-progress" style="display:none;font-size:12px;color:#b8962e;align-self:center;"></span>
         </div>
 
         <div class="stats-row">
