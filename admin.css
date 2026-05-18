@@ -990,77 +990,89 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   .prop-table thead { display: none; }
   .prop-table tbody { display: block; }
 
-  /* Cada linha vira um card */
+  /* Card container */
   .prop-table tbody tr {
-    display: grid;
-    grid-template-columns: 72px 1fr auto;
-    grid-template-rows: auto auto auto;
-    column-gap: 12px;
-    row-gap: 0;
+    display: flex;
+    flex-direction: column;
     padding: 14px 12px;
-    border-bottom: 1px solid var(--border);
-    align-items: start;
+    gap: 0;
+    border-bottom: 2px solid var(--border);
+    background: #fff;
   }
 
-  /* Foto — span 3 rows, left */
+  /* Linha 1: foto + info principal lado a lado */
+  .prop-table td:nth-child(1),
+  .prop-table td:nth-child(2),
+  .prop-table td:nth-child(3),
+  .prop-table td:nth-child(4),
+  .prop-table td:nth-child(5),
+  .prop-table td:nth-child(6),
+  .prop-table td:nth-child(7),
+  .prop-table td:nth-child(8) {
+    padding: 0;
+  }
+
+  /* Esconde células menos importantes individualmente */
+  .prop-table td:nth-child(5),
+  .prop-table td:nth-child(6) { display: none; }
+
+  /* Linha topo: foto + bloco de texto */
   .prop-table td:nth-child(1) {
-    grid-column: 1; grid-row: 1 / 4;
-    align-self: center;
+    order: 1;
+    float: left;
+    margin-right: 12px;
+    margin-bottom: 4px;
   }
-  .table-thumb { width: 72px; height: 56px; border-radius: 8px; object-fit: cover; }
+  .table-thumb {
+    width: 80px; height: 64px;
+    border-radius: 8px; object-fit: cover;
+    display: block;
+  }
 
-  /* Título — linha 1, centro */
+  /* Título */
   .prop-table td:nth-child(2) {
-    grid-column: 2; grid-row: 1;
-    font-weight: 700; font-size: 14px; color: var(--text);
-    white-space: normal; overflow: visible;
-    line-height: 1.3; padding: 0;
+    order: 2;
+    font-weight: 700; font-size: 14px;
+    color: var(--text); line-height: 1.35;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    margin-bottom: 3px;
   }
 
-  /* Endereço — linha 2 */
+  /* Endereço */
   .prop-table td:nth-child(3) {
     display: block !important;
-    grid-column: 2; grid-row: 2;
+    order: 3;
     font-size: 12px; color: var(--text-muted);
-    padding: 2px 0 0; white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 5px;
   }
 
-  /* Valor — linha 3, fonte destaque */
+  /* Valor */
   .prop-table td:nth-child(4) {
-    grid-column: 2; grid-row: 3;
-    font-weight: 700; color: var(--accent);
-    font-size: 14px; padding: 4px 0 0;
+    order: 4;
+    font-weight: 800; font-size: 16px;
+    color: var(--accent); clear: left;
+    margin-top: 6px; padding-top: 6px;
+    border-top: 1px solid var(--border);
   }
 
-  /* Dorms — coluna direita, linha 1 */
-  .prop-table td:nth-child(5) {
-    grid-column: 3; grid-row: 1;
-    font-size: 12px; text-align: right; padding: 0;
-    white-space: nowrap;
-  }
-  .prop-table td:nth-child(5)::before { content: "🛏 "; }
-
-  /* Vagas — coluna direita, linha 2 */
-  .prop-table td:nth-child(6) {
-    grid-column: 3; grid-row: 2;
-    font-size: 12px; text-align: right; padding: 2px 0 0;
-    white-space: nowrap;
-  }
-  .prop-table td:nth-child(6)::before { content: "🚗 "; }
-
-  /* Status — coluna direita, linha 3 */
+  /* Status */
   .prop-table td:nth-child(7) {
-    grid-column: 3; grid-row: 3;
-    font-size: 11px; text-align: right; padding: 4px 0 0;
+    order: 5;
+    margin-top: 6px;
+    font-size: 12px;
   }
 
-  /* Ações — linha extra abaixo, full width */
+  /* Ações */
   .prop-table td:nth-child(8) {
-    grid-column: 1 / -1; grid-row: 4;
+    order: 6;
     display: flex; justify-content: flex-end;
-    padding: 8px 0 0; border-top: 1px solid var(--border);
-    margin-top: 8px;
+    margin-top: 10px; padding-top: 8px;
+    border-top: 1px solid var(--border);
   }
 
   /* Topbar: botão + filtros em coluna */
