@@ -19,15 +19,20 @@ let currentIdx = 0
 async function loadProperty() {
   if (!propId) return showError()
 
-  const { data, error } = await supabase
-    .from('properties')
-    .select('*')
-    .eq('id', propId)
-    .eq('published', true)
-    .maybeSingle()
+  try {
+    const { data, error } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('id', propId)
+      .maybeSingle()
 
-  if (error || !data) return showError()
-  renderProperty(data)
+    if (error) { console.error('Supabase error:', error); return showError() }
+    if (!data)  { console.warn('Imóvel não encontrado, id:', propId); return showError() }
+    renderProperty(data)
+  } catch (e) {
+    console.error('loadProperty exception:', e)
+    showError()
+  }
 }
 
 // ─── Preenche a página com os dados do imóvel ─────────────────────────────
