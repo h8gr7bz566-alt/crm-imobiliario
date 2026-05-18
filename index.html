@@ -258,6 +258,9 @@
   };
 
   function setLang(lang) {
+    // Expõe idioma atual para script.js (formatação de preço)
+    window.currentLang = lang;
+
     // Update active button style
     ['pt','en','es'].forEach(function(l) {
       const btn = document.getElementById('lang-' + l);
@@ -282,6 +285,9 @@
 
     // Save preference
     try { localStorage.setItem('lang', lang); } catch(e) {}
+
+    // Re-renderiza os cards para atualizar moeda (R$ ↔ $)
+    if (typeof renderPublic === 'function') renderPublic();
   }
 
   // Init on load

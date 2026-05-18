@@ -12,6 +12,33 @@ const SAMPLE_URLS = [
   'https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=1200&auto=format&fit=crop'
 ]
 
+// ─── Formatação de preço com suporte a moeda ─────────────────────────────
+const BRL_TO_USD = 5.70 // taxa fixa aproximada
+
+function formatPrice(rawPrice, lang) {
+  if (!rawPrice) return '—'
+  const str = String(rawPrice).trim()
+  // Extrai número: suporta formato BR (1.400.000,00) e genérico
+  let num
+  if (str.includes(',') && str.lastIndexOf(',') > str.lastIndexOf('.')) {
+    // Formato BR: ponto = milhar, vírgula = decimal
+    num = parseFloat(str.replace(/\./g, '').replace(',', '.'))
+  } else {
+    num = parseFloat(str.replace(/[^\d.]/g, ''))
+  }
+  if (isNaN(num) || num === 0) return str
+
+  if (lang === 'en') {
+    const usd = num / BRL_TO_USD
+    return '$ ' + usd.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  }
+  // PT e ES: sempre Real brasileiro
+  return 'R$ ' + num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
+// Expõe lang atual para uso nos templates (atualizado pelo setLang() do index.html)
+window.currentLang = window.currentLang || 'pt'
+
 // Cache em memória — necessário para o carousel funcionar sem re-fetch
 let cachedProperties = []
 let currentProfile    = null
@@ -220,7 +247,7 @@ async function renderPublic() {
         <div class="property-info">
           <strong>${escapeHTML(p.title)}</strong>
           <div class="muted">${escapeHTML(p.neighborhood || '')}, ${escapeHTML(p.city || '')}</div>
-          <div><strong>${escapeHTML(p.price)}</strong></div>
+          <div><strong>${escapeHTML(formatPrice(p.price, window.currentLang || 'pt'))}</strong></div>
           <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} ${total > 1 ? '| 📸 ' + total : ''}</div>
           <p class="muted">${escapeHTML((p.description || '').slice(0, 110))}</p>
           <div style="display:flex;gap:8px;margin-top:6px">
@@ -316,7 +343,7 @@ function renderAdminTable(props) {
         <div class="cell-sub">#${p.id}${p.condominium ? ' · ' + escapeHTML(p.condominium) : ''}</div>
       </td>
       <td class="cell-addr col-addr">${escapeHTML(addr)}</td>
-      <td class="cell-price">${escapeHTML(p.price || '—')}</td>
+      <td class="cell-price">${escapeHTML(formatPrice(p.price, 'pt'))}</td>
       <td>${p.bedrooms ?? '—'}</td>
       <td>${p.parking ?? '—'}</td>
       <td>${badge}</td>
@@ -624,7 +651,7 @@ function openViewModal(p) {
   renderViewGallery()
 
   // Data grid
-  document.getElementById('view-price').textContent    = p.price    || '—'
+  document.getElementById('view-price').textContent    = formatPrice(p.price, 'pt')
   document.getElementById('view-bedrooms').textContent = p.bedrooms || '—'
   document.getElementById('view-suites').textContent   = p.suites   || '—'
   document.getElementById('view-parking').textContent  = p.parking  || '—'

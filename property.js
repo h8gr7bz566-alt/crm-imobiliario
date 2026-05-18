@@ -3,6 +3,23 @@ import { supabase } from './lib/supabase.js'
 
 const WHATSAPP_NUMBER = '5547999701743'
 
+const BRL_TO_USD = 5.70
+function formatPrice(rawPrice, lang) {
+  if (!rawPrice) return '—'
+  const str = String(rawPrice).trim()
+  let num
+  if (str.includes(',') && str.lastIndexOf(',') > str.lastIndexOf('.')) {
+    num = parseFloat(str.replace(/\./g, '').replace(',', '.'))
+  } else {
+    num = parseFloat(str.replace(/[^\d.]/g, ''))
+  }
+  if (isNaN(num) || num === 0) return str
+  if (lang === 'en') {
+    return '$ ' + (num / BRL_TO_USD).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  }
+  return 'R$ ' + num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
 const SAMPLE_URLS = [
   'https://images.unsplash.com/photo-1560184897-e6f6f0d0b1f8?q=80&w=1200&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop',
@@ -45,7 +62,8 @@ function renderProperty(p) {
   window._lbIdx = 0
 
   document.getElementById('prop-title').textContent = p.title || ''
-  document.getElementById('prop-price').textContent = p.price || ''
+  const lang = (() => { try { return localStorage.getItem('lang') || 'pt' } catch(e) { return 'pt' } })()
+  document.getElementById('prop-price').textContent = formatPrice(p.price, lang)
 
   // Stats — renderiza apenas campos com valor
   const statsEl = document.getElementById('prop-stats')
