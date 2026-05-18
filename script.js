@@ -45,6 +45,10 @@ async function getAllProperties() {
     .order('created_at', { ascending: false })
   if (error) { console.error('Supabase select error:', error); return [] }
   cachedProperties = data || []
+  // Auto-assign references silently in background
+  autoAssignReferences()
+  // Auto-apply watermarks to unprocessed images in background
+  autoApplyWatermarks()
   return cachedProperties
 }
 
@@ -303,9 +307,11 @@ function renderAdminTable(props) {
       ? '<span class="badge badge-green">● Publicado</span>'
       : '<span class="badge badge-gray">○ Rascunho</span>'
     return `<tr data-id="${p.id}">
-      <td><img src="${img}" class="table-thumb" alt=""></td>
+      <td style="position:relative;width:80px;">
+        <img src="${img}" class="table-thumb" alt="">
+        ${p.reference ? `<span class="ref-badge">${escapeHTML(p.reference)}</span>` : ''}
+      </td>
       <td>
-        ${p.reference ? `<div class="cell-ref">${escapeHTML(p.reference)}</div>` : ''}
         <div class="cell-title">${escapeHTML(p.title)}</div>
         <div class="cell-sub">#${p.id}${p.condominium ? ' · ' + escapeHTML(p.condominium) : ''}</div>
       </td>
@@ -1461,65 +1467,63 @@ document.addEventListener('DOMContentLoaded', async () => {
 })
 
 
-// ─── Migração: gerar referências para imóveis existentes ─────────────────────
-async function migrateReferences() {
+// ─── Auto: gera referências silenciosamente para imóveis sem referência ──────
+async function autoAssignReferences() {
   const props = cachedProperties.filter(p => !p.reference)
-  if (!props.length) { alert('Todos os imóveis já têm referência!'); return }
+  if (!props.length) return
 
-  // Pega o maior número existente
   const existing = cachedProperties
     .map(p => p.reference || '')
     .filter(r => /^IO-\d+$/.test(r))
     .map(r => parseInt(r.replace('IO-', ''), 10))
   let next = existing.length ? Math.max(...existing) + 1 : 1
 
-  // Ordena por id para atribuir em ordem cronológica
   const sorted = [...props].sort((a, b) => a.id - b.id)
-  let count = 0
   for (const p of sorted) {
     const ref = 'IO-' + String(next).padStart(4, '0')
     const { error } = await supabase.from('properties').update({ reference: ref }).eq('id', p.id)
     if (!error) {
       const idx = cachedProperties.findIndex(x => x.id === p.id)
       if (idx >= 0) cachedProperties[idx].reference = ref
-      next++; count++
+      next++
     }
   }
-  alert(`✅ ${count} referências criadas!`)
   renderAdminProperties()
 }
 
-// ─── Migração: aplicar marca d'água em imóveis existentes ───────────────────
-async function migrateWatermarks() {
-  const props = cachedProperties.filter(p => p.images?.length)
-  if (!props.length) { alert('Nenhum imóvel com fotos encontrado.'); return }
-
-  const total = props.reduce((s, p) => s + (p.images?.length || 0), 0)
-  if (!confirm(`Aplicar marca d'água em ${total} fotos de ${props.length} imóveis?\n\nIsso pode levar alguns minutos.`)) return
-
-  let done = 0
-  const progressEl = document.getElementById('migration-progress')
-  if (progressEl) progressEl.style.display = 'block'
+// ─── Auto: aplica marca d'água silenciosamente nas fotos sem watermark ────────
+async function autoApplyWatermarks() {
+  // Só processa fotos que NÃO têm "wm-" no path (ainda não foram processadas)
+  const props = cachedProperties.filter(p =>
+    p.images?.some(url => !url.includes('/wm-'))
+  )
+  if (!props.length) return
 
   for (const prop of props) {
+    const needsWm = prop.images.some(url => !url.includes('/wm-'))
+    if (!needsWm) continue
+
     const newUrls = []
+    let changed = false
     for (const url of prop.images) {
-      try {
-        const newUrl = await applyWatermarkToUrl(url)
-        newUrls.push(newUrl)
-        done++
-        if (progressEl) progressEl.textContent = `Processando… ${done}/${total}`
-      } catch(e) {
-        newUrls.push(url) // mantém original se falhar
+      if (url.includes('/wm-')) {
+        newUrls.push(url) // já tem marca d'água
+      } else {
+        try {
+          const newUrl = await applyWatermarkToUrl(url)
+          newUrls.push(newUrl)
+          changed = true
+        } catch(e) {
+          newUrls.push(url)
+        }
       }
     }
-    await supabase.from('properties').update({ images: newUrls }).eq('id', prop.id)
-    const idx = cachedProperties.findIndex(x => x.id === prop.id)
-    if (idx >= 0) cachedProperties[idx].images = newUrls
+    if (changed) {
+      await supabase.from('properties').update({ images: newUrls }).eq('id', prop.id)
+      const idx = cachedProperties.findIndex(x => x.id === prop.id)
+      if (idx >= 0) cachedProperties[idx].images = newUrls
+    }
   }
-
-  if (progressEl) progressEl.style.display = 'none'
-  alert(`✅ Marca d'água aplicada em ${done} fotos!`)
   renderAdminProperties()
 }
 
