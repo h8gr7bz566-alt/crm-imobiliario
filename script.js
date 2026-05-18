@@ -817,7 +817,7 @@ function renderSidebarUser(profile) {
   if (!nameEl) return
   const name = profile?.name || 'Sem nome'
   nameEl.textContent = name
-  roleEl.textContent = profile?.role === 'admin' ? 'Administrador' : 'Corretor'
+  roleEl.textContent = profile?.role === 'super_admin' ? 'Super Admin' : profile?.role === 'admin' ? 'Administrador' : 'Corretor'
   if (initEl) initEl.textContent = name[0]?.toUpperCase() || '?'
   if (imgEl && profile?.avatar_url) {
     imgEl.src = profile.avatar_url; imgEl.style.display = ''
@@ -829,12 +829,9 @@ function applyRolePermissions(role) {
   const root = document.getElementById('admin-root')
   if (root) root.dataset.role = role || 'corretor'
 
-  if (role === 'admin') {
-    // Revelar itens admin no sidebar
+  if (role === 'admin' || role === 'super_admin') {
     document.querySelectorAll('.admin-only').forEach(el => { el.style.display = '' })
-
-    // Conectar seções admin (lazy render: só inicializa ao clicar pela 1ª vez)
-    const sections = {
+    const adminSections = {
       'empresa':      initEmpresaSection,
       'visual':       initVisualSection,
       'site-config':  initSiteConfigSection,
@@ -842,10 +839,16 @@ function applyRolePermissions(role) {
       'integracoes':  initIntegracoesSection,
       'midia':        initMidiaSection,
     }
-    Object.entries(sections).forEach(([name, fn]) => {
+    Object.entries(adminSections).forEach(([name, fn]) => {
       const btn = document.querySelector(`.nav-item[data-section="${name}"]`)
       if (btn) btn.addEventListener('click', () => fn(), { once: true })
     })
+  }
+
+  if (role === 'super_admin') {
+    document.querySelectorAll('.super-admin-only').forEach(el => { el.style.display = '' })
+    const btn = document.querySelector('.nav-item[data-section="super-admin"]')
+    if (btn) btn.addEventListener('click', () => initSuperAdminSection(), { once: true })
   }
 }
 
@@ -1058,7 +1061,7 @@ async function loadCorretores() {
         ${avatar}
         <div>
           <div class="corretor-name">${escapeHTML(p.name || '—')}</div>
-          <div class="corretor-role-badge">${p.role === 'admin' ? '👑 Admin' : '🔑 Corretor'}</div>
+          <div class="corretor-role-badge">${p.role === 'super_admin' ? '⚡ Super Admin' : p.role === 'admin' ? '👑 Admin' : '🔑 Corretor'}</div>
         </div>
       </div>
       <div class="corretor-actions">
@@ -2651,5 +2654,348 @@ async function loadMediaGrid() {
       await supabase.from('media_library').delete().eq('id', btn.dataset.id)
       await loadMediaGrid()
     })
+  })
+}
+
+// ─── Super Admin: Painel Global da Plataforma ─────────────────────────────────
+async function initSuperAdminSection() {
+  const sec = document.getElementById('section-super-admin')
+  if (!sec || sec.dataset.loaded) return
+  sec.dataset.loaded = '1'
+
+  sec.innerHTML = `
+    <div class="cfg-card">
+      <div class="cfg-card-title">⚡ Painel Global da Plataforma</div>
+      <div class="sa-tabs">
+        <button class="sa-tab active" data-tab="tenants">🏢 Imobiliárias</button>
+        <button class="sa-tab" data-tab="plans">📦 Planos</button>
+        <button class="sa-tab" data-tab="subscriptions">💳 Assinaturas</button>
+        <button class="sa-tab" data-tab="global-users">👥 Usuários Globais</button>
+        <button class="sa-tab" data-tab="platform">⚙️ Plataforma</button>
+      </div>
+      <div id="sa-panel-tenants" class="sa-panel">
+        <div class="sa-toolbar">
+          <input id="sa-tenant-search" class="sa-search" type="text" placeholder="Buscar imobiliária…">
+          <button id="sa-tenant-new" class="btn-primary-sm">+ Nova Imobiliária</button>
+        </div>
+        <div id="sa-tenants-list" class="sa-list"><div class="sa-loading">Carregando…</div></div>
+      </div>
+      <div id="sa-panel-plans" class="sa-panel hidden">
+        <div id="sa-plans-list" class="sa-list"><div class="sa-loading">Carregando…</div></div>
+      </div>
+      <div id="sa-panel-subscriptions" class="sa-panel hidden">
+        <div class="sa-toolbar">
+          <select id="sa-sub-filter" class="sa-select">
+            <option value="">Todos os status</option>
+            <option value="active">Ativo</option>
+            <option value="trialing">Trial</option>
+            <option value="past_due">Inadimplente</option>
+            <option value="cancelled">Cancelado</option>
+            <option value="paused">Pausado</option>
+          </select>
+        </div>
+        <div id="sa-subs-list" class="sa-list"><div class="sa-loading">Carregando…</div></div>
+      </div>
+      <div id="sa-panel-global-users" class="sa-panel hidden">
+        <div class="sa-toolbar">
+          <input id="sa-user-search" class="sa-search" type="text" placeholder="Buscar usuário…">
+        </div>
+        <div id="sa-users-list" class="sa-list"><div class="sa-loading">Carregando…</div></div>
+      </div>
+      <div id="sa-panel-platform" class="sa-panel hidden">
+        <div class="sa-platform-grid">
+          <div class="sa-stat-card">
+            <div class="sa-stat-label">Total de Imobiliárias</div>
+            <div class="sa-stat-value" id="sa-stat-tenants">—</div>
+          </div>
+          <div class="sa-stat-card">
+            <div class="sa-stat-label">Usuários Ativos</div>
+            <div class="sa-stat-value" id="sa-stat-users">—</div>
+          </div>
+          <div class="sa-stat-card">
+            <div class="sa-stat-label">Assinaturas Ativas</div>
+            <div class="sa-stat-value" id="sa-stat-subs">—</div>
+          </div>
+          <div class="sa-stat-card">
+            <div class="sa-stat-label">Imóveis Publicados</div>
+            <div class="sa-stat-value" id="sa-stat-props">—</div>
+          </div>
+        </div>
+        <div class="cfg-card" style="margin-top:16px">
+          <div class="cfg-card-title">Configurações Globais da Plataforma</div>
+          <div class="form-group">
+            <label>Nome da Plataforma</label>
+            <input id="sa-plat-name" type="text" class="form-input" placeholder="ImobiPro SaaS">
+          </div>
+          <div class="form-group">
+            <label>Email de Suporte</label>
+            <input id="sa-plat-email" type="email" class="form-input" placeholder="suporte@imobipro.com.br">
+          </div>
+          <div class="form-group">
+            <label>Trial padrão (dias)</label>
+            <input id="sa-plat-trial" type="number" class="form-input" placeholder="14" min="0" max="90">
+          </div>
+          <div class="cfg-save-row">
+            <button id="sa-plat-save" class="btn-primary-sm">Salvar Configurações</button>
+            <span id="sa-plat-msg" class="cfg-save-msg"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+
+  // Tab switching
+  sec.querySelectorAll('.sa-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      sec.querySelectorAll('.sa-tab').forEach(t => t.classList.remove('active'))
+      sec.querySelectorAll('.sa-panel').forEach(p => p.classList.add('hidden'))
+      tab.classList.add('active')
+      const panel = sec.querySelector(`#sa-panel-${tab.dataset.tab}`)
+      if (panel) panel.classList.remove('hidden')
+      if (tab.dataset.tab === 'tenants' && !sec.querySelector('#sa-tenants-list').dataset.loaded) loadSATenants()
+      if (tab.dataset.tab === 'plans' && !sec.querySelector('#sa-plans-list').dataset.loaded) loadSAPlans()
+      if (tab.dataset.tab === 'subscriptions' && !sec.querySelector('#sa-subs-list').dataset.loaded) loadSASubscriptions()
+      if (tab.dataset.tab === 'global-users' && !sec.querySelector('#sa-users-list').dataset.loaded) loadSAUsers()
+      if (tab.dataset.tab === 'platform') loadSAPlatformStats()
+    })
+  })
+
+  sec.querySelector('#sa-sub-filter')?.addEventListener('change', loadSASubscriptions)
+  sec.querySelector('#sa-tenant-search')?.addEventListener('input', loadSATenants)
+  sec.querySelector('#sa-user-search')?.addEventListener('input', loadSAUsers)
+  sec.querySelector('#sa-tenant-new')?.addEventListener('click', () => openNewTenantModal())
+  sec.querySelector('#sa-plat-save')?.addEventListener('click', savePlatformSettings)
+
+  loadSATenants()
+  loadSAPlatformStats()
+}
+
+async function loadSATenants() {
+  const list   = document.getElementById('sa-tenants-list')
+  const search = document.getElementById('sa-tenant-search')?.value?.toLowerCase() || ''
+  if (!list) return
+  list.dataset.loaded = '1'
+
+  let query = supabase.from('tenants').select('*, plans(name, price_brl)').order('created_at', { ascending: false })
+  const { data, error } = await query
+  if (error) { list.innerHTML = `<div class="sa-error">Erro ao carregar: ${error.message}</div>`; return }
+
+  const filtered = (data || []).filter(t =>
+    !search || t.name?.toLowerCase().includes(search) || t.slug?.toLowerCase().includes(search)
+  )
+
+  if (!filtered.length) { list.innerHTML = '<div class="sa-empty">Nenhuma imobiliária encontrada.</div>'; return }
+
+  const statusBadge = t => t.active
+    ? '<span class="sa-badge sa-badge-green">Ativo</span>'
+    : '<span class="sa-badge sa-badge-red">Inativo</span>'
+
+  list.innerHTML = filtered.map(t => `
+    <div class="sa-list-row">
+      <div class="sa-list-info">
+        ${t.logo_url ? `<img class="sa-tenant-logo" src="${escapeHTML(t.logo_url)}" alt="">` : '<div class="sa-tenant-logo-placeholder">🏢</div>'}
+        <div>
+          <div class="sa-list-name">${escapeHTML(t.name || '—')}</div>
+          <div class="sa-list-sub">${escapeHTML(t.slug || '')} · ${escapeHTML(t.plans?.name || 'Sem plano')}</div>
+        </div>
+      </div>
+      <div class="sa-list-actions">
+        ${statusBadge(t)}
+        <button class="sa-btn-icon" data-action="toggle-tenant" data-id="${t.id}" data-active="${t.active}" title="${t.active ? 'Desativar' : 'Ativar'}">${t.active ? '⏸️' : '▶️'}</button>
+        <button class="sa-btn-icon" data-action="edit-tenant" data-id="${t.id}" title="Editar">✏️</button>
+      </div>
+    </div>
+  `).join('')
+
+  list.querySelectorAll('[data-action="toggle-tenant"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const active = btn.dataset.active === 'true'
+      await supabase.from('tenants').update({ active: !active }).eq('id', btn.dataset.id)
+      loadSATenants()
+    })
+  })
+}
+
+async function loadSAPlans() {
+  const list = document.getElementById('sa-plans-list')
+  if (!list) return
+  list.dataset.loaded = '1'
+
+  const { data, error } = await supabase.from('plans').select('*').order('price_brl')
+  if (error) { list.innerHTML = `<div class="sa-error">Erro: ${error.message}</div>`; return }
+
+  list.innerHTML = (data || []).map(p => `
+    <div class="sa-plan-card">
+      <div class="sa-plan-name">${escapeHTML(p.name)}</div>
+      <div class="sa-plan-price">${p.price_brl === 0 ? 'Gratuito' : 'R$ ' + Number(p.price_brl).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + '/mês'}</div>
+      <div class="sa-plan-limits">
+        <span>👥 ${p.max_users === 999 ? 'Ilimitado' : p.max_users} usuários</span>
+        <span>🏠 ${p.max_properties === 9999 ? 'Ilimitado' : p.max_properties} imóveis</span>
+        <span>📋 ${p.max_leads === 99999 ? 'Ilimitado' : p.max_leads} leads</span>
+      </div>
+    </div>
+  `).join('')
+}
+
+async function loadSASubscriptions() {
+  const list   = document.getElementById('sa-subs-list')
+  const filter = document.getElementById('sa-sub-filter')?.value || ''
+  if (!list) return
+  list.dataset.loaded = '1'
+
+  let query = supabase.from('subscriptions')
+    .select('*, tenants(name), plans(name, price_brl)')
+    .order('created_at', { ascending: false })
+  if (filter) query = query.eq('status', filter)
+
+  const { data, error } = await query
+  if (error) { list.innerHTML = `<div class="sa-error">Erro: ${error.message}</div>`; return }
+  if (!data?.length) { list.innerHTML = '<div class="sa-empty">Nenhuma assinatura encontrada.</div>'; return }
+
+  const statusColor = { active: 'green', trialing: 'blue', past_due: 'orange', cancelled: 'red', paused: 'gray' }
+  const statusLabel = { active: 'Ativo', trialing: 'Trial', past_due: 'Inadimplente', cancelled: 'Cancelado', paused: 'Pausado' }
+
+  list.innerHTML = data.map(s => `
+    <div class="sa-list-row">
+      <div class="sa-list-info">
+        <div>
+          <div class="sa-list-name">${escapeHTML(s.tenants?.name || '—')}</div>
+          <div class="sa-list-sub">${escapeHTML(s.plans?.name || '—')} · R$ ${Number(s.plans?.price_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</div>
+        </div>
+      </div>
+      <div class="sa-list-actions">
+        <span class="sa-badge sa-badge-${statusColor[s.status] || 'gray'}">${statusLabel[s.status] || s.status}</span>
+        <span class="sa-list-date">${s.current_period_end ? new Date(s.current_period_end).toLocaleDateString('pt-BR') : '—'}</span>
+      </div>
+    </div>
+  `).join('')
+}
+
+async function loadSAUsers() {
+  const list   = document.getElementById('sa-users-list')
+  const search = document.getElementById('sa-user-search')?.value?.toLowerCase() || ''
+  if (!list) return
+  list.dataset.loaded = '1'
+
+  const { data, error } = await supabase.from('profiles')
+    .select('*, tenants(name)')
+    .order('created_at', { ascending: false })
+    .limit(100)
+  if (error) { list.innerHTML = `<div class="sa-error">Erro: ${error.message}</div>`; return }
+
+  const filtered = (data || []).filter(u =>
+    !search || u.name?.toLowerCase().includes(search) || u.email?.toLowerCase().includes(search)
+  )
+  if (!filtered.length) { list.innerHTML = '<div class="sa-empty">Nenhum usuário encontrado.</div>'; return }
+
+  const roleLabel = { super_admin: '⚡ Super Admin', admin: '👑 Admin', corretor: '🔑 Corretor' }
+
+  list.innerHTML = filtered.map(u => `
+    <div class="sa-list-row">
+      <div class="sa-list-info">
+        <div class="sa-user-avatar">${(u.name || '?')[0].toUpperCase()}</div>
+        <div>
+          <div class="sa-list-name">${escapeHTML(u.name || '—')}</div>
+          <div class="sa-list-sub">${escapeHTML(u.tenants?.name || 'Sem imobiliária')} · ${roleLabel[u.role] || u.role}</div>
+        </div>
+      </div>
+      <div class="sa-list-actions">
+        <span class="sa-badge ${u.active !== false ? 'sa-badge-green' : 'sa-badge-red'}">${u.active !== false ? 'Ativo' : 'Inativo'}</span>
+      </div>
+    </div>
+  `).join('')
+}
+
+async function loadSAPlatformStats() {
+  const [tenantsRes, usersRes, subsRes, propsRes] = await Promise.all([
+    supabase.from('tenants').select('id', { count: 'exact', head: true }),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('properties').select('id', { count: 'exact', head: true }).eq('published', true),
+  ])
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? '—' }
+  set('sa-stat-tenants', tenantsRes.count)
+  set('sa-stat-users',   usersRes.count)
+  set('sa-stat-subs',    subsRes.count)
+  set('sa-stat-props',   propsRes.count)
+}
+
+async function savePlatformSettings() {
+  const btn = document.getElementById('sa-plat-save')
+  const msg = document.getElementById('sa-plat-msg')
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando…' }
+  await saveMultipleSettings([
+    { key: 'platform.name',         value: document.getElementById('sa-plat-name')?.value  || '' },
+    { key: 'platform.support_email',value: document.getElementById('sa-plat-email')?.value || '' },
+    { key: 'platform.trial_days',   value: document.getElementById('sa-plat-trial')?.value || '14' },
+  ])
+  if (btn) { btn.disabled = false; btn.textContent = 'Salvar Configurações' }
+  showSaveMsg(msg, true)
+}
+
+function openNewTenantModal() {
+  const existing = document.getElementById('sa-new-tenant-modal')
+  if (existing) existing.remove()
+
+  const modal = document.createElement('div')
+  modal.id = 'sa-new-tenant-modal'
+  modal.className = 'sa-modal-backdrop'
+  modal.innerHTML = `
+    <div class="sa-modal">
+      <div class="sa-modal-header">
+        <h3>Nova Imobiliária</h3>
+        <button class="sa-modal-close" id="sa-modal-close-btn">✕</button>
+      </div>
+      <div class="sa-modal-body">
+        <div class="form-group"><label>Nome da Imobiliária *</label><input id="nt-name" class="form-input" type="text" placeholder="Ex: Imobiliária ABC"></div>
+        <div class="form-group"><label>Slug (URL única) *</label><input id="nt-slug" class="form-input" type="text" placeholder="imobiliaria-abc"></div>
+        <div class="form-group"><label>Domínio personalizado</label><input id="nt-domain" class="form-input" type="text" placeholder="abc.imobipro.com.br"></div>
+        <div class="form-group"><label>Plano</label>
+          <select id="nt-plan" class="form-input">
+            <option value="">Carregando planos…</option>
+          </select>
+        </div>
+      </div>
+      <div class="sa-modal-footer">
+        <button id="nt-cancel" class="btn-secondary-sm">Cancelar</button>
+        <button id="nt-save" class="btn-primary-sm">Criar Imobiliária</button>
+        <span id="nt-msg" class="cfg-save-msg"></span>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+
+  supabase.from('plans').select('id, name').then(({ data }) => {
+    const sel = document.getElementById('nt-plan')
+    if (sel && data) sel.innerHTML = data.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('')
+  })
+
+  document.getElementById('nt-name')?.addEventListener('input', e => {
+    const slug = document.getElementById('nt-slug')
+    if (slug && !slug.dataset.manual) {
+      slug.value = e.target.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    }
+  })
+  document.getElementById('nt-slug')?.addEventListener('input', e => { e.target.dataset.manual = '1' })
+
+  const close = () => modal.remove()
+  document.getElementById('sa-modal-close-btn')?.addEventListener('click', close)
+  document.getElementById('nt-cancel')?.addEventListener('click', close)
+  modal.addEventListener('click', e => { if (e.target === modal) close() })
+
+  document.getElementById('nt-save')?.addEventListener('click', async () => {
+    const name   = document.getElementById('nt-name')?.value?.trim()
+    const slug   = document.getElementById('nt-slug')?.value?.trim()
+    const domain = document.getElementById('nt-domain')?.value?.trim()
+    const planId = document.getElementById('nt-plan')?.value
+    const msgEl  = document.getElementById('nt-msg')
+    const saveBtn= document.getElementById('nt-save')
+    if (!name || !slug) { showSaveMsg(msgEl, false); msgEl.textContent = 'Nome e slug são obrigatórios.'; return }
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Criando…' }
+    const { error } = await supabase.from('tenants').insert({ name, slug, domain: domain || null, plan_id: planId || null, active: true })
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Criar Imobiliária' }
+    if (error) { showSaveMsg(msgEl, false); msgEl.textContent = error.message; return }
+    showSaveMsg(msgEl, true)
+    setTimeout(() => { close(); loadSATenants() }, 800)
   })
 }
