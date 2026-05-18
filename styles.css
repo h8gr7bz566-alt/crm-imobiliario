@@ -790,3 +790,206 @@ select option { background: #0c1830; color: var(--text); }
   background: #fdf8ee;
   color: #b8962e;
 }
+
+/* ── Topbar phone number ───────────────────────────────────────────── */
+.topbar-phone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,0.85) !important;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid rgba(184,150,46,0.4);
+  border-radius: 20px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.topbar-phone:hover { background: rgba(184,150,46,0.15); border-color: #b8962e; color: #b8962e !important; }
+.topbar-phone-num { font-size: 12px; }
+@media (max-width: 640px) { .topbar-phone-num { display: none; } }
+
+/* ── Seleção Isaac Omar ────────────────────────────────────────────── */
+.selecao-section {
+  padding: 64px 24px 48px;
+  background: #f8f9fc;
+}
+.selecao-header {
+  max-width: 1200px;
+  margin: 0 auto 32px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.selecao-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f1c2e;
+  margin: 0 0 6px;
+}
+.selecao-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+.selecao-btn {
+  background: var(--accent);
+  color: #0f1c2e !important;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.selecao-carousel-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+}
+.selecao-carousel {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.selecao-carousel::-webkit-scrollbar { display: none; }
+.selecao-card {
+  flex: 0 0 320px;
+  scroll-snap-align: start;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.selecao-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.13); }
+.selecao-card-img { width: 100%; height: 200px; object-fit: cover; display: block; }
+.selecao-card-body { padding: 16px; }
+.selecao-card-title { font-size: 15px; font-weight: 700; color: #0f1c2e; margin: 0 0 4px; }
+.selecao-card-loc { font-size: 12px; color: #b8962e; font-weight: 600; margin: 0 0 8px; }
+.selecao-card-price { font-size: 18px; font-weight: 800; color: #0f1c2e; margin: 0 0 12px; }
+.selecao-card-actions { display: flex; gap: 8px; }
+.selecao-card-actions a { flex: 1; text-align: center; font-size: 12px; padding: 8px; border-radius: 7px; font-weight: 600; text-decoration: none; }
+.selecao-card-actions .btn-det { background: #f0f2f5; color: #0f1c2e; }
+.selecao-card-actions .btn-wa { background: #25d366; color: #fff; }
+.selecao-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  border: 1px solid #e2e5ea;
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  color: #0f1c2e;
+}
+.selecao-prev { left: -20px; }
+.selecao-next { right: -20px; }
+@media (max-width: 768px) { .selecao-prev { left: 4px; } .selecao-next { right: 4px; } }
+
+/* ── Imóveis na Planta ──────────────────────────────────────────────── */
+.planta-section {
+  padding: 72px 24px;
+  background: linear-gradient(135deg, #0a1628 0%, #0f1c2e 50%, #1a2f4a 100%);
+}
+.planta-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  gap: 60px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.planta-text { flex: 1; min-width: 280px; }
+.planta-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #b8962e;
+  background: rgba(184,150,46,0.12);
+  border: 1px solid rgba(184,150,46,0.3);
+  border-radius: 20px;
+  padding: 3px 12px;
+  margin-bottom: 16px;
+}
+.planta-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 28px;
+  line-height: 1.25;
+}
+.planta-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.planta-bullets li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255,255,255,0.85);
+  font-size: 15px;
+}
+.planta-bullets li svg { color: #b8962e; flex-shrink: 0; }
+.planta-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #25d366;
+  color: #fff !important;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 14px 28px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.planta-cta:hover { background: #1ebe5d; }
+.planta-right { flex: 0 0 380px; min-width: 280px; }
+.planta-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(184,150,46,0.25);
+  border-radius: 20px;
+  padding: 36px 32px;
+  backdrop-filter: blur(8px);
+}
+.planta-card-icon { font-size: 40px; margin-bottom: 16px; }
+.planta-card-title { font-size: 22px; font-weight: 800; color: #fff; margin: 0 0 12px; }
+.planta-card-desc { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.7; margin: 0 0 24px; }
+.planta-card-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.planta-loc-btn {
+  background: transparent;
+  border: 1px solid rgba(184,150,46,0.5);
+  color: #b8962e;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.planta-loc-btn:hover { background: rgba(184,150,46,0.15); border-color: #b8962e; }
+@media (max-width: 768px) {
+  .planta-inner { gap: 40px; }
+  .planta-title { font-size: 26px; }
+  .planta-right { flex: 1 1 100%; }
+}

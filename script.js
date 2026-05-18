@@ -200,6 +200,9 @@ async function renderPublic() {
   const all = await getPublishedProperties()
   cachedProperties = all
 
+  // Renderiza Seleção Isaac Omar (só na primeira chamada ou se carousel existir)
+  if (document.getElementById('selecao-carousel')?.innerHTML === '') renderSelecao(all)
+
   const city         = document.getElementById('city-filter')?.value || ''
   const neighborhood = document.getElementById('neighborhood-filter')?.value || ''
   const bedrooms     = document.getElementById('bedrooms-filter')?.value || ''
@@ -263,6 +266,53 @@ async function renderPublic() {
     btn.removeEventListener('click', carouselHandler)
     btn.addEventListener('click', carouselHandler)
   })
+}
+
+// ─── Seleção Isaac Omar — carousel curado ────────────────────────────────
+function renderSelecao(props) {
+  const carousel = document.getElementById('selecao-carousel')
+  if (!carousel) return
+  // Mostra os 6 mais recentes publicados
+  const featured = props.slice(0, 6)
+  if (!featured.length) {
+    carousel.closest('.selecao-section')?.classList.add('hidden')
+    return
+  }
+  carousel.innerHTML = featured.map(p => {
+    const img = p.cover_image || p.images?.[0] || SAMPLE_URLS[0]
+    const loc = [p.neighborhood, p.city].filter(Boolean).join(', ')
+    return `
+      <div class="selecao-card">
+        <img src="${img}" alt="${escapeHTML(p.title)}" class="selecao-card-img">
+        <div class="selecao-card-body">
+          <div class="selecao-card-title">${escapeHTML(p.title)}</div>
+          <div class="selecao-card-loc">${escapeHTML(loc)}</div>
+          <div class="selecao-card-price">${escapeHTML(formatPrice(p.price, window.currentLang || 'pt'))}</div>
+          <div class="selecao-card-actions">
+            <a href="property.html?id=${p.id}" class="btn-det">Ver Detalhes</a>
+            <a href="${WHATSAPP_URL}" target="_blank" rel="noopener" class="btn-wa">WhatsApp</a>
+          </div>
+        </div>
+      </div>
+    `
+  }).join('')
+
+  // Navegação do carousel
+  const wrap = carousel.closest('.selecao-carousel-wrap')
+  wrap?.querySelector('.selecao-prev')?.addEventListener('click', () => {
+    carousel.scrollBy({ left: -340, behavior: 'smooth' })
+  })
+  wrap?.querySelector('.selecao-next')?.addEventListener('click', () => {
+    carousel.scrollBy({ left: 340, behavior: 'smooth' })
+  })
+}
+
+// ─── Filtro rápido por status (botões da seção Imóveis na Planta) ─────────
+window.filterByStatus = function(status) {
+  const sel = document.getElementById('construction-filter')
+  if (sel) { sel.value = status }
+  document.getElementById('vendas-section')?.scrollIntoView({ behavior: 'smooth' })
+  renderPublic()
 }
 
 function carouselHandler(e) {
