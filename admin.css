@@ -986,57 +986,81 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 /* ─── Mobile: tabela vira cards ──────────────────────────────────────── */
 @media (max-width: 640px) {
 
-  /* Esconder colunas menos importantes */
+  .prop-table { display: block; width: 100%; }
   .prop-table thead { display: none; }
+  .prop-table tbody { display: block; }
 
+  /* Cada linha vira um card */
   .prop-table tbody tr {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    padding: 12px;
+    display: grid;
+    grid-template-columns: 72px 1fr auto;
+    grid-template-rows: auto auto auto;
+    column-gap: 12px;
+    row-gap: 0;
+    padding: 14px 12px;
     border-bottom: 1px solid var(--border);
-    gap: 8px;
-    position: relative;
+    align-items: start;
   }
 
-  /* Foto */
+  /* Foto — span 3 rows, left */
   .prop-table td:nth-child(1) {
-    width: 56px; flex-shrink: 0;
+    grid-column: 1; grid-row: 1 / 4;
+    align-self: center;
   }
+  .table-thumb { width: 72px; height: 56px; border-radius: 8px; object-fit: cover; }
 
-  /* Referência — ocupa o resto da linha 1 */
+  /* Título — linha 1, centro */
   .prop-table td:nth-child(2) {
-    flex: 1; font-weight: 600; font-size: 14px;
-    min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    grid-column: 2; grid-row: 1;
+    font-weight: 700; font-size: 14px; color: var(--text);
+    white-space: normal; overflow: visible;
+    line-height: 1.3; padding: 0;
   }
 
-  /* Endereço — linha nova, full width */
+  /* Endereço — linha 2 */
   .prop-table td:nth-child(3) {
     display: block !important;
-    width: 100%; font-size: 12px; color: var(--text-muted);
-    padding-left: 64px; margin-top: -4px;
+    grid-column: 2; grid-row: 2;
+    font-size: 12px; color: var(--text-muted);
+    padding: 2px 0 0; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
   }
 
-  /* Valor */
+  /* Valor — linha 3, fonte destaque */
   .prop-table td:nth-child(4) {
-    font-weight: 700; color: var(--accent); font-size: 14px;
-    padding-left: 64px;
+    grid-column: 2; grid-row: 3;
+    font-weight: 700; color: var(--accent);
+    font-size: 14px; padding: 4px 0 0;
   }
 
-  /* Dorms */
+  /* Dorms — coluna direita, linha 1 */
+  .prop-table td:nth-child(5) {
+    grid-column: 3; grid-row: 1;
+    font-size: 12px; text-align: right; padding: 0;
+    white-space: nowrap;
+  }
   .prop-table td:nth-child(5)::before { content: "🛏 "; }
-  .prop-table td:nth-child(5) { font-size: 13px; }
 
-  /* Vagas */
+  /* Vagas — coluna direita, linha 2 */
+  .prop-table td:nth-child(6) {
+    grid-column: 3; grid-row: 2;
+    font-size: 12px; text-align: right; padding: 2px 0 0;
+    white-space: nowrap;
+  }
   .prop-table td:nth-child(6)::before { content: "🚗 "; }
-  .prop-table td:nth-child(6) { font-size: 13px; }
 
-  /* Status */
-  .prop-table td:nth-child(7) { font-size: 12px; }
+  /* Status — coluna direita, linha 3 */
+  .prop-table td:nth-child(7) {
+    grid-column: 3; grid-row: 3;
+    font-size: 11px; text-align: right; padding: 4px 0 0;
+  }
 
-  /* Ações — alinha à direita */
+  /* Ações — linha extra abaixo, full width */
   .prop-table td:nth-child(8) {
-    margin-left: auto;
+    grid-column: 1 / -1; grid-row: 4;
+    display: flex; justify-content: flex-end;
+    padding: 8px 0 0; border-top: 1px solid var(--border);
+    margin-top: 8px;
   }
 
   /* Topbar: botão + filtros em coluna */
