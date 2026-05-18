@@ -194,13 +194,14 @@ async function uploadMultiple(files, onProgress) {
 
 // ─── Render listagem pública ──────────────────────────────────────────────
 async function renderPublic() {
-  const container = document.getElementById('properties')
-  if (!container) return
+  const vendasCarousel = document.getElementById('vendas-carousel')   // homepage
+  const gridContainer  = document.getElementById('properties')         // imoveis.html
+  if (!vendasCarousel && !gridContainer) return
 
   const all = await getPublishedProperties()
   cachedProperties = all
 
-  // Renderiza Seleção Isaac Omar (só na primeira chamada ou se carousel existir)
+  // Renderiza Seleção Isaac Omar (só na primeira chamada)
   if (document.getElementById('selecao-carousel')?.innerHTML === '') renderSelecao(all)
 
   const city         = document.getElementById('city-filter')?.value || ''
@@ -223,19 +224,46 @@ async function renderPublic() {
       if (parking !== '4+' && Number(p.parking) !== Number(parking)) return false
     }
     if (construction && p.construction_status !== construction) return false
-    // Remove símbolo, espaços e centavos (,XX) antes de extrair o número
     const priceStr = String(p.price || '').replace(/,\d{0,2}$/, '').replace(/[^0-9]/g, '')
     const price = parseInt(priceStr, 10) || 0
     if (price < 0 || price > priceMaxVal) return false
     return true
   })
 
-  if (!filtered.length) {
-    container.innerHTML = '<div class="muted" style="padding:20px;text-align:center">Nenhum imóvel encontrado.</div>'
+  // ── Modo carrossel (homepage) ─────────────────────────────────────────
+  if (vendasCarousel) {
+    if (!filtered.length) {
+      vendasCarousel.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280">Nenhum imóvel encontrado.</div>'
+      return
+    }
+    vendasCarousel.innerHTML = filtered.map(p => {
+      const img = p.cover_image || p.images?.[0] || SAMPLE_URLS[0]
+      const loc = [p.neighborhood, p.city].filter(Boolean).join(', ')
+      return `
+        <div class="selecao-card">
+          <img src="${img}" alt="${escapeHTML(p.title)}" class="selecao-card-img">
+          <div class="selecao-card-body">
+            <div class="selecao-card-title">${escapeHTML(p.title)}</div>
+            <div class="selecao-card-loc">${escapeHTML(loc)}</div>
+            <div class="selecao-card-price">${escapeHTML(formatPrice(p.price, window.currentLang || 'pt'))}</div>
+            <div class="selecao-card-actions">
+              <a href="property.html?id=${p.id}" class="btn-det">Ver Detalhes</a>
+              <a href="${WHATSAPP_URL}" target="_blank" rel="noopener" class="btn-wa">WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      `
+    }).join('')
     return
   }
 
-  container.innerHTML = filtered.map(p => {
+  // ── Modo grid (imoveis.html) ──────────────────────────────────────────
+  if (!filtered.length) {
+    gridContainer.innerHTML = '<div class="muted" style="padding:20px;text-align:center">Nenhum imóvel encontrado.</div>'
+    return
+  }
+
+  gridContainer.innerHTML = filtered.map(p => {
     const images = p.images?.length ? p.images : SAMPLE_URLS
     const total = images.length
     return `

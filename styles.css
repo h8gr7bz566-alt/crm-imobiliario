@@ -822,6 +822,27 @@ select option { background: #0c1830; color: var(--text); }
 .topbar-phone-num { font-size: 12px; }
 @media (max-width: 640px) { .topbar-phone-num { display: none; } }
 
+/* ── Imóveis Disponíveis (carrossel homepage) ──────────────────────── */
+.vendas-carousel-section {
+  padding: 56px 24px 48px;
+  background: #f8f9fc;
+  scroll-margin-top: 70px;
+}
+.vendas-carousel-section .selecao-nav {
+  background: #fff;
+  border: 1px solid #e2e5ea;
+  color: #0f1c2e;
+}
+.vendas-carousel-section .selecao-nav:hover {
+  background: #f0f2f5;
+}
+.vendas-carousel-section .selecao-card {
+  background: #fff;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+.vendas-carousel-section .selecao-card-title { color: #0f1c2e; }
+.vendas-carousel-section .selecao-card-price { color: #0f1c2e; }
+
 /* ── Seleção Isaac Omar ────────────────────────────────────────────── */
 .selecao-section {
   padding: 64px 24px 56px;

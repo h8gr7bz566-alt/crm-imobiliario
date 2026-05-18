@@ -195,9 +195,20 @@
   </section>
 
   <main>
-    <section class="listings" id="vendas-section">
-      <h2>Imóveis Disponíveis</h2>
-      <div id="properties" class="grid"></div>
+    <!-- ── Imóveis Disponíveis (carrossel) ─────────────────────────── -->
+    <section class="vendas-carousel-section" id="vendas-section">
+      <div class="selecao-header">
+        <div>
+          <h2 class="selecao-title" style="color:#0f1c2e;">Imóveis Disponíveis</h2>
+          <p class="selecao-sub" style="color:#6b7280;">Navegue pelos imóveis ou veja todos com filtros completos.</p>
+        </div>
+        <a href="imoveis.html" class="btn selecao-btn">Ver todos os imóveis</a>
+      </div>
+      <div class="selecao-carousel-wrap">
+        <button class="selecao-nav vendas-prev" onclick="document.getElementById('vendas-carousel').scrollBy({left:-340,behavior:'smooth'})" aria-label="Anterior">&#8249;</button>
+        <div class="selecao-carousel" id="vendas-carousel"></div>
+        <button class="selecao-nav vendas-next" onclick="document.getElementById('vendas-carousel').scrollBy({left:340,behavior:'smooth'})" aria-label="Próximo">&#8250;</button>
+      </div>
     </section>
   </main>
 
