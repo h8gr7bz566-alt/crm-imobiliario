@@ -1488,7 +1488,7 @@ async function autoAssignReferences() {
       next++
     }
   }
-  renderAdminProperties()
+  renderAdminTable(applyAdminFilters(cachedProperties))
 }
 
 // ─── Auto: aplica marca d'água silenciosamente nas fotos sem watermark ────────
@@ -1524,49 +1524,72 @@ async function autoApplyWatermarks() {
       if (idx >= 0) cachedProperties[idx].images = newUrls
     }
   }
-  renderAdminProperties()
+  renderAdminTable(applyAdminFilters(cachedProperties))
 }
 
 // ─── Baixa URL → canvas → aplica watermark → re-upload ───────────────────────
+// Usa fetch() para baixar como blob e evitar CORS taint no canvas
 async function applyWatermarkToUrl(imageUrl) {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      const maxW = 1200
-      let w = img.width, h = img.height
-      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW }
-      canvas.width = w; canvas.height = h
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, w, h)
+  try {
+    // 1. Baixar imagem original como blob (evita CORS taint no canvas)
+    const resp = await fetch(imageUrl)
+    if (!resp.ok) return imageUrl
+    const imgBlob = await resp.blob()
+    const blobUrl = URL.createObjectURL(imgBlob)
 
-      const logo = new Image()
-      logo.crossOrigin = 'anonymous'
-      logo.onload = () => {
-        const wmW = Math.round(w * 0.18)
-        const wmH = Math.round(logo.naturalHeight * wmW / logo.naturalWidth)
-        const margin = Math.round(w * 0.02)
-        ctx.globalAlpha = 0.45
-        ctx.drawImage(logo, w - wmW - margin, h - wmH - margin, wmW, wmH)
-        ctx.globalAlpha = 1.0
+    // 2. Baixar logo como blob também
+    const logoResp = await fetch('/logo.png')
+    const logoBlob = logoResp.ok ? await logoResp.blob() : null
+    const logoBlobUrl = logoBlob ? URL.createObjectURL(logoBlob) : null
 
-        canvas.toBlob(async blob => {
-          try {
-            const path = `wm-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-            const { error } = await supabase.storage.from('imoveis').upload(path, blob, {
-              contentType: 'image/jpeg', cacheControl: '31536000', upsert: false
-            })
-            if (error) { resolve(imageUrl); return }
-            const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
-            resolve(publicUrl)
-          } catch(e) { resolve(imageUrl) }
-        }, 'image/jpeg', 0.82)
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        URL.revokeObjectURL(blobUrl)
+        const canvas = document.createElement('canvas')
+        const maxW = 1200
+        let w = img.width, h = img.height
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW }
+        canvas.width = w; canvas.height = h
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, w, h)
+
+        const drawAndUpload = (logoImg) => {
+          if (logoImg) {
+            const wmW = Math.round(w * 0.18)
+            const wmH = Math.round(logoImg.naturalHeight * wmW / logoImg.naturalWidth)
+            const margin = Math.round(w * 0.02)
+            ctx.globalAlpha = 0.45
+            ctx.drawImage(logoImg, w - wmW - margin, h - wmH - margin, wmW, wmH)
+            ctx.globalAlpha = 1.0
+          }
+          canvas.toBlob(async blob => {
+            try {
+              const path = `wm-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+              const { error } = await supabase.storage.from('imoveis').upload(path, blob, {
+                contentType: 'image/jpeg', cacheControl: '31536000', upsert: false
+              })
+              if (error) { console.error('Upload watermark error:', error); resolve(imageUrl); return }
+              const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
+              resolve(publicUrl)
+            } catch(e) { console.error('Watermark upload exception:', e); resolve(imageUrl) }
+          }, 'image/jpeg', 0.82)
+        }
+
+        if (logoBlobUrl) {
+          const logo = new Image()
+          logo.onload = () => { URL.revokeObjectURL(logoBlobUrl); drawAndUpload(logo) }
+          logo.onerror = () => { URL.revokeObjectURL(logoBlobUrl); drawAndUpload(null) }
+          logo.src = logoBlobUrl
+        } else {
+          drawAndUpload(null)
+        }
       }
-      logo.onerror = () => resolve(imageUrl)
-      logo.src = '/logo.png'
-    }
-    img.onerror = () => resolve(imageUrl)
-    img.src = imageUrl
-  })
+      img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(imageUrl) }
+      img.src = blobUrl
+    })
+  } catch(e) {
+    console.error('applyWatermarkToUrl error:', e)
+    return imageUrl
+  }
 }
