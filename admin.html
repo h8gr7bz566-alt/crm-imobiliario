@@ -365,8 +365,11 @@
         <div class="admin-filter-panel">
           <div class="filter-row">
             <div class="filter-group">
-              <label class="filter-label">Referência</label>
-              <input id="f-title" type="text" class="form-control" placeholder="Buscar no título…">
+              <label class="filter-label">Referência / Título</label>
+              <div style="display:flex;gap:8px;">
+                <input id="f-ref" type="text" class="form-control" placeholder="IO-0001…" style="flex:0 0 110px;">
+                <input id="f-title" type="text" class="form-control" placeholder="Buscar no título…" style="flex:1;">
+              </div>
             </div>
             <div class="filter-group">
               <label class="filter-label">Tipo</label>

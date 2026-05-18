@@ -57,6 +57,15 @@ async function saveProperty(prop) {
     const idx = cachedProperties.findIndex(p => p.id === id)
     if (idx >= 0) cachedProperties[idx] = { ...cachedProperties[idx], ...rest }
   } else {
+    // Gera referência automática IO-XXXX se não tiver
+    if (!prop.reference) {
+      const refs = cachedProperties
+        .map(p => p.reference || '')
+        .filter(r => /^IO-\d+$/.test(r))
+        .map(r => parseInt(r.replace('IO-', ''), 10))
+      const next = refs.length ? Math.max(...refs) + 1 : 1
+      prop.reference = 'IO-' + String(next).padStart(4, '0')
+    }
     const { data, error } = await supabase.from('properties').insert(prop).select()
     if (error) throw error
     if (data?.[0]) cachedProperties.unshift(data[0])
@@ -87,11 +96,37 @@ function compressToBlob(file, maxW = 1200, quality = 0.78) {
       let w = img.width, h = img.height
       if (w > maxW) { h = Math.round(h * maxW / w); w = maxW }
       canvas.width = w; canvas.height = h
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
-      canvas.toBlob(
-        blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob falhou')),
-        'image/jpeg', quality
-      )
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, w, h)
+
+      // ── Marca d'água com logo ──────────────────────────────────────────
+      const logo = new Image()
+      logo.crossOrigin = 'anonymous'
+      logo.onload = () => {
+        // Tamanho da marca d'água: 18% da largura da imagem
+        const wmW = Math.round(w * 0.18)
+        const wmH = Math.round(logo.naturalHeight * wmW / logo.naturalWidth)
+        const margin = Math.round(w * 0.02)
+        const x = w - wmW - margin          // canto inferior direito
+        const y = h - wmH - margin
+
+        ctx.globalAlpha = 0.45              // 45% opacidade
+        ctx.drawImage(logo, x, y, wmW, wmH)
+        ctx.globalAlpha = 1.0
+
+        canvas.toBlob(
+          blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob falhou')),
+          'image/jpeg', quality
+        )
+      }
+      logo.onerror = () => {
+        // Se logo não carregar, salva sem marca d'água
+        canvas.toBlob(
+          blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob falhou')),
+          'image/jpeg', quality
+        )
+      }
+      logo.src = '/logo.png'
     }
     img.onerror = reject
     img.src = url
@@ -300,6 +335,7 @@ function populateFilterCitySelect() {
 
 function getAdminFilterValues() {
   return {
+    ref:          (document.getElementById('f-ref')?.value || '').trim().toLowerCase(),
     title:        (document.getElementById('f-title')?.value || '').trim().toLowerCase(),
     type:         document.getElementById('f-type')?.value || '',
     city:         document.getElementById('f-city')?.value || '',
@@ -322,6 +358,7 @@ function applyAdminFilters(props) {
   const hasFilter = Object.values(f).some(v => v !== '' && v !== 0 && v !== Infinity)
   if (!hasFilter) return props
   return props.filter(p => {
+    if (f.ref   && !(p.reference || '').toLowerCase().includes(f.ref)) return false
     if (f.title && !(p.title || '').toLowerCase().includes(f.title)) return false
     if (f.type  && !(p.title || '').toLowerCase().includes(f.type.toLowerCase())) return false
     if (f.city         && p.city         !== f.city)         return false
