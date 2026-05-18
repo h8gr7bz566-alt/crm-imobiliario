@@ -677,8 +677,8 @@ function openViewModal(p) {
   document.getElementById('tab-principal').classList.remove('hidden')
 
   // Preencher link de compartilhamento
-  // Usa página OG estática gerada no build (omarcorretor.com.br/og/[id].html)
-  const shareUrl = 'https://omarcorretor.com.br/og/' + p.id + '.html'
+  // Usa property.html?id=[id] — sempre disponível para qualquer imóvel
+  const shareUrl = 'https://omarcorretor.com.br/property.html?id=' + p.id
   const shareLinkInput = document.getElementById('share-link-input')
   if (shareLinkInput) shareLinkInput.value = shareUrl
   // Fechar share panel ao abrir novo modal
