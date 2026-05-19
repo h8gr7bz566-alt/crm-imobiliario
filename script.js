@@ -5,6 +5,7 @@ import {
   saveMultipleSettings, saveSetting, saveContent, saveIntegration,
   applyVisualSettings, applyDynamicContent, applyWhatsAppLinks
 } from './lib/settings.js'
+import { initEditMode } from './lib/editmode.js'
 
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
@@ -1608,6 +1609,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const lang = (() => { try { return localStorage.getItem('lang') || 'pt' } catch(e) { return 'pt' } })()
   applyDynamicContent(lang)
   applyWhatsAppLinks(WHATSAPP_NUMBER)
+
+  // Modo de edição visual — ativado com ?edit=1 por admins
+  if (new URLSearchParams(location.search).get('edit') === '1') {
+    initEditMode()
+  }
 })
 
 
@@ -2665,7 +2671,13 @@ async function initSuperAdminSection() {
 
   sec.innerHTML = `
     <div class="cfg-card">
-      <div class="cfg-card-title">⚡ Painel Global da Plataforma</div>
+      <div class="cfg-card-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>⚡ Painel Global da Plataforma</span>
+        <button id="sa-edit-site-btn" style="display:flex;align-items:center;gap:6px;background:#b8962e;color:#0f1c2e;border:none;padding:7px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar Site
+        </button>
+      </div>
       <div class="sa-tabs">
         <button class="sa-tab active" data-tab="tenants">🏢 Imobiliárias</button>
         <button class="sa-tab" data-tab="plans">📦 Planos</button>
@@ -2760,6 +2772,9 @@ async function initSuperAdminSection() {
     })
   })
 
+  sec.querySelector('#sa-edit-site-btn')?.addEventListener('click', () => {
+    window.open(location.origin + '/?edit=1', '_blank')
+  })
   sec.querySelector('#sa-sub-filter')?.addEventListener('change', loadSASubscriptions)
   sec.querySelector('#sa-tenant-search')?.addEventListener('input', loadSATenants)
   sec.querySelector('#sa-user-search')?.addEventListener('input', loadSAUsers)
