@@ -1242,6 +1242,13 @@ function attachAdminUI() {
       item.classList.add('active')
       document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'))
       document.getElementById(`section-${item.dataset.section}`)?.classList.remove('hidden')
+      // Funil de Vendas: carrega sob demanda
+      const section = item.dataset.section
+      if (section === 'funil' && !document.getElementById('section-funil')?.dataset.loaded) {
+        initFunilSection()
+      }
+      // Re-inicializa ícones Lucide após trocar de seção
+      if (window.lucide) lucide.createIcons()
     })
   })
 
@@ -2946,6 +2953,333 @@ async function savePlatformSettings() {
   ])
   if (btn) { btn.disabled = false; btn.textContent = 'Salvar Configurações' }
   showSaveMsg(msg, true)
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FUNIL DE VENDAS — KANBAN
+// ═══════════════════════════════════════════════════════════════════
+
+const KANBAN_STAGES = [
+  { key: 'novo',      label: 'Novo',             color: '#6366f1' },
+  { key: 'contato',   label: 'Contato Feito',    color: '#3b82f6' },
+  { key: 'visita',    label: 'Visita Agendada',  color: '#f59e0b' },
+  { key: 'proposta',  label: 'Proposta Enviada', color: '#8b5cf6' },
+  { key: 'negociacao',label: 'Negociação',        color: '#f97316' },
+  { key: 'ganho',     label: 'Fechado Ganho',    color: '#10b981' },
+  { key: 'perdido',   label: 'Fechado Perdido',  color: '#6b7280' },
+]
+
+function formatLeadValue(v) {
+  if (!v) return ''
+  const n = parseFloat(String(v).replace(/[^\d,\.]/g, '').replace(',', '.'))
+  if (isNaN(n)) return ''
+  return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
+function formatLeadDate(d) {
+  if (!d) return ''
+  const dt = new Date(d)
+  return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
+
+async function initFunilSection() {
+  const sec = document.getElementById('section-funil')
+  if (!sec || sec.dataset.loaded) return
+  sec.dataset.loaded = '1'
+
+  // ── Skeleton inicial ─────────────────────────────────────────────
+  sec.innerHTML = `
+    <div class="section-topbar">
+      <div>
+        <div class="section-title">Funil de Vendas</div>
+        <div class="section-sub">Gerencie seus leads em pipeline visual</div>
+      </div>
+      <button id="btn-novo-lead" class="btn-primary">+ Novo Lead</button>
+    </div>
+    <div class="funil-kpi-bar" id="funil-kpi-bar">
+      <div class="funil-kpi-card"><div class="funil-kpi-label">Total de Leads</div><div class="funil-kpi-value" id="kpi-total">—</div></div>
+      <div class="funil-kpi-card"><div class="funil-kpi-label">Fechados Ganhos</div><div class="funil-kpi-value kpi-ganhos" id="kpi-ganhos">—</div></div>
+      <div class="funil-kpi-card"><div class="funil-kpi-label">Fechados Perdidos</div><div class="funil-kpi-value kpi-perdidos" id="kpi-perdidos">—</div></div>
+    </div>
+    <div class="kanban-board" id="kanban-board">
+      ${KANBAN_STAGES.map(s => `
+        <div class="kanban-col" data-stage="${s.key}" id="col-${s.key}">
+          <div class="kanban-col-header">
+            <div class="kanban-col-title-row">
+              <div class="kanban-col-dot" style="background:${s.color}"></div>
+              <span class="kanban-col-name">${s.label}</span>
+              <span class="kanban-col-count" id="count-${s.key}">0</span>
+            </div>
+          </div>
+          <div class="kanban-cards" id="cards-${s.key}" data-stage="${s.key}">
+            <div class="kanban-empty">Carregando…</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `
+
+  // ── Carregar leads ───────────────────────────────────────────────
+  await loadAndRenderKanban()
+
+  // ── Drag & Drop ──────────────────────────────────────────────────
+  attachKanbanDragDrop()
+
+  // ── Botão Novo Lead ──────────────────────────────────────────────
+  document.getElementById('btn-novo-lead')?.addEventListener('click', () => openLeadModal())
+}
+
+let allLeads = []
+
+async function loadAndRenderKanban() {
+  let query = supabase.from('leads').select('*, profiles(name)').order('created_at', { ascending: false })
+
+  // Filtro por role
+  if (currentProfile?.role === 'corretor') {
+    query = query.eq('assigned_to', currentProfile.id)
+  } else if (currentProfile?.tenant_id) {
+    query = query.eq('tenant_id', currentProfile.tenant_id)
+  }
+
+  const { data, error } = await query
+  if (error) {
+    console.error('Kanban load error:', error)
+    allLeads = []
+  } else {
+    allLeads = data || []
+  }
+
+  renderKanban(allLeads)
+}
+
+function renderKanban(leads) {
+  // KPIs
+  const total   = leads.length
+  const ganhos  = leads.filter(l => l.stage === 'ganho').length
+  const perdidos = leads.filter(l => l.stage === 'perdido').length
+  const kpiTotal = document.getElementById('kpi-total')
+  const kpiGanhos = document.getElementById('kpi-ganhos')
+  const kpiPerdidos = document.getElementById('kpi-perdidos')
+  if (kpiTotal)    kpiTotal.textContent   = total
+  if (kpiGanhos)   kpiGanhos.textContent  = ganhos
+  if (kpiPerdidos) kpiPerdidos.textContent = perdidos
+
+  // Colunas
+  KANBAN_STAGES.forEach(stage => {
+    const stageLeads = leads.filter(l => (l.stage || 'novo') === stage.key)
+    const countEl    = document.getElementById(`count-${stage.key}`)
+    const cardsEl    = document.getElementById(`cards-${stage.key}`)
+    if (countEl) countEl.textContent = stageLeads.length
+    if (!cardsEl) return
+
+    if (!stageLeads.length) {
+      cardsEl.innerHTML = '<div class="kanban-empty">Sem leads</div>'
+      return
+    }
+
+    cardsEl.innerHTML = stageLeads.map(lead => {
+      const corretor = lead.profiles?.name || ''
+      const canDelete = currentProfile?.role === 'admin' || currentProfile?.role === 'super_admin'
+      return `
+        <div class="kanban-card" draggable="true" data-id="${lead.id}" data-stage="${lead.stage || 'novo'}">
+          ${canDelete ? `<button class="kanban-card-delete" data-id="${lead.id}" title="Remover lead">✕</button>` : ''}
+          <div class="kanban-card-name">${escapeHTML(lead.name || '—')}</div>
+          ${lead.property_interest ? `<div class="kanban-card-prop">🏠 ${escapeHTML(lead.property_interest)}</div>` : ''}
+          ${lead.value ? `<div class="kanban-card-value">${escapeHTML(formatLeadValue(lead.value))}</div>` : ''}
+          <div class="kanban-card-meta">
+            <span class="kanban-card-date">${formatLeadDate(lead.created_at)}</span>
+            ${corretor ? `<span class="kanban-card-corretor">${escapeHTML(corretor)}</span>` : ''}
+          </div>
+        </div>
+      `
+    }).join('')
+
+    // Delete buttons
+    cardsEl.querySelectorAll('.kanban-card-delete').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation()
+        const id = btn.dataset.id
+        if (!confirm('Remover este lead?')) return
+        const { error } = await supabase.from('leads').delete().eq('id', id)
+        if (error) { alert('Erro ao remover: ' + error.message); return }
+        allLeads = allLeads.filter(l => String(l.id) !== String(id))
+        renderKanban(allLeads)
+      })
+    })
+  })
+}
+
+function attachKanbanDragDrop() {
+  let draggedId   = null
+  let draggedStage = null
+
+  const board = document.getElementById('kanban-board')
+  if (!board) return
+
+  board.addEventListener('dragstart', e => {
+    const card = e.target.closest('.kanban-card')
+    if (!card) return
+    draggedId    = card.dataset.id
+    draggedStage = card.dataset.stage
+    card.classList.add('dragging')
+    e.dataTransfer.effectAllowed = 'move'
+  })
+
+  board.addEventListener('dragend', e => {
+    const card = e.target.closest('.kanban-card')
+    if (card) card.classList.remove('dragging')
+    document.querySelectorAll('.kanban-col').forEach(col => col.classList.remove('drag-over'))
+  })
+
+  board.addEventListener('dragover', e => {
+    e.preventDefault()
+    const col = e.target.closest('.kanban-col')
+    if (!col) return
+    document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'))
+    col.classList.add('drag-over')
+  })
+
+  board.addEventListener('dragleave', e => {
+    const col = e.target.closest('.kanban-col')
+    if (col && !col.contains(e.relatedTarget)) col.classList.remove('drag-over')
+  })
+
+  board.addEventListener('drop', async e => {
+    e.preventDefault()
+    document.querySelectorAll('.kanban-col').forEach(col => col.classList.remove('drag-over'))
+    const col = e.target.closest('.kanban-col')
+    if (!col || !draggedId) return
+    const newStage = col.dataset.stage
+    if (!newStage || newStage === draggedStage) return
+
+    const fromStage = draggedStage
+    // Otimismo local
+    const lead = allLeads.find(l => String(l.id) === String(draggedId))
+    if (lead) lead.stage = newStage
+    renderKanban(allLeads)
+
+    // Persistir no Supabase
+    const { error } = await supabase.from('leads').update({ stage: newStage }).eq('id', draggedId)
+    if (error) {
+      console.error('Kanban update error:', error)
+      if (lead) lead.stage = fromStage
+      renderKanban(allLeads)
+    } else {
+      // Registrar histórico (silencioso)
+      supabase.from('lead_activities').insert({
+        lead_id:    draggedId,
+        action:     'moved',
+        from_stage: fromStage,
+        to_stage:   newStage,
+        user_id:    currentProfile?.id
+      }).then(() => {}).catch(() => {})
+    }
+
+    draggedId    = null
+    draggedStage = null
+  })
+}
+
+function openLeadModal(lead = null) {
+  const existing = document.getElementById('lead-modal-root')
+  if (existing) existing.remove()
+
+  const isEdit = !!lead
+  const wrap = document.createElement('div')
+  wrap.id = 'lead-modal-root'
+  wrap.className = 'lead-modal-backdrop'
+  wrap.innerHTML = `
+    <div class="lead-modal">
+      <div class="modal-header">
+        <h2>${isEdit ? 'Editar Lead' : 'Novo Lead'}</h2>
+        <button class="modal-close" id="lead-modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="lead-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nome *</label>
+              <input name="name" required class="form-control" placeholder="Nome do lead" value="${escapeHTML(lead?.name || '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">E-mail</label>
+              <input name="email" type="email" class="form-control" placeholder="email@exemplo.com" value="${escapeHTML(lead?.email || '')}">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Telefone</label>
+              <input name="phone" class="form-control" placeholder="(47) 99999-9999" value="${escapeHTML(lead?.phone || '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor (R$)</label>
+              <input name="value" type="number" min="0" class="form-control" placeholder="Ex: 850000" value="${escapeHTML(String(lead?.value || ''))}">
+            </div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Imóvel de Interesse</label>
+              <input name="property_interest" class="form-control" placeholder="Ex: Apartamento 3 quartos…" value="${escapeHTML(lead?.property_interest || '')}">
+            </div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Observações</label>
+              <textarea name="notes" class="form-control" placeholder="Notas sobre o lead…">${escapeHTML(lead?.notes || '')}</textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="lead-modal-cancel">Cancelar</button>
+        <button class="btn-primary" id="lead-modal-save">${isEdit ? 'Salvar Alterações' : 'Criar Lead'}</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(wrap)
+
+  const close = () => wrap.remove()
+  document.getElementById('lead-modal-close')?.addEventListener('click', close)
+  document.getElementById('lead-modal-cancel')?.addEventListener('click', close)
+  wrap.addEventListener('click', e => { if (e.target === wrap) close() })
+
+  document.getElementById('lead-modal-save')?.addEventListener('click', async () => {
+    const form = document.getElementById('lead-form')
+    if (!form.checkValidity()) { form.reportValidity(); return }
+    const fd = new FormData(form)
+    const btn = document.getElementById('lead-modal-save')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+
+    const payload = {
+      name:              fd.get('name')?.trim(),
+      email:             fd.get('email')?.trim() || null,
+      phone:             fd.get('phone')?.trim() || null,
+      value:             parseFloat(fd.get('value')) || null,
+      property_interest: fd.get('property_interest')?.trim() || null,
+      notes:             fd.get('notes')?.trim() || null,
+      stage:             lead?.stage || 'novo',
+      assigned_to:       currentProfile?.id || null,
+      tenant_id:         currentProfile?.tenant_id || null,
+    }
+
+    let error
+    if (isEdit) {
+      ;({ error } = await supabase.from('leads').update(payload).eq('id', lead.id))
+      if (!error) {
+        const idx = allLeads.findIndex(l => l.id === lead.id)
+        if (idx >= 0) allLeads[idx] = { ...allLeads[idx], ...payload }
+      }
+    } else {
+      const { data, error: e } = await supabase.from('leads').insert(payload).select('*, profiles(name)')
+      error = e
+      if (!error && data?.[0]) allLeads.unshift(data[0])
+    }
+
+    btn.disabled = false; btn.textContent = isEdit ? 'Salvar Alterações' : 'Criar Lead'
+    if (error) { alert('Erro ao salvar lead: ' + error.message); return }
+    close()
+    renderKanban(allLeads)
+  })
 }
 
 function openNewTenantModal() {
