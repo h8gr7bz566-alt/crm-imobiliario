@@ -19,15 +19,17 @@
       --radius: 12px;
     }
 
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
 
     /* ── HEADER ── */
     header {
       background: var(--dark);
       padding: 0 24px;
       display: flex; align-items: center; justify-content: space-between;
-      height: 64px; position: sticky; top: 0; z-index: 100;
+      height: 64px; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
     }
+    /* Espaço reservado para o header fixo */
+    body { padding-top: 64px; }
     .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .logo-icon { width: 32px; height: 32px; }
     .logo-name { font-size: 20px; font-weight: 800; color: #fff; }
@@ -447,10 +449,16 @@ let waNumber = ''   // preenchido por loadSettings()
 // ── utils ──
 const fmtPrice = v => {
   if (!v) return '—'
-  // Remove pontos de milhar e troca vírgula por ponto para parse correto
   const n = parseFloat(String(v).replace(/\./g,'').replace(',','.'))
   if (isNaN(n)) return 'R$ ' + v
-  return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 0 })
+  // Formatador manual — compatível com Safari iOS antigo
+  const parts = Math.round(n).toString().split('')
+  let out = ''; let count = 0
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (count > 0 && count % 3 === 0) out = '.' + out
+    out = parts[i] + out; count++
+  }
+  return 'R$ ' + out
 }
 const fmtArea  = v => v ? v + ' m²' : ''
 
@@ -696,12 +704,20 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
 })
 
 // ── Footer year ──
-document.getElementById('footer-year').textContent = new Date().getFullYear()
+try { document.getElementById('footer-year').textContent = new Date().getFullYear() } catch(_) {}
 
 // ── Init ──
-document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open')) })
-loadSettings()
-loadProperties()
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'))
+})
+
+try {
+  loadSettings()
+  loadProperties()
+} catch(err) {
+  const el = document.getElementById('properties-container')
+  if (el) el.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444">Erro ao iniciar: ' + err.message + '</div>'
+}
 </script>
 </body>
 </html>
