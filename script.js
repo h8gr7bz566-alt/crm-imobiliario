@@ -4011,6 +4011,7 @@ function openEditTenantModal(tenant) {
         <div id="et-msg" style="font-size:13px;margin-top:4px;"></div>
       </div>
       <div class="sa-modal-footer">
+        <button id="et-delete" class="btn-danger-sm">🗑️ Excluir</button>
         <button id="et-cancel" class="btn-secondary-sm">Cancelar</button>
         <button id="et-save" class="btn-primary-sm">Salvar</button>
       </div>
@@ -4049,6 +4050,17 @@ function openEditTenantModal(tenant) {
   document.getElementById('et-close')?.addEventListener('click', close)
   document.getElementById('et-cancel')?.addEventListener('click', close)
   modal.addEventListener('click', e => { if (e.target === modal) close() })
+
+  document.getElementById('et-delete')?.addEventListener('click', async () => {
+    const confirmed = confirm(`⚠️ Tem certeza que deseja EXCLUIR a imobiliária "${tenant.name}"?\n\nEssa ação é irreversível e removerá o registro da plataforma.`)
+    if (!confirmed) return
+    const btn = document.getElementById('et-delete')
+    btn.disabled = true; btn.textContent = 'Excluindo…'
+    const { error } = await supabase.from('tenants').delete().eq('id', tenant.id)
+    if (error) { alert('Erro ao excluir: ' + error.message); btn.disabled = false; btn.textContent = '🗑️ Excluir'; return }
+    close()
+    loadSATenants()
+  })
 
   document.getElementById('et-save')?.addEventListener('click', async () => {
     const name       = document.getElementById('et-name')?.value?.trim()
