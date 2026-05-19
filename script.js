@@ -1882,16 +1882,27 @@ async function initSettings(profile) {
           tenant_id: currentProfile?.tenant_id || null,
         })
         if (result.success) {
-          if (noteEl) {
-            noteEl.textContent = '✅ Acesso criado! O corretor receberá um e-mail com o login e a senha definida.'
-            noteEl.style.color = '#16a34a'
-            noteEl.style.display = ''
-          }
           const emailInput = document.getElementById('invite-email')
           const passInput  = document.getElementById('invite-password')
           if (emailInput) emailInput.value = ''
           if (passInput)  passInput.value  = ''
           await loadCorretores()
+
+          if (noteEl) {
+            if (result.email_sent === false) {
+              noteEl.innerHTML = `
+                ✅ Acesso criado!
+                <span style="color:#ef4444;">⚠️ E-mail não enviado automaticamente.</span><br>
+                Compartilhe manualmente:<br>
+                <strong>E-mail:</strong> ${escapeHTML(email)}<br>
+                <strong>Senha:</strong> ${escapeHTML(password)}`
+              noteEl.style.color = '#0f172a'
+            } else {
+              noteEl.textContent = '✅ Acesso criado! O corretor receberá um e-mail com o login e a senha.'
+              noteEl.style.color = '#16a34a'
+            }
+            noteEl.style.display = ''
+          }
         } else {
           alert('Erro: ' + (result.error || 'Falha desconhecida'))
         }
@@ -3969,9 +3980,9 @@ function openNewTenantModal() {
     const result = await callEdgeFunction({ email: adminEmail, password: adminPwd, role: 'admin', tenant_id: newTenantId })
     if (!result?.success) {
       saveBtn.disabled = false; saveBtn.textContent = 'Criar Imobiliária'
-      msgEl.textContent = '⚠️ Imobiliária criada, mas erro ao criar usuário: ' + (result?.error || 'Desconhecido')
+      msgEl.innerHTML = '⚠️ Imobiliária criada, mas erro ao criar usuário: ' + escapeHTML(result?.error || 'Desconhecido')
       msgEl.style.color = '#f59e0b'
-      setTimeout(() => { close(); loadSATenants() }, 2500)
+      setTimeout(() => { close(); loadSATenants() }, 3000)
       return
     }
 
@@ -3981,8 +3992,22 @@ function openNewTenantModal() {
     }
 
     saveBtn.disabled = false; saveBtn.textContent = 'Criar Imobiliária'
-    msgEl.textContent = '✅ Imobiliária e admin criados com sucesso!'; msgEl.style.color = '#22c55e'
-    setTimeout(() => { close(); loadSATenants() }, 1200)
+
+    if (result.email_sent === false) {
+      // Email failed — show credentials in the modal so admin can share manually
+      msgEl.innerHTML = `
+        ✅ Imobiliária e admin criados!<br>
+        <span style="color:#ef4444;">⚠️ E-mail não enviado (${escapeHTML(result.email_error || 'erro desconhecido')}).</span><br>
+        <strong>Compartilhe as credenciais manualmente:</strong><br>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:8px;font-size:12px;">
+          E-mail: <strong>${escapeHTML(adminEmail)}</strong><br>
+          Senha: <strong>${escapeHTML(adminPwd)}</strong>
+        </div>`
+      msgEl.style.color = '#0f172a'
+    } else {
+      msgEl.textContent = '✅ Imobiliária criada e e-mail enviado com sucesso!'; msgEl.style.color = '#22c55e'
+      setTimeout(() => { close(); loadSATenants() }, 1500)
+    }
   })
 }
 

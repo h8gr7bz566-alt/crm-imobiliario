@@ -136,10 +136,16 @@ Deno.serve(async (req: Request) => {
       '</div>',
     ].join('')
 
+    const resendKey = Deno.env.get('RESEND_API_KEY')
+    if (!resendKey) {
+      console.error('RESEND_API_KEY não configurada')
+      return json({ success: true, user_id: data.user.id, email_sent: false, email_error: 'Chave RESEND_API_KEY não configurada no servidor.' })
+    }
+
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + Deno.env.get('RESEND_API_KEY'),
+        'Authorization': 'Bearer ' + resendKey,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -151,12 +157,12 @@ Deno.serve(async (req: Request) => {
     })
 
     if (!resendRes.ok) {
-      const err = await resendRes.text()
-      // Email failed but user was created — return success with user_id
-      console.error('Erro ao enviar email:', err)
+      const errText = await resendRes.text()
+      console.error('Resend error:', resendRes.status, errText)
+      return json({ success: true, user_id: data.user.id, email_sent: false, email_error: `Resend ${resendRes.status}: ${errText}` })
     }
 
-    return json({ success: true, user_id: data.user.id })
+    return json({ success: true, user_id: data.user.id, email_sent: true })
 
   } catch (err) {
     return json({ success: false, error: String(err) }, 500)
