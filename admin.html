@@ -15,8 +15,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IOS Imobi">
   <script type="module" crossorigin src="/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/assets/script-Bb4yGCkt.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/admin-DHRoIQx9.css">
+  <script type="module" crossorigin src="/assets/script-B5c-nGPX.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-BhlvwobL.css">
 </head>
 <body>
 
@@ -308,7 +308,7 @@
           <button class="topnav-link active" data-section="properties">Início</button>
           <button class="topnav-link" data-section="funil">Negociações</button>
           <button class="topnav-link" data-section="contatos">Contatos</button>
-          <button class="topnav-link" data-section="settings">Tarefas</button>
+          <button class="topnav-link" data-section="tarefas">Tarefas</button>
           <!-- admin-only items abaixo -->
           <div class="topnav-dropdown admin-only" style="display:none">
             <button class="topnav-link topnav-dropdown-btn">Configurações <i data-lucide="chevron-down"></i></button>
@@ -325,17 +325,70 @@
         </nav>
       </div>
       <div class="topnav-right">
-        <button class="topnav-icon-btn" title="Buscar"><i data-lucide="search"></i></button>
-        <button class="topnav-icon-btn" title="Notificações"><i data-lucide="bell"></i></button>
-        <div class="topnav-user" id="topnav-user">
-          <div class="topnav-avatar" id="topnav-avatar-initial">?</div>
-          <div class="topnav-user-info">
-            <div id="topnav-name" class="topnav-user-name">Carregando…</div>
-            <div id="topnav-role" class="topnav-user-role">—</div>
+        <button class="topnav-icon-btn" id="btn-search-open" title="Buscar"><i data-lucide="search"></i></button>
+
+        <!-- Notificações dropdown -->
+        <div class="topnav-notif-wrap" id="topnav-notif-wrap">
+          <button class="topnav-icon-btn" id="btn-notif" title="Notificações">
+            <i data-lucide="bell"></i>
+            <span class="notif-badge hidden" id="notif-badge">0</span>
+          </button>
+          <div class="notif-dropdown hidden" id="notif-dropdown">
+            <div class="notif-header">
+              <span>Notificações</span>
+              <button class="notif-mark-all" id="notif-mark-all">Marcar lidas</button>
+            </div>
+            <div class="notif-list" id="notif-list">
+              <div class="notif-empty">Carregando…</div>
+            </div>
           </div>
         </div>
-        <a href="index.html" class="topnav-icon-btn" title="Ver site público"><i data-lucide="external-link"></i></a>
-        <button class="topnav-icon-btn" id="logout-btn" title="Sair"><i data-lucide="log-out"></i></button>
+
+        <!-- Avatar dropdown -->
+        <div class="topnav-avatar-wrap" id="topnav-avatar-wrap">
+          <div class="topnav-user" id="topnav-user">
+            <div class="topnav-avatar-circle" id="topnav-avatar-circle">
+              <img id="topnav-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+              <span id="topnav-avatar-initial">?</span>
+            </div>
+            <div class="topnav-user-info">
+              <div id="topnav-name" class="topnav-user-name">Carregando…</div>
+              <div id="topnav-role" class="topnav-user-role">—</div>
+            </div>
+          </div>
+          <div class="avatar-dropdown hidden" id="avatar-dropdown">
+            <div class="avatar-dropdown-header">
+              <div class="avatar-dd-photo">
+                <img id="avatar-dd-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                <span id="avatar-dd-initial">?</span>
+              </div>
+              <div>
+                <div id="avatar-dd-name" style="font-weight:600;font-size:14px;color:#0f172a;">—</div>
+                <div id="avatar-dd-role" style="font-size:12px;color:#64748b;">—</div>
+              </div>
+            </div>
+            <div class="avatar-dropdown-divider"></div>
+            <button class="avatar-dropdown-item" id="avatar-dd-profile"><i data-lucide="user"></i> Meu Perfil</button>
+            <button class="avatar-dropdown-item" id="avatar-dd-settings"><i data-lucide="settings"></i> Configurações</button>
+            <div class="avatar-dropdown-divider"></div>
+            <a href="index.html" class="avatar-dropdown-item"><i data-lucide="external-link"></i> Ver site</a>
+            <button class="avatar-dropdown-item avatar-dd-danger" id="avatar-dd-logout"><i data-lucide="log-out"></i> Sair</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search overlay -->
+      <div class="search-overlay hidden" id="search-overlay">
+        <div class="search-overlay-inner">
+          <div class="search-overlay-bar">
+            <i data-lucide="search" style="color:#94a3b8;"></i>
+            <input id="search-input" type="text" placeholder="Buscar imóveis, leads, contatos…" autocomplete="off">
+            <button class="search-overlay-close" id="search-overlay-close"><i data-lucide="x"></i></button>
+          </div>
+          <div class="search-results" id="search-results">
+            <div class="search-hint">Digite para pesquisar…</div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -524,11 +577,35 @@
         <div class="section-topbar">
           <div>
             <div class="section-title">Negociações</div>
-            <div class="section-sub">Gerencie seu funil de vendas</div>
+            <div class="section-sub">Funil de vendas Kanban</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <select id="funil-pipe-sel" class="form-control" style="font-size:13px;padding:6px 10px;min-width:160px;"></select>
+            <button id="btn-funil-add-lead" class="btn-primary">+ Novo Lead</button>
           </div>
         </div>
-        <div class="leads-empty">
-          O funil de negociações estará disponível em breve.<br>Aqui você acompanhará oportunidades em cada etapa do processo.
+        <div id="kanban-board" class="kanban-board">
+          <div class="kanban-loading">Carregando funil…</div>
+        </div>
+      </section>
+
+      <!-- ── Tarefas ── -->
+      <section id="section-tarefas" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Tarefas</div>
+            <div class="section-sub">Organize suas atividades diárias</div>
+          </div>
+          <button id="btn-nova-tarefa" class="btn-primary">+ Nova Tarefa</button>
+        </div>
+        <!-- Filtros -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          <button class="tarefa-filter-btn active" data-filter="pending">Pendentes</button>
+          <button class="tarefa-filter-btn" data-filter="done">Concluídas</button>
+          <button class="tarefa-filter-btn" data-filter="all">Todas</button>
+        </div>
+        <div id="tarefas-list" class="tarefas-list">
+          <div class="empty-row" style="padding:40px;text-align:center;color:#94a3b8;">Carregando tarefas…</div>
         </div>
       </section>
 
