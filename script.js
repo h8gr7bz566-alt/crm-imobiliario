@@ -3084,8 +3084,8 @@ function renderKanban(leads) {
         <div class="kanban-card" draggable="true" data-id="${lead.id}" data-stage="${lead.stage || 'novo'}">
           ${canDelete ? `<button class="kanban-card-delete" data-id="${lead.id}" title="Remover lead">✕</button>` : ''}
           <div class="kanban-card-name">${escapeHTML(lead.name || '—')}</div>
-          ${lead.property_interest ? `<div class="kanban-card-prop">🏠 ${escapeHTML(lead.property_interest)}</div>` : ''}
-          ${lead.value ? `<div class="kanban-card-value">${escapeHTML(formatLeadValue(lead.value))}</div>` : ''}
+          ${lead.interest ? `<div class="kanban-card-prop">🏠 ${escapeHTML(lead.interest)}</div>` : ''}
+          ${lead.budget_max ? `<div class="kanban-card-value">${escapeHTML(formatLeadValue(lead.budget_max))}</div>` : ''}
           <div class="kanban-card-meta">
             <span class="kanban-card-date">${formatLeadDate(lead.created_at)}</span>
             ${corretor ? `<span class="kanban-card-corretor">${escapeHTML(corretor)}</span>` : ''}
@@ -3180,7 +3180,7 @@ function attachKanbanDragDrop() {
   })
 }
 
-function openLeadModal(lead = null) {
+async function openLeadModal(lead = null) {
   const existing = document.getElementById('lead-modal-root')
   if (existing) existing.remove()
 
@@ -3188,6 +3188,24 @@ function openLeadModal(lead = null) {
   const wrap = document.createElement('div')
   wrap.id = 'lead-modal-root'
   wrap.className = 'lead-modal-backdrop'
+
+  // Carrega funis disponíveis para o seletor
+  const { data: pipelines } = await supabase.from('crm_pipelines').select('id,name').order('sort_order')
+  const pipeOptions = (pipelines || []).map(p =>
+    `<option value="${p.id}" ${lead?.pipeline_id === p.id ? 'selected' : ''}>${escapeHTML(p.name)}</option>`
+  ).join('')
+  const pipeSelect = pipelines?.length
+    ? `<div class="form-row single">
+        <div class="form-group">
+          <label class="form-label">Funil</label>
+          <select name="pipeline_id" class="form-control">
+            <option value="">Sem funil</option>
+            ${pipeOptions}
+          </select>
+        </div>
+      </div>`
+    : ''
+
   wrap.innerHTML = `
     <div class="lead-modal">
       <div class="modal-header">
@@ -3213,19 +3231,20 @@ function openLeadModal(lead = null) {
             </div>
             <div class="form-group">
               <label class="form-label">Valor (R$)</label>
-              <input name="value" type="number" min="0" class="form-control" placeholder="Ex: 850000" value="${escapeHTML(String(lead?.value || ''))}">
+              <input name="budget_max" type="number" min="0" class="form-control" placeholder="Ex: 850000" value="${escapeHTML(String(lead?.budget_max || ''))}">
             </div>
           </div>
           <div class="form-row single">
             <div class="form-group">
               <label class="form-label">Imóvel de Interesse</label>
-              <input name="property_interest" class="form-control" placeholder="Ex: Apartamento 3 quartos…" value="${escapeHTML(lead?.property_interest || '')}">
+              <input name="interest" class="form-control" placeholder="Ex: Apartamento 3 quartos em Balneário Camboriú…" value="${escapeHTML(lead?.interest || '')}">
             </div>
           </div>
+          ${pipeSelect}
           <div class="form-row single">
             <div class="form-group">
               <label class="form-label">Observações</label>
-              <textarea name="notes" class="form-control" placeholder="Notas sobre o lead…">${escapeHTML(lead?.notes || '')}</textarea>
+              <textarea name="notes" class="form-control" rows="3" placeholder="Notas sobre o lead…">${escapeHTML(lead?.notes || '')}</textarea>
             </div>
           </div>
         </form>
@@ -3250,16 +3269,18 @@ function openLeadModal(lead = null) {
     const btn = document.getElementById('lead-modal-save')
     btn.disabled = true; btn.textContent = 'Salvando…'
 
+    const pipeVal = fd.get('pipeline_id')
     const payload = {
-      name:              fd.get('name')?.trim(),
-      email:             fd.get('email')?.trim() || null,
-      phone:             fd.get('phone')?.trim() || null,
-      value:             parseFloat(fd.get('value')) || null,
-      property_interest: fd.get('property_interest')?.trim() || null,
-      notes:             fd.get('notes')?.trim() || null,
-      stage:             lead?.stage || 'novo',
-      assigned_to:       currentProfile?.id || null,
-      tenant_id:         currentProfile?.tenant_id || null,
+      name:        fd.get('name')?.trim(),
+      email:       fd.get('email')?.trim() || null,
+      phone:       fd.get('phone')?.trim() || null,
+      budget_max:  parseFloat(fd.get('budget_max')) || null,
+      interest:    fd.get('interest')?.trim() || null,
+      notes:       fd.get('notes')?.trim() || null,
+      stage:       lead?.stage || 'novo',
+      pipeline_id: pipeVal ? parseInt(pipeVal) : null,
+      assigned_to: currentProfile?.id || null,
+      tenant_id:   currentProfile?.tenant_id || null,
     }
 
     let error
