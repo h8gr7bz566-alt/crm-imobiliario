@@ -13,9 +13,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IOS Imobi">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script type="module" crossorigin src="/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/assets/script-BKDdZJFh.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/admin-ooi9ol1O.css">
+  <script type="module" crossorigin src="/assets/script-B01I4UWn.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-Bwap5h3c.css">
 </head>
 <body>
 
@@ -302,40 +305,43 @@
 
       <nav class="sidebar-nav">
         <button class="nav-item active" data-section="properties">
-          <span class="nav-icon">🏠</span> Imóveis
+          <i data-lucide="home"></i> Imóveis
         </button>
         <button class="nav-item" data-section="leads">
-          <span class="nav-icon">👥</span> Leads
+          <i data-lucide="users"></i> Leads
+        </button>
+        <button class="nav-item" data-section="funil">
+          <i data-lucide="kanban"></i> Funil de Vendas
         </button>
 
-        <div class="sidebar-nav-divider super-admin-only" style="display:none">⚡ Plataforma</div>
+        <div class="sidebar-nav-divider super-admin-only" style="display:none">Plataforma</div>
         <button class="nav-item super-admin-only" data-section="super-admin" style="display:none">
-          <span class="nav-icon">🌐</span> Super Admin
+          <i data-lucide="globe"></i> Super Admin
         </button>
 
         <div class="sidebar-nav-divider admin-only" style="display:none">Administração</div>
 
         <button class="nav-item admin-only" data-section="empresa" style="display:none">
-          <span class="nav-icon">🏢</span> Empresa
+          <i data-lucide="building-2"></i> Empresa
         </button>
         <button class="nav-item admin-only" data-section="visual" style="display:none">
-          <span class="nav-icon">🎨</span> Visual
+          <i data-lucide="palette"></i> Visual
         </button>
         <button class="nav-item admin-only" data-section="site-config" style="display:none">
-          <span class="nav-icon">🌐</span> Site &amp; SEO
+          <i data-lucide="search"></i> Site &amp; SEO
         </button>
         <button class="nav-item admin-only" data-section="crm-config" style="display:none">
-          <span class="nav-icon">📊</span> CRM
+          <i data-lucide="bar-chart-2"></i> CRM
         </button>
         <button class="nav-item admin-only" data-section="integracoes" style="display:none">
-          <span class="nav-icon">🔗</span> Integrações
+          <i data-lucide="link"></i> Integrações
         </button>
         <button class="nav-item admin-only" data-section="midia" style="display:none">
-          <span class="nav-icon">🖼️</span> Mídia
+          <i data-lucide="image"></i> Mídia
         </button>
 
         <button class="nav-item" data-section="settings">
-          <span class="nav-icon">⚙️</span> Configurações
+          <i data-lucide="settings"></i> Configurações
         </button>
       </nav>
 
@@ -351,10 +357,10 @@
           </div>
         </div>
         <a href="index.html" class="sidebar-link">
-          <span>🌐</span> Ver Site Público
+          <i data-lucide="external-link"></i> Ver Site Público
         </a>
         <button id="logout-btn" class="sidebar-link">
-          <span>🚪</span> Sair da Conta
+          <i data-lucide="log-out"></i> Sair da Conta
         </button>
       </div>
     </aside>
@@ -538,6 +544,9 @@
           Nenhum lead recebido ainda.<br>Os contatos aparecerão aqui quando clientes entrarem em contato pelo site.
         </div>
       </section>
+
+      <!-- ── Funil de Vendas ── -->
+      <section id="section-funil" class="admin-section hidden"></section>
 
       <!-- ── Super Admin ── -->
       <section id="section-super-admin" class="admin-section hidden"></section>
@@ -995,5 +1004,6 @@
       });
     }
   </script>
+  <script>document.addEventListener('DOMContentLoaded', () => { if (window.lucide) lucide.createIcons(); })</script>
 </body>
 </html>
