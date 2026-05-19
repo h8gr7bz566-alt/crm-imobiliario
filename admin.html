@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>IOS Imobi — Gerenciamento Imobiliário</title>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <link rel="shortcut icon" href="/favicon.ico?v=5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=5">
   <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png?v=5">
@@ -13,12 +14,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IOS Imobi">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script type="module" crossorigin src="/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/assets/script-C83mrfDs.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/admin-Bwap5h3c.css">
+  <script type="module" crossorigin src="/assets/script-Bb4yGCkt.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DHRoIQx9.css">
 </head>
 <body>
 
@@ -289,81 +287,57 @@
     </div>
   </div>
 
-  <!-- ── Mobile sidebar toggle ── -->
-  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">☰</button>
-  <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
   <!-- ── App shell ── -->
   <div id="admin-root" class="hidden">
 
-    <!-- Sidebar -->
-    <aside class="admin-sidebar" id="admin-sidebar">
-      <div class="sidebar-brand">
-        <div class="sidebar-brand-name">IOS Imobi</div>
-        <div class="sidebar-brand-sub">Painel do Corretor</div>
-      </div>
-
-      <nav class="sidebar-nav">
-        <button class="nav-item active" data-section="properties">
-          <i data-lucide="home"></i> Imóveis
+    <!-- Top Navigation Bar -->
+    <header class="admin-topnav" id="admin-topnav">
+      <div class="topnav-left">
+        <button class="topnav-hamburger" id="topnav-hamburger">
+          <i data-lucide="menu"></i>
         </button>
-        <button class="nav-item" data-section="leads">
-          <i data-lucide="users"></i> Leads
-        </button>
-        <button class="nav-item" data-section="funil">
-          <i data-lucide="kanban"></i> Funil de Vendas
-        </button>
-
-        <div class="sidebar-nav-divider super-admin-only" style="display:none">Plataforma</div>
-        <button class="nav-item super-admin-only" data-section="super-admin" style="display:none">
-          <i data-lucide="globe"></i> Super Admin
-        </button>
-
-        <div class="sidebar-nav-divider admin-only" style="display:none">Administração</div>
-
-        <button class="nav-item admin-only" data-section="empresa" style="display:none">
-          <i data-lucide="building-2"></i> Empresa
-        </button>
-        <button class="nav-item admin-only" data-section="visual" style="display:none">
-          <i data-lucide="palette"></i> Visual
-        </button>
-        <button class="nav-item admin-only" data-section="site-config" style="display:none">
-          <i data-lucide="search"></i> Site &amp; SEO
-        </button>
-        <button class="nav-item admin-only" data-section="crm-config" style="display:none">
-          <i data-lucide="bar-chart-2"></i> CRM
-        </button>
-        <button class="nav-item admin-only" data-section="integracoes" style="display:none">
-          <i data-lucide="link"></i> Integrações
-        </button>
-        <button class="nav-item admin-only" data-section="midia" style="display:none">
-          <i data-lucide="image"></i> Mídia
-        </button>
-
-        <button class="nav-item" data-section="settings">
-          <i data-lucide="settings"></i> Configurações
-        </button>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="sidebar-user" id="sidebar-user">
-          <div class="sidebar-avatar-wrap">
-            <img id="sidebar-avatar" src="" alt="" class="sidebar-avatar" style="display:none">
-            <div id="sidebar-avatar-initial" class="sidebar-avatar-initial">?</div>
+        <div class="topnav-logo">
+          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="8" width="7" height="18" rx="1.5" fill="currentColor"/>
+            <rect x="11" y="4" width="7" height="22" rx="1.5" fill="currentColor"/>
+            <rect x="20" y="11" width="6" height="15" rx="1.5" fill="currentColor"/>
+          </svg>
+          <span>CRM</span>
+        </div>
+        <nav class="topnav-links" id="topnav-links">
+          <button class="topnav-link active" data-section="properties">Início</button>
+          <button class="topnav-link" data-section="funil">Negociações</button>
+          <button class="topnav-link" data-section="contatos">Contatos</button>
+          <button class="topnav-link" data-section="settings">Tarefas</button>
+          <!-- admin-only items abaixo -->
+          <div class="topnav-dropdown admin-only" style="display:none">
+            <button class="topnav-link topnav-dropdown-btn">Configurações <i data-lucide="chevron-down"></i></button>
+            <div class="topnav-dropdown-menu">
+              <button class="topnav-dropdown-item" data-section="empresa">Empresa</button>
+              <button class="topnav-dropdown-item" data-section="visual">Visual</button>
+              <button class="topnav-dropdown-item" data-section="site-config">Site &amp; SEO</button>
+              <button class="topnav-dropdown-item" data-section="crm-config">CRM Config</button>
+              <button class="topnav-dropdown-item" data-section="integracoes">Integrações</button>
+              <button class="topnav-dropdown-item" data-section="midia">Mídia</button>
+            </div>
           </div>
-          <div class="sidebar-user-info">
-            <div id="sidebar-name" class="sidebar-user-name">Carregando…</div>
-            <div id="sidebar-role" class="sidebar-user-role">—</div>
+          <button class="topnav-link super-admin-only" data-section="super-admin" style="display:none">Super Admin</button>
+        </nav>
+      </div>
+      <div class="topnav-right">
+        <button class="topnav-icon-btn" title="Buscar"><i data-lucide="search"></i></button>
+        <button class="topnav-icon-btn" title="Notificações"><i data-lucide="bell"></i></button>
+        <div class="topnav-user" id="topnav-user">
+          <div class="topnav-avatar" id="topnav-avatar-initial">?</div>
+          <div class="topnav-user-info">
+            <div id="topnav-name" class="topnav-user-name">Carregando…</div>
+            <div id="topnav-role" class="topnav-user-role">—</div>
           </div>
         </div>
-        <a href="index.html" class="sidebar-link">
-          <i data-lucide="external-link"></i> Ver Site Público
-        </a>
-        <button id="logout-btn" class="sidebar-link">
-          <i data-lucide="log-out"></i> Sair da Conta
-        </button>
+        <a href="index.html" class="topnav-icon-btn" title="Ver site público"><i data-lucide="external-link"></i></a>
+        <button class="topnav-icon-btn" id="logout-btn" title="Sair"><i data-lucide="log-out"></i></button>
       </div>
-    </aside>
+    </header>
 
     <!-- Main content -->
     <main class="admin-main">
@@ -545,8 +519,97 @@
         </div>
       </section>
 
-      <!-- ── Funil de Vendas ── -->
-      <section id="section-funil" class="admin-section hidden"></section>
+      <!-- ── Negociações (Funil/Kanban) ── -->
+      <section id="section-funil" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Negociações</div>
+            <div class="section-sub">Gerencie seu funil de vendas</div>
+          </div>
+        </div>
+        <div class="leads-empty">
+          O funil de negociações estará disponível em breve.<br>Aqui você acompanhará oportunidades em cada etapa do processo.
+        </div>
+      </section>
+
+      <!-- ── Contatos ── -->
+      <section id="section-contatos" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Contatos</div>
+            <div class="section-sub">Gerencie seus clientes e leads</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button id="btn-import-contato" class="btn-secondary">
+              <i data-lucide="upload"></i> Importar
+            </button>
+            <button id="btn-novo-contato" class="btn-primary">
+              + Criar contato
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-filter-panel" style="margin-bottom:16px;">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label class="filter-label">Buscar</label>
+              <input id="contato-search" type="text" class="form-control" placeholder="Nome, email ou telefone…">
+            </div>
+            <div class="filter-actions">
+              <button id="btn-contato-search" class="btn-primary">Buscar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrap">
+            <table class="prop-table" id="contatos-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="contatos-select-all"></th>
+                  <th>Contato</th>
+                  <th>Empresa</th>
+                  <th>E-mails</th>
+                  <th>Telefones</th>
+                  <th>Cargo</th>
+                  <th>Negociações</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="contatos-tbody">
+                <tr><td colspan="8" class="empty-row">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-pagination" id="contatos-pagination"></div>
+        </div>
+
+        <!-- Modal de importação CSV -->
+        <div id="import-modal" class="modal-backdrop hidden">
+          <div class="modal" style="max-width:480px;">
+            <div class="modal-header">
+              <h3>Importar Contatos (CSV)</h3>
+              <button class="modal-close" id="import-modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+              <p style="font-size:13px;color:#64748b;margin-bottom:12px;">
+                O CSV deve ter as colunas: <strong>nome, email, telefone, empresa, cargo</strong> (separadas por vírgula).
+              </p>
+              <a id="download-template" href="#" style="font-size:13px;color:#2563eb;">
+                Baixar modelo CSV
+              </a>
+              <div style="margin-top:16px;">
+                <input type="file" id="import-csv-file" accept=".csv" class="form-control">
+              </div>
+              <div id="import-preview" style="margin-top:12px;font-size:13px;color:#64748b;"></div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn-cancel" id="import-modal-cancel">Cancelar</button>
+              <button class="btn-primary" id="import-modal-confirm" disabled>Importar</button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- ── Super Admin ── -->
       <section id="section-super-admin" class="admin-section hidden"></section>
@@ -1004,6 +1067,5 @@
       });
     }
   </script>
-  <script>document.addEventListener('DOMContentLoaded', () => { if (window.lucide) lucide.createIcons(); })</script>
 </body>
 </html>
