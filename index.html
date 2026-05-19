@@ -54,13 +54,12 @@
   <meta name="apple-mobile-web-app-title" content="Omar Corretor">
   <script type="module" crossorigin src="/assets/supabase-BcuJ3xoD.js"></script>
   <script type="module" crossorigin src="/assets/script-BKDdZJFh.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/styles-CVFwEpa0.css">
+  <link rel="stylesheet" crossorigin href="/assets/styles-Cn33Kirx.css">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-
-      <!-- Language Switcher -->
+      <!-- Language Switcher (desktop only) -->
       <div style="display:flex;gap:4px;flex-shrink:0;">
         <button onclick="setLang('pt')" id="lang-pt" title="Português"
           style="background:none;border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:2px 8px;cursor:pointer;font-size:12px;color:rgba(255,255,255,0.65);display:flex;align-items:center;gap:3px;transition:all 0.2s;">
@@ -75,6 +74,7 @@
           🇪🇸 <span style="font-size:10px;font-weight:600;">ES</span>
         </button>
       </div>
+
       <a href="index.html" class="logo" aria-label="Isaac Omar Corretor">
         <img src="/assets/logo-CaKixaBT.png" alt="Isaac Omar" class="logo-img">
         <div class="brand-wrap">
@@ -82,6 +82,8 @@
           <div class="brand-title">Corretor de Imóveis — CRECI 69965F</div>
         </div>
       </a>
+
+      <!-- Desktop nav -->
       <nav class="top-actions">
         <a href="imoveis.html" class="nav-link" data-i18n="nav.vendas">Vendas</a>
         <div class="nav-dropdown">
@@ -92,7 +94,6 @@
           </div>
         </div>
         <a href="#institucional" class="nav-link" data-i18n="nav.institucional">Institucional</a>
-        <!-- Sociais + telefone agrupados em coluna -->
         <div class="topbar-social-group">
           <div class="topbar-social-icons">
             <a href="https://www.facebook.com" target="_blank" rel="noopener" aria-label="Facebook" class="social-icon-link">
@@ -105,8 +106,63 @@
           <a href="https://wa.me/5547999701743" class="topbar-phone-bare" target="_blank" rel="noopener">(47) 99970-1743</a>
         </div>
       </nav>
+
+      <!-- Hambúrguer (mobile only) -->
+      <button class="hamburger" id="menu-toggle" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </header>
+
+  <!-- Menu mobile -->
+  <nav class="mobile-nav" id="mobile-nav" aria-hidden="true">
+    <a href="imoveis.html" class="mobile-nav-link">Vendas</a>
+    <a href="servicos.html#cadastre-imovel" class="mobile-nav-sub">Cadastre seu imóvel</a>
+    <a href="servicos.html#avaliacao-imovel" class="mobile-nav-sub">Avaliação de imóvel</a>
+    <a href="#institucional" class="mobile-nav-link" id="mob-inst-link">Institucional</a>
+    <a href="https://wa.me/5547999701743" class="mobile-nav-phone" target="_blank" rel="noopener">
+      📱 (47) 99970-1743
+    </a>
+    <div class="mobile-nav-socials">
+      <a href="https://www.facebook.com" target="_blank" rel="noopener" aria-label="Facebook" style="color:rgba(255,255,255,0.7);">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.269h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+      </a>
+      <a href="https://www.instagram.com/isaacomar.corretor?igsh=c2UxaWV0bHNiOHJ3&utm_source=qr" target="_blank" rel="noopener" aria-label="Instagram" style="color:rgba(255,255,255,0.7);">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+      </a>
+    </div>
+    <div class="mobile-nav-langs">
+      <button onclick="setLang('pt');closeMobileNav()" style="background:none;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.7);">🇧🇷 PT</button>
+      <button onclick="setLang('en');closeMobileNav()" style="background:none;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.7);">🇺🇸 EN</button>
+      <button onclick="setLang('es');closeMobileNav()" style="background:none;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.7);">🇪🇸 ES</button>
+    </div>
+  </nav>
+  <script>
+    (function() {
+      const toggle = document.getElementById('menu-toggle')
+      const nav    = document.getElementById('mobile-nav')
+      const inst   = document.getElementById('mob-inst-link')
+      if (!toggle || !nav) return
+      toggle.addEventListener('click', function() {
+        const open = nav.classList.toggle('open')
+        toggle.classList.toggle('open', open)
+        toggle.setAttribute('aria-expanded', open)
+        nav.setAttribute('aria-hidden', !open)
+        document.body.style.overflow = open ? 'hidden' : ''
+      })
+      if (inst) inst.addEventListener('click', function() { closeMobileNav() })
+    })()
+    function closeMobileNav() {
+      const toggle = document.getElementById('menu-toggle')
+      const nav    = document.getElementById('mobile-nav')
+      if (!nav) return
+      nav.classList.remove('open')
+      toggle?.classList.remove('open')
+      toggle?.setAttribute('aria-expanded', 'false')
+      nav.setAttribute('aria-hidden', 'true')
+      document.body.style.overflow = ''
+    }
+  </script>
 
   <section class="hero">
     <div class="hero-overlay"></div>
