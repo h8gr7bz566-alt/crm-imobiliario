@@ -1115,7 +1115,46 @@ ${k}`);window.open("https://wa.me/?text="+D,"_blank")}),(f=document.getElementBy
       ${n.map((o,i)=>`<button class="tp-tab" data-tab="${o.id}" style="padding:14px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:${i===0?"700":"500"};color:${i===0?"#2563eb":"#64748b"};border-bottom:2px solid ${i===0?"#2563eb":"transparent"};margin-bottom:-2px;white-space:nowrap;transition:all .15s;">${o.label}</button>`).join("")}
     </div>
     <div id="tp-content" style="padding:24px;flex:1;max-width:1200px;margin:0 auto;width:100%;box-sizing:border-box;"></div>
-  `,document.body.appendChild(t),document.getElementById("tp-back").addEventListener("click",()=>t.remove()),document.getElementById("tp-edit-btn").addEventListener("click",()=>kt(e)),t.querySelectorAll(".tp-tab").forEach(o=>{o.addEventListener("click",()=>{t.querySelectorAll(".tp-tab").forEach(i=>{i.style.fontWeight="500",i.style.color="#64748b",i.style.borderBottomColor="transparent"}),o.style.fontWeight="700",o.style.color="#2563eb",o.style.borderBottomColor="#2563eb",Qe(e,o.dataset.tab)})}),Qe(e,"properties")}async function Qe(e,t){var i,d,s,l,p;const n=document.getElementById("tp-content");if(!n)return;n.innerHTML='<div style="text-align:center;padding:64px;color:#94a3b8;font-size:14px;">Carregando…</div>';const a=()=>Qe(e,t),o=(r,c)=>`background:${r};color:${c};border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;`;if(t==="properties"){const{data:r}=await y.from("properties").select("*").eq("tenant_id",e.id).order("created_at",{ascending:!1});if(!(r!=null&&r.length)){n.innerHTML='<div style="text-align:center;padding:64px;color:#94a3b8;"><div style="font-size:48px;margin-bottom:12px;">🏠</div><p style="font-size:14px;">Nenhum imóvel cadastrado ainda.</p></div>';return}n.innerHTML=`
+  `,document.body.appendChild(t),document.getElementById("tp-back").addEventListener("click",()=>t.remove()),document.getElementById("tp-edit-btn").addEventListener("click",()=>kt(e)),t.querySelectorAll(".tp-tab").forEach(o=>{o.addEventListener("click",()=>{t.querySelectorAll(".tp-tab").forEach(i=>{i.style.fontWeight="500",i.style.color="#64748b",i.style.borderBottomColor="transparent"}),o.style.fontWeight="700",o.style.color="#2563eb",o.style.borderBottomColor="#2563eb",Qe(e,o.dataset.tab)})}),Qe(e,"properties")}function ka(e,t){const n=document.getElementById("tp-prop-edit-modal");n&&n.remove();const a=document.createElement("div");a.id="tp-prop-edit-modal",a.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;";const o=(s,l,p,r="text",c="")=>`<div style="display:flex;flex-direction:column;gap:4px;">
+      <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.05em;">${l}</label>
+      <input id="${s}" type="${r}" value="${g(String(p||""))}" ${c}
+        style="border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:14px;color:#0f172a;outline:none;">
+    </div>`,i=(s,l,p,r)=>`<div style="display:flex;flex-direction:column;gap:4px;">
+      <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.05em;">${l}</label>
+      <select id="${s}" style="border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:14px;color:#0f172a;background:#fff;">
+        ${p.map(([c,m])=>`<option value="${c}"${r===c?" selected":""}>${m}</option>`).join("")}
+      </select>
+    </div>`;a.innerHTML=`
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.25);">
+      <div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <h3 style="margin:0;font-size:17px;font-weight:700;color:#0f172a;">✏️ Editar Imóvel</h3>
+        <button id="tpe-close" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;line-height:1;">✕</button>
+      </div>
+      <div style="padding:24px;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        ${o("tpe-title","TÍTULO *",e.title,"text",'style="grid-column:span 2;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:14px;color:#0f172a;"')}
+        ${o("tpe-price","PREÇO (R$)",e.price)}
+        ${o("tpe-area","ÁREA (m²)",e.area)}
+        ${o("tpe-bedrooms","DORMITÓRIOS",e.bedrooms,"number")}
+        ${o("tpe-suites","SUÍTES",e.suites,"number")}
+        ${o("tpe-parking","VAGAS",e.parking,"number")}
+        ${o("tpe-reference","REFERÊNCIA",e.reference)}
+        ${o("tpe-city","CIDADE",e.city)}
+        ${o("tpe-neighborhood","BAIRRO",e.neighborhood)}
+        ${o("tpe-rua","RUA",e.rua)}
+        ${o("tpe-numero","NÚMERO",e.numero)}
+        ${i("tpe-construction","STATUS DA OBRA",[["","Selecione"],["pronto","Pronto"],["pre-lancamento","Pré-lançamento"],["lancamento","Lançamento"],["em-obra","Em obra"]],e.construction_status)}
+        ${i("tpe-published","PUBLICAÇÃO",[["true","Publicado"],["false","Rascunho"]],String(e.published))}
+        <div style="grid-column:span 2;display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.05em;">DESCRIÇÃO</label>
+          <textarea id="tpe-description" rows="4" style="border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:14px;color:#0f172a;resize:vertical;font-family:inherit;">${g(e.description||"")}</textarea>
+        </div>
+        <div id="tpe-msg" style="grid-column:span 2;font-size:13px;min-height:16px;"></div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
+        <button id="tpe-cancel" style="background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Cancelar</button>
+        <button id="tpe-save" style="background:#0a1628;color:#fff;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px;font-weight:700;">💾 Salvar</button>
+      </div>
+    </div>`,document.body.appendChild(a);const d=()=>a.remove();document.getElementById("tpe-close").addEventListener("click",d),document.getElementById("tpe-cancel").addEventListener("click",d),a.addEventListener("click",s=>{s.target===a&&d()}),document.getElementById("tpe-save").addEventListener("click",async()=>{const s=document.getElementById("tpe-save"),l=document.getElementById("tpe-msg"),p=document.getElementById("tpe-title").value.trim();if(!p){l.style.color="#ef4444",l.textContent="Título é obrigatório.";return}s.disabled=!0,s.textContent="Salvando…";const r={title:p,price:document.getElementById("tpe-price").value.trim()||null,area:document.getElementById("tpe-area").value.trim()||null,bedrooms:document.getElementById("tpe-bedrooms").value||null,suites:document.getElementById("tpe-suites").value||null,parking:document.getElementById("tpe-parking").value||null,reference:document.getElementById("tpe-reference").value.trim()||null,city:document.getElementById("tpe-city").value.trim()||null,neighborhood:document.getElementById("tpe-neighborhood").value.trim()||null,rua:document.getElementById("tpe-rua").value.trim()||null,numero:document.getElementById("tpe-numero").value.trim()||null,construction_status:document.getElementById("tpe-construction").value||null,published:document.getElementById("tpe-published").value==="true",description:document.getElementById("tpe-description").value.trim()||null},{error:c}=await y.from("properties").update(r).eq("id",e.id);if(c){l.style.color="#ef4444",l.textContent="Erro: "+c.message,s.disabled=!1,s.textContent="💾 Salvar";return}l.style.color="#16a34a",l.textContent="✅ Salvo!",setTimeout(()=>{d(),typeof t=="function"&&t()},800)})}async function Qe(e,t){var i,d,s,l,p;const n=document.getElementById("tp-content");if(!n)return;n.innerHTML='<div style="text-align:center;padding:64px;color:#94a3b8;font-size:14px;">Carregando…</div>';const a=()=>Qe(e,t),o=(r,c)=>`background:${r};color:${c};border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;`;if(t==="properties"){const{data:r}=await y.from("properties").select("*").eq("tenant_id",e.id).order("created_at",{ascending:!1});if(!(r!=null&&r.length)){n.innerHTML='<div style="text-align:center;padding:64px;color:#94a3b8;"><div style="font-size:48px;margin-bottom:12px;">🏠</div><p style="font-size:14px;">Nenhum imóvel cadastrado ainda.</p></div>';return}n.innerHTML=`
       <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07);">
         <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
           <h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0;">${r.length} imóvel(is)</h3>
@@ -1142,6 +1181,7 @@ ${k}`);window.open("https://wa.me/?text="+D,"_blank")}),(f=document.getElementBy
               <td style="padding:12px 16px;text-align:center;">${c.published?'<span style="background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Publicado</span>':'<span style="background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Rascunho</span>'}</td>
               <td style="padding:12px 16px;text-align:center;">
                 <div style="display:flex;gap:6px;justify-content:center;">
+                  <button class="tp-prop-edit" data-pid="${c.id}" style="${o("#eff6ff","#1d4ed8")}">✏️ Editar</button>
                   <button class="tp-prop-toggle" data-pid="${c.id}" data-pub="${c.published?"1":"0"}" style="${o(c.published?"#fef3c7":"#dcfce7",c.published?"#92400e":"#15803d")}">${c.published?"Despublicar":"Publicar"}</button>
                   <button class="tp-prop-del" data-pid="${c.id}" style="${o("#fee2e2","#dc2626")}">Excluir</button>
                 </div>
@@ -1149,7 +1189,7 @@ ${k}`);window.open("https://wa.me/?text="+D,"_blank")}),(f=document.getElementBy
             </tr>`}).join("")}
           </tbody>
         </table></div>
-      </div>`,n.querySelectorAll(".tp-prop-toggle").forEach(c=>{c.addEventListener("click",async()=>{const m=Number(c.dataset.pid),u=c.dataset.pub==="1";c.disabled=!0,c.textContent="…",await y.from("properties").update({published:!u}).eq("id",m),a()})}),n.querySelectorAll(".tp-prop-del").forEach(c=>{c.addEventListener("click",async()=>{confirm("Excluir este imóvel permanentemente?")&&(c.disabled=!0,c.textContent="…",await y.from("properties").delete().eq("id",Number(c.dataset.pid)),a())})})}if(t==="leads"){const{data:r}=await y.from("leads").select("*").eq("tenant_id",e.id).order("created_at",{ascending:!1}).limit(200);if(!(r!=null&&r.length)){n.innerHTML='<div style="text-align:center;padding:64px;color:#94a3b8;"><div style="font-size:48px;margin-bottom:12px;">📋</div><p style="font-size:14px;">Nenhum lead ainda.</p></div>';return}const c=m=>({novo:"#dbeafe,#1d4ed8",contato:"#fef3c7,#92400e",proposta:"#ede9fe,#6d28d9",fechado:"#dcfce7,#15803d"})[m]||"#f1f5f9,#64748b";n.innerHTML=`
+      </div>`,n.querySelectorAll(".tp-prop-edit").forEach(c=>{c.addEventListener("click",()=>{const m=Number(c.dataset.pid),u=r.find(b=>b.id===m);u&&ka(u,a)})}),n.querySelectorAll(".tp-prop-toggle").forEach(c=>{c.addEventListener("click",async()=>{const m=Number(c.dataset.pid),u=c.dataset.pub==="1";c.disabled=!0,c.textContent="…",await y.from("properties").update({published:!u}).eq("id",m),a()})}),n.querySelectorAll(".tp-prop-del").forEach(c=>{c.addEventListener("click",async()=>{confirm("Excluir este imóvel permanentemente?")&&(c.disabled=!0,c.textContent="…",await y.from("properties").delete().eq("id",Number(c.dataset.pid)),a())})})}if(t==="leads"){const{data:r}=await y.from("leads").select("*").eq("tenant_id",e.id).order("created_at",{ascending:!1}).limit(200);if(!(r!=null&&r.length)){n.innerHTML='<div style="text-align:center;padding:64px;color:#94a3b8;"><div style="font-size:48px;margin-bottom:12px;">📋</div><p style="font-size:14px;">Nenhum lead ainda.</p></div>';return}const c=m=>({novo:"#dbeafe,#1d4ed8",contato:"#fef3c7,#92400e",proposta:"#ede9fe,#6d28d9",fechado:"#dcfce7,#15803d"})[m]||"#f1f5f9,#64748b";n.innerHTML=`
       <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07);">
         <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;">
           <h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0;">${r.length} lead(s)</h3>
