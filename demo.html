@@ -126,9 +126,10 @@
     .prop-price { font-size: 20px; font-weight: 800; color: var(--dark); margin-top: auto; }
     .prop-price span { font-size: 13px; font-weight: 400; color: var(--muted); }
     .prop-cta {
-      display: block; text-align: center; background: var(--dark);
-      color: #fff; padding: 10px; font-size: 13px; font-weight: 600;
-      text-decoration: none; transition: background .2s;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--dark); color: #fff; padding: 10px;
+      font-size: 13px; font-weight: 600; text-decoration: none;
+      border-radius: 8px; transition: background .2s;
     }
     .prop-cta:hover { background: var(--dark2); }
 
@@ -341,6 +342,24 @@
     </div>
     <button class="btn-primary" style="width:100%" onclick="submitLead()">Enviar mensagem →</button>
     <div id="lead-msg"></div>
+
+    <div id="wa-divider" style="display:none;margin-top:20px;text-align:center;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+        <span style="font-size:12px;color:#94a3b8;white-space:nowrap;">ou fale diretamente</span>
+        <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+      </div>
+      <a id="wa-contact-btn" href="#" target="_blank" rel="noopener"
+        style="display:inline-flex;align-items:center;gap:10px;background:#25d366;color:#fff;text-decoration:none;
+               border-radius:10px;padding:13px 28px;font-size:15px;font-weight:700;width:100%;justify-content:center;
+               box-shadow:0 4px 14px rgba(37,211,102,.35);transition:opacity .2s;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.116 1.527 5.845L.057 23.882l6.199-1.625A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.793 9.793 0 01-4.992-1.368l-.358-.213-3.685.967.983-3.596-.234-.369A9.79 9.79 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
+        </svg>
+        Chamar no WhatsApp
+      </a>
+    </div>
   </div>
 </div>
 
@@ -423,6 +442,7 @@ let currentPage = 1
 let totalPages  = 1
 let activeFilters = {}
 let currentPropertyId = null
+let waNumber = ''   // preenchido por loadSettings()
 
 // ── utils ──
 const fmtPrice = v => {
@@ -466,10 +486,17 @@ async function loadSettings() {
     if (email) { const el = document.getElementById('footer-email'); el.textContent = '✉ ' + email; el.href = 'mailto:' + email }
     if (city)  document.getElementById('footer-city').textContent  = '📍 ' + city
 
+    waNumber = wa
     if (wa) {
       const fab = document.getElementById('whatsapp-fab')
       fab.href = 'https://wa.me/' + wa
       fab.style.display = 'flex'
+
+      // Botão na seção de contato
+      const waDivider = document.getElementById('wa-divider')
+      const waBtn     = document.getElementById('wa-contact-btn')
+      if (waDivider) waDivider.style.display = 'block'
+      if (waBtn)     waBtn.href = `https://wa.me/${wa}?text=${encodeURIComponent('Olá! Gostaria de mais informações sobre os imóveis.')}`
     } else {
       document.getElementById('whatsapp-fab').style.display = 'none'
     }
@@ -531,7 +558,22 @@ function renderCard(p) {
       </div>
       <div class="prop-price">${fmtPrice(p.price)}${p.type==='Aluguel'||p.type==='Temporada' ? '<span>/mês</span>' : ''}</div>
     </div>
-    <a class="prop-cta" onclick="event.stopPropagation();openLeadModal('${p.id}','${p.title.replace(/'/g,"\\'")}')">Tenho interesse →</a>
+    <div style="display:flex;gap:8px;padding:0 16px 16px;">
+      <a class="prop-cta" style="flex:1;margin:0;border-radius:8px;"
+         onclick="event.stopPropagation();openLeadModal('${p.id}','${p.title.replace(/'/g,"\\'")}')">Tenho interesse →</a>
+      ${waNumber ? `
+      <a href="https://wa.me/${waNumber}?text=${encodeURIComponent('Olá! Tenho interesse no imóvel: ' + p.title)}"
+         target="_blank" rel="noopener"
+         onclick="event.stopPropagation()"
+         style="display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:8px;
+                background:#25d366;color:#fff;text-decoration:none;flex-shrink:0;"
+         title="WhatsApp">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.116 1.527 5.845L.057 23.882l6.199-1.625A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.793 9.793 0 01-4.992-1.368l-.358-.213-3.685.967.983-3.596-.234-.369A9.79 9.79 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
+        </svg>
+      </a>` : ''}
+    </div>
   </div>`
 }
 
