@@ -527,7 +527,7 @@ function renderCard(p) {
         ${p.bedrooms  ? `<span class="prop-feature">🛏 ${p.bedrooms} quarto${p.bedrooms>1?'s':''}</span>` : ''}
         ${p.bathrooms ? `<span class="prop-feature">🚿 ${p.bathrooms} banheiro${p.bathrooms>1?'s':''}</span>` : ''}
         ${p.parking   ? `<span class="prop-feature">🚗 ${p.parking} vaga${p.parking>1?'s':''}</span>` : ''}
-        ${p.area_m2   ? `<span class="prop-feature">📐 ${p.area_m2} m²</span>` : ''}
+        ${p.area      ? `<span class="prop-feature">📐 ${p.area} m²</span>` : ''}
       </div>
       <div class="prop-price">${fmtPrice(p.price)}${p.type==='Aluguel'||p.type==='Temporada' ? '<span>/mês</span>' : ''}</div>
     </div>
@@ -593,12 +593,12 @@ async function openDetail(id) {
       ${p.suites    ?`<div class="detail-feature"><div class="detail-feature-val">🛁 ${p.suites}</div><div class="detail-feature-lbl">Suíte${p.suites>1?'s':''}</div></div>`:''}
       ${p.bathrooms ?`<div class="detail-feature"><div class="detail-feature-val">🚿 ${p.bathrooms}</div><div class="detail-feature-lbl">Banheiro${p.bathrooms>1?'s':''}</div></div>`:''}
       ${p.parking   ?`<div class="detail-feature"><div class="detail-feature-val">🚗 ${p.parking}</div><div class="detail-feature-lbl">Vaga${p.parking>1?'s':''}</div></div>`:''}
-      ${p.area_m2   ?`<div class="detail-feature"><div class="detail-feature-val">📐 ${p.area_m2}</div><div class="detail-feature-lbl">m²</div></div>`:''}
+      ${p.area      ?`<div class="detail-feature"><div class="detail-feature-val">📐 ${p.area}</div><div class="detail-feature-lbl">m²</div></div>`:''}
     </div>
     ${p.description ? `<div class="detail-desc">${p.description.replace(/\n/g,'<br>')}</div>` : ''}
     <div class="detail-actions">
       <button class="btn-primary" onclick="closeModal('detail-modal');openLeadModal('${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">Tenho interesse</button>
-      ${WHATSAPP ? `<a class="btn-secondary" href="https://wa.me/${WHATSAPP.replace(/\D,'')}?text=Olá! Tenho interesse no imóvel: ${encodeURIComponent(p.title)}" target="_blank">WhatsApp</a>` : ''}
+      ${WHATSAPP ? `<a class="btn-secondary" href="https://wa.me/${WHATSAPP.replace(/\D/g,'')}?text=Olá! Tenho interesse no imóvel: ${encodeURIComponent(p.title)}" target="_blank">WhatsApp</a>` : ''}
     </div>
   `
 }
