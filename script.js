@@ -810,15 +810,41 @@ async function loadProfile(userId) {
 }
 
 function renderSidebarUser(profile) {
-  // Updated to use topnav IDs (sidebar-* IDs removed)
   const initEl    = document.getElementById('topnav-avatar-initial')
+  const imgEl     = document.getElementById('topnav-avatar-img')
   const nameEl    = document.getElementById('topnav-name')
   const roleEl    = document.getElementById('topnav-role')
   if (!nameEl) return
-  const name = profile?.name || 'Sem nome'
+
+  const name    = profile?.name || 'Sem nome'
+  const roleStr = profile?.role === 'super_admin' ? 'Super Admin' : profile?.role === 'admin' ? 'Administrador' : 'Corretor'
   nameEl.textContent = name
-  if (roleEl) roleEl.textContent = profile?.role === 'super_admin' ? 'Super Admin' : profile?.role === 'admin' ? 'Administrador' : 'Corretor'
-  if (initEl) initEl.textContent = name[0]?.toUpperCase() || '?'
+  if (roleEl) roleEl.textContent = roleStr
+
+  // Avatar circle — photo takes priority over initial
+  if (profile?.avatar_url && imgEl) {
+    imgEl.src = profile.avatar_url
+    imgEl.style.display = ''
+    if (initEl) initEl.style.display = 'none'
+  } else {
+    if (initEl) { initEl.textContent = name[0]?.toUpperCase() || '?'; initEl.style.display = '' }
+    if (imgEl)  imgEl.style.display = 'none'
+  }
+
+  // Sync avatar dropdown header
+  const ddName  = document.getElementById('avatar-dd-name')
+  const ddRole  = document.getElementById('avatar-dd-role')
+  const ddImg   = document.getElementById('avatar-dd-img')
+  const ddInit  = document.getElementById('avatar-dd-initial')
+  if (ddName) ddName.textContent = name
+  if (ddRole) ddRole.textContent = roleStr
+  if (profile?.avatar_url && ddImg) {
+    ddImg.src = profile.avatar_url; ddImg.style.display = ''
+    if (ddInit) ddInit.style.display = 'none'
+  } else {
+    if (ddInit) { ddInit.textContent = name[0]?.toUpperCase() || '?'; ddInit.style.display = '' }
+    if (ddImg)  ddImg.style.display = 'none'
+  }
 }
 
 // Helper: navigate to a section by name
@@ -828,9 +854,13 @@ function navigateToSection(sectionName) {
   if (btn) btn.classList.add('active')
   document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'))
   document.getElementById(`section-${sectionName}`)?.classList.remove('hidden')
-  // Close mobile menu
+  // Close menus
   document.getElementById('topnav-links')?.classList.remove('open')
+  closeAllDropdowns()
+
   if (sectionName === 'contatos') initContatosSection()
+  if (sectionName === 'funil')    initFunilSection()
+  if (sectionName === 'tarefas')  initTarefasSection()
 }
 
 function applyRolePermissions(role) {
@@ -866,11 +896,581 @@ function applyRolePermissions(role) {
   }
 }
 
-// Clicking on topnav user area opens Settings
+function closeAllDropdowns() {
+  document.getElementById('avatar-dropdown')?.classList.add('hidden')
+  document.getElementById('notif-dropdown')?.classList.add('hidden')
+}
+
 function attachSidebarUserClick() {
-  const topnavUser = document.getElementById('topnav-user')
-  if (!topnavUser) return
-  topnavUser.addEventListener('click', () => navigateToSection('settings'))
+  // Avatar dropdown toggle
+  const avatarWrap = document.getElementById('topnav-avatar-wrap')
+  const avatarDD   = document.getElementById('avatar-dropdown')
+  avatarWrap?.addEventListener('click', e => {
+    e.stopPropagation()
+    const hidden = avatarDD?.classList.toggle('hidden')
+    if (!hidden) document.getElementById('notif-dropdown')?.classList.add('hidden')
+  })
+
+  // Avatar dropdown actions
+  document.getElementById('avatar-dd-profile')?.addEventListener('click', () => { closeAllDropdowns(); navigateToSection('settings') })
+  document.getElementById('avatar-dd-settings')?.addEventListener('click', () => { closeAllDropdowns(); navigateToSection('settings') })
+  document.getElementById('avatar-dd-logout')?.addEventListener('click', async () => {
+    await supabase.auth.signOut()
+    location.reload()
+  })
+
+  // Notification dropdown
+  const notifWrap = document.getElementById('topnav-notif-wrap')
+  const notifDD   = document.getElementById('notif-dropdown')
+  notifWrap?.addEventListener('click', e => {
+    e.stopPropagation()
+    const hidden = notifDD?.classList.toggle('hidden')
+    if (!hidden) { document.getElementById('avatar-dropdown')?.classList.add('hidden'); loadNotifications() }
+  })
+  document.getElementById('notif-mark-all')?.addEventListener('click', () => { markNotifsRead(); closeAllDropdowns() })
+
+  // Search overlay
+  document.getElementById('btn-search-open')?.addEventListener('click', () => {
+    document.getElementById('search-overlay')?.classList.remove('hidden')
+    document.getElementById('search-input')?.focus()
+  })
+  document.getElementById('search-overlay-close')?.addEventListener('click', () => {
+    document.getElementById('search-overlay')?.classList.add('hidden')
+  })
+  document.getElementById('search-overlay')?.addEventListener('click', e => {
+    if (e.target.id === 'search-overlay') document.getElementById('search-overlay').classList.add('hidden')
+  })
+  let searchTimeout
+  document.getElementById('search-input')?.addEventListener('input', e => {
+    clearTimeout(searchTimeout)
+    searchTimeout = setTimeout(() => runSearch(e.target.value.trim()), 280)
+  })
+  document.getElementById('search-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('search-overlay')?.classList.add('hidden')
+  })
+
+  // Close dropdowns on outside click
+  document.addEventListener('click', closeAllDropdowns)
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEÇÃO FUNIL (KANBAN)
+// ═══════════════════════════════════════════════════════════════════
+
+let funilInitialized = false
+let kanbanPipes = []
+let kanbanStages = []
+let kanbanLeads = []
+let activePipeId = null
+let dragLeadId = null
+
+async function initFunilSection() {
+  if (funilInitialized) return
+  funilInitialized = true
+
+  const [{ data: pipes }, { data: stages }] = await Promise.all([
+    supabase.from('crm_pipelines').select('*').order('sort_order'),
+    supabase.from('crm_stages').select('*').order('sort_order'),
+  ])
+  kanbanPipes  = pipes  || []
+  kanbanStages = stages || []
+
+  const sel = document.getElementById('funil-pipe-sel')
+  if (sel) {
+    sel.innerHTML = kanbanPipes.length
+      ? kanbanPipes.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('')
+      : '<option value="">Sem funis cadastrados</option>'
+    const def = kanbanPipes.find(p => p.is_default) || kanbanPipes[0]
+    if (def) { sel.value = def.id; activePipeId = def.id }
+    sel.addEventListener('change', async () => {
+      activePipeId = parseInt(sel.value, 10)
+      await loadKanbanLeads()
+    })
+  }
+
+  document.getElementById('btn-funil-add-lead')?.addEventListener('click', () => openLeadModal())
+
+  await loadKanbanLeads()
+}
+
+async function loadKanbanLeads() {
+  const board = document.getElementById('kanban-board')
+  if (!board) return
+  board.innerHTML = '<div class="kanban-loading">Carregando…</div>'
+
+  let query = supabase.from('leads').select('*').order('created_at', { ascending: false })
+  if (currentProfile?.role === 'corretor') query = query.eq('assigned_to', currentProfile.id)
+  else if (currentProfile?.tenant_id) query = query.eq('tenant_id', currentProfile.tenant_id)
+  if (activePipeId) query = query.eq('pipeline_id', activePipeId)
+
+  const { data } = await query
+  kanbanLeads = data || []
+  renderKanban()
+}
+
+function renderKanban() {
+  const board = document.getElementById('kanban-board')
+  if (!board) return
+
+  const stages = kanbanStages.filter(s => s.pipeline_id === activePipeId)
+
+  if (!stages.length) {
+    board.innerHTML = '<div class="kanban-loading">Nenhuma etapa configurada para este funil. Crie etapas em Configurações → CRM Config.</div>'
+    return
+  }
+
+  const grouped = {}
+  stages.forEach(s => { grouped[s.name] = [] })
+  kanbanLeads.forEach(l => {
+    const key = l.stage || stages[0]?.name
+    if (!grouped[key]) grouped[stages[0]?.name || ''] = []
+    ;(grouped[key] || grouped[stages[0]?.name])?.push(l)
+  })
+
+  board.innerHTML = stages.map(stage => {
+    const cards = (grouped[stage.name] || [])
+    const cardsHTML = cards.length
+      ? cards.map(l => `
+        <div class="kanban-card" draggable="true" data-id="${l.id}" data-stage="${escapeHTML(stage.name)}">
+          <div class="kanban-card-name">${escapeHTML(l.name || '—')}</div>
+          ${l.phone ? `<div class="kanban-card-info">📞 ${escapeHTML(l.phone)}</div>` : ''}
+          ${l.interest ? `<div class="kanban-card-info">🏠 ${escapeHTML(l.interest)}</div>` : ''}
+          ${l.budget_max ? `<div class="kanban-card-info">💰 R$ ${Number(l.budget_max).toLocaleString('pt-BR')}</div>` : ''}
+          <div class="kanban-card-tags">
+            ${l.source ? `<span class="kanban-card-tag">${escapeHTML(l.source)}</span>` : ''}
+          </div>
+        </div>`).join('')
+      : '<div class="kanban-empty-col">Sem leads nesta etapa</div>'
+
+    return `
+      <div class="kanban-col" data-stage="${escapeHTML(stage.name)}">
+        <div class="kanban-col-header" style="border-bottom-color:${stage.color || '#2563eb'}">
+          <div class="kanban-col-title">
+            <div class="kanban-stage-dot" style="background:${stage.color || '#2563eb'}"></div>
+            ${escapeHTML(stage.name)}
+          </div>
+          <span class="kanban-col-count">${cards.length}</span>
+        </div>
+        <div class="kanban-cards" data-stage="${escapeHTML(stage.name)}">${cardsHTML}</div>
+        <button class="kanban-add-btn" data-stage="${escapeHTML(stage.name)}">+ Adicionar lead</button>
+      </div>`
+  }).join('')
+
+  attachKanbanEvents()
+  if (window.lucide) lucide.createIcons()
+}
+
+function attachKanbanEvents() {
+  const board = document.getElementById('kanban-board')
+  if (!board) return
+
+  // Add lead per column
+  board.querySelectorAll('.kanban-add-btn').forEach(btn => {
+    btn.addEventListener('click', () => openLeadModal())
+  })
+
+  // Card click → open edit
+  board.querySelectorAll('.kanban-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const lead = kanbanLeads.find(l => String(l.id) === String(card.dataset.id))
+      if (lead) openLeadModal(lead)
+    })
+    card.addEventListener('dragstart', e => {
+      dragLeadId = card.dataset.id
+      card.classList.add('dragging')
+      e.dataTransfer.effectAllowed = 'move'
+    })
+    card.addEventListener('dragend', () => card.classList.remove('dragging'))
+  })
+
+  // Drop zones
+  board.querySelectorAll('.kanban-cards').forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.closest('.kanban-col').classList.add('drag-over') })
+    zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.closest('.kanban-col').classList.remove('drag-over') })
+    zone.addEventListener('drop', async e => {
+      e.preventDefault()
+      zone.closest('.kanban-col').classList.remove('drag-over')
+      const newStage = zone.dataset.stage
+      if (!dragLeadId || !newStage) return
+      await supabase.from('leads').update({ stage: newStage }).eq('id', dragLeadId)
+      const lead = kanbanLeads.find(l => String(l.id) === String(dragLeadId))
+      if (lead) lead.stage = newStage
+      dragLeadId = null
+      renderKanban()
+    })
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEÇÃO TAREFAS
+// SQL necessário:
+// CREATE TABLE IF NOT EXISTS public.tasks (
+//   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+//   tenant_id uuid REFERENCES tenants(id),
+//   assigned_to uuid REFERENCES profiles(id),
+//   lead_id uuid REFERENCES leads(id),
+//   title text NOT NULL,
+//   description text,
+//   due_date date,
+//   priority text DEFAULT 'medium',
+//   status text DEFAULT 'pending',
+//   created_at timestamptz DEFAULT now()
+// );
+// ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+// CREATE POLICY "tenant_tasks" ON public.tasks USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
+// ═══════════════════════════════════════════════════════════════════
+
+let allTarefas = []
+let tarefasInitialized = false
+let tarefasFilter = 'pending'
+
+async function initTarefasSection() {
+  if (tarefasInitialized) return
+  tarefasInitialized = true
+
+  await loadTarefas()
+
+  document.getElementById('btn-nova-tarefa')?.addEventListener('click', () => openTarefaModal())
+
+  document.querySelectorAll('.tarefa-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tarefa-filter-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      tarefasFilter = btn.dataset.filter
+      renderTarefas()
+    })
+  })
+}
+
+async function loadTarefas() {
+  const list = document.getElementById('tarefas-list')
+  if (list) list.innerHTML = '<div class="empty-row" style="padding:40px;text-align:center;color:#94a3b8;">Carregando…</div>'
+
+  let query = supabase.from('tasks').select('*').order('due_date', { ascending: true, nullsFirst: false })
+  if (currentProfile?.role === 'corretor') query = query.eq('assigned_to', currentProfile.id)
+  else if (currentProfile?.tenant_id)     query = query.eq('tenant_id', currentProfile.tenant_id)
+
+  const { data, error } = await query
+  if (error) {
+    // Tasks table may not exist yet — show setup message
+    const list2 = document.getElementById('tarefas-list')
+    if (list2) list2.innerHTML = `
+      <div style="text-align:center;padding:40px;color:#94a3b8;">
+        <div style="font-size:32px;margin-bottom:8px;">📋</div>
+        <p style="margin-bottom:12px;">Para usar Tarefas, execute o SQL abaixo no Supabase:</p>
+        <code style="font-size:11px;background:#f1f5f9;padding:8px 12px;border-radius:8px;display:block;text-align:left;white-space:pre;overflow-x:auto;">CREATE TABLE IF NOT EXISTS public.tasks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid,
+  assigned_to uuid,
+  title text NOT NULL,
+  description text,
+  due_date date,
+  priority text DEFAULT 'medium',
+  status text DEFAULT 'pending',
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "tasks_access" ON public.tasks
+  USING (auth.uid() IS NOT NULL)
+  WITH CHECK (auth.uid() IS NOT NULL);</code>
+      </div>`
+    return
+  }
+  allTarefas = data || []
+  renderTarefas()
+}
+
+function renderTarefas() {
+  const list = document.getElementById('tarefas-list')
+  if (!list) return
+
+  let filtered = allTarefas
+  if (tarefasFilter === 'pending')  filtered = allTarefas.filter(t => t.status !== 'done')
+  if (tarefasFilter === 'done')     filtered = allTarefas.filter(t => t.status === 'done')
+
+  if (!filtered.length) {
+    list.innerHTML = `<div style="text-align:center;padding:40px;color:#94a3b8;">
+      <div style="font-size:32px;margin-bottom:8px;">${tarefasFilter === 'done' ? '✅' : '📋'}</div>
+      <p>${tarefasFilter === 'done' ? 'Nenhuma tarefa concluída.' : 'Nenhuma tarefa pendente.'}</p>
+    </div>`
+    return
+  }
+
+  list.innerHTML = filtered.map(t => {
+    const due = t.due_date ? new Date(t.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : ''
+    const overdue = t.due_date && t.status !== 'done' && new Date(t.due_date) < new Date()
+    return `
+      <div class="tarefa-item${t.status === 'done' ? ' done' : ''}" data-id="${t.id}">
+        <input type="checkbox" class="tarefa-check" data-id="${t.id}" ${t.status === 'done' ? 'checked' : ''}>
+        <div class="tarefa-body">
+          <div class="tarefa-title">${escapeHTML(t.title)}</div>
+          <div class="tarefa-meta">
+            ${due ? `<span style="${overdue ? 'color:#ef4444;' : ''}">📅 ${due}${overdue ? ' (atrasada)' : ''}</span>` : ''}
+            ${t.description ? `<span>${escapeHTML(t.description.substring(0, 60))}${t.description.length > 60 ? '…' : ''}</span>` : ''}
+          </div>
+        </div>
+        <span class="tarefa-priority ${t.priority || 'medium'}">${t.priority === 'high' ? 'Alta' : t.priority === 'low' ? 'Baixa' : 'Média'}</span>
+        <button class="tarefa-del-btn" data-id="${t.id}" title="Excluir">🗑️</button>
+      </div>`
+  }).join('')
+
+  list.querySelectorAll('.tarefa-check').forEach(chk => {
+    chk.addEventListener('change', async () => {
+      const id = chk.dataset.id
+      const status = chk.checked ? 'done' : 'pending'
+      await supabase.from('tasks').update({ status }).eq('id', id)
+      const t = allTarefas.find(x => String(x.id) === id)
+      if (t) t.status = status
+      renderTarefas()
+    })
+  })
+
+  list.querySelectorAll('.tarefa-del-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Excluir esta tarefa?')) return
+      await supabase.from('tasks').delete().eq('id', btn.dataset.id)
+      allTarefas = allTarefas.filter(t => String(t.id) !== String(btn.dataset.id))
+      renderTarefas()
+    })
+  })
+}
+
+function openTarefaModal(tarefa = null) {
+  const existing = document.getElementById('tarefa-modal-root')
+  if (existing) existing.remove()
+
+  const isEdit = !!tarefa
+  const wrap = document.createElement('div')
+  wrap.id = 'tarefa-modal-root'
+  wrap.className = 'modal-backdrop'
+  wrap.innerHTML = `
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <h3>${isEdit ? 'Editar Tarefa' : 'Nova Tarefa'}</h3>
+        <button class="modal-close" id="tm-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="tarefa-form" style="display:flex;flex-direction:column;gap:14px;">
+          <div class="form-group">
+            <label class="form-label">Título *</label>
+            <input name="title" required class="form-control" placeholder="Ex: Ligar para cliente…" value="${escapeHTML(tarefa?.title || '')}">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Prazo</label>
+              <input name="due_date" type="date" class="form-control" value="${tarefa?.due_date || ''}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prioridade</label>
+              <select name="priority" class="form-control">
+                <option value="low" ${tarefa?.priority === 'low' ? 'selected' : ''}>Baixa</option>
+                <option value="medium" ${!tarefa?.priority || tarefa?.priority === 'medium' ? 'selected' : ''}>Média</option>
+                <option value="high" ${tarefa?.priority === 'high' ? 'selected' : ''}>Alta</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Descrição</label>
+            <textarea name="description" class="form-control" rows="2" placeholder="Detalhes…">${escapeHTML(tarefa?.description || '')}</textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="tm-cancel">Cancelar</button>
+        <button class="btn-primary" id="tm-save" style="margin:0;">${isEdit ? 'Salvar' : 'Criar Tarefa'}</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(wrap)
+  const close = () => wrap.remove()
+  document.getElementById('tm-close')?.addEventListener('click', close)
+  document.getElementById('tm-cancel')?.addEventListener('click', close)
+  wrap.addEventListener('click', e => { if (e.target === wrap) close() })
+
+  document.getElementById('tm-save')?.addEventListener('click', async () => {
+    const form = document.getElementById('tarefa-form')
+    if (!form.checkValidity()) { form.reportValidity(); return }
+    const fd = new FormData(form)
+    const btn = document.getElementById('tm-save')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+
+    const payload = {
+      title:       fd.get('title')?.trim(),
+      description: fd.get('description')?.trim() || null,
+      due_date:    fd.get('due_date') || null,
+      priority:    fd.get('priority') || 'medium',
+      status:      tarefa?.status || 'pending',
+      assigned_to: currentProfile?.id || null,
+      tenant_id:   currentProfile?.tenant_id || null,
+    }
+
+    let error
+    if (isEdit) {
+      ;({ error } = await supabase.from('tasks').update(payload).eq('id', tarefa.id))
+      if (!error) {
+        const idx = allTarefas.findIndex(t => String(t.id) === String(tarefa.id))
+        if (idx >= 0) allTarefas[idx] = { ...allTarefas[idx], ...payload }
+      }
+    } else {
+      const { data, error: e } = await supabase.from('tasks').insert(payload).select()
+      error = e
+      if (!error && data?.[0]) allTarefas.unshift(data[0])
+    }
+
+    btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Criar Tarefa'
+    if (error) { alert('Erro: ' + error.message); return }
+    close()
+    renderTarefas()
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PESQUISA GLOBAL
+// ═══════════════════════════════════════════════════════════════════
+
+async function runSearch(q) {
+  const resultsEl = document.getElementById('search-results')
+  if (!resultsEl) return
+  if (!q || q.length < 2) {
+    resultsEl.innerHTML = '<div class="search-hint">Digite para pesquisar…</div>'
+    return
+  }
+  resultsEl.innerHTML = '<div class="search-hint">Buscando…</div>'
+
+  const like = `%${q}%`
+  let tenantFilter = {}
+  const role = currentProfile?.role
+  const tenantId = currentProfile?.tenant_id
+
+  const [{ data: props }, { data: leads }] = await Promise.all([
+    supabase.from('properties').select('id,title,reference,type,city').ilike('title', like).limit(5),
+    supabase.from('leads').select('id,name,phone,email').or(`name.ilike.${like},phone.ilike.${like},email.ilike.${like}`).limit(5),
+  ])
+
+  const parts = []
+
+  if (props?.length) {
+    parts.push(`<div class="search-group-label">Imóveis</div>`)
+    parts.push(...props.map(p => `
+      <div class="search-result-item" data-type="property" data-id="${p.id}">
+        <div class="search-result-icon">🏠</div>
+        <div>
+          <div class="search-result-title">${escapeHTML(p.title || '—')}</div>
+          <div class="search-result-sub">${escapeHTML(p.reference || '')} · ${escapeHTML(p.city || '')}</div>
+        </div>
+      </div>`))
+  }
+
+  if (leads?.length) {
+    parts.push(`<div class="search-group-label">Leads / Contatos</div>`)
+    parts.push(...leads.map(l => `
+      <div class="search-result-item" data-type="lead" data-id="${l.id}">
+        <div class="search-result-icon">👤</div>
+        <div>
+          <div class="search-result-title">${escapeHTML(l.name || '—')}</div>
+          <div class="search-result-sub">${escapeHTML(l.email || l.phone || '')}</div>
+        </div>
+      </div>`))
+  }
+
+  resultsEl.innerHTML = parts.length
+    ? parts.join('')
+    : '<div class="search-no-results">Nenhum resultado encontrado.</div>'
+
+  // Click on result
+  resultsEl.querySelectorAll('.search-result-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.getElementById('search-overlay')?.classList.add('hidden')
+      if (item.dataset.type === 'lead') navigateToSection('contatos')
+      else navigateToSection('properties')
+    })
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NOTIFICAÇÕES
+// ═══════════════════════════════════════════════════════════════════
+
+let notifsRead = JSON.parse(localStorage.getItem('crm_notifs_read') || '[]')
+
+async function loadNotifications() {
+  const list = document.getElementById('notif-list')
+  if (!list) return
+  list.innerHTML = '<div class="notif-empty">Carregando…</div>'
+
+  let query = supabase.from('leads').select('id,name,phone,created_at,source').order('created_at', { ascending: false }).limit(10)
+  if (currentProfile?.tenant_id) query = query.eq('tenant_id', currentProfile.tenant_id)
+
+  const { data } = await query
+  const leads = data || []
+
+  const unread = leads.filter(l => !notifsRead.includes(String(l.id)))
+  const badge = document.getElementById('notif-badge')
+  if (badge) {
+    badge.textContent = unread.length
+    unread.length > 0 ? badge.classList.remove('hidden') : badge.classList.add('hidden')
+  }
+
+  if (!leads.length) {
+    list.innerHTML = '<div class="notif-empty">Nenhuma notificação.</div>'
+    return
+  }
+
+  list.innerHTML = leads.map(l => {
+    const ago = timeAgo(l.created_at)
+    const isUnread = !notifsRead.includes(String(l.id))
+    return `
+      <div class="notif-item${isUnread ? ' unread' : ''}" data-id="${l.id}">
+        <div class="notif-item-icon">👤</div>
+        <div class="notif-item-body">
+          <div class="notif-item-title">Novo lead: ${escapeHTML(l.name || '—')}</div>
+          <div class="notif-item-sub">${escapeHTML(l.phone || l.source || '')} · ${ago}</div>
+        </div>
+      </div>`
+  }).join('')
+
+  list.innerHTML += `<div class="notif-footer"><a href="#" id="notif-see-all">Ver todos os leads</a></div>`
+  document.getElementById('notif-see-all')?.addEventListener('click', e => { e.preventDefault(); closeAllDropdowns(); navigateToSection('contatos') })
+
+  list.querySelectorAll('.notif-item').forEach(item => {
+    item.addEventListener('click', () => {
+      notifsRead.push(item.dataset.id)
+      localStorage.setItem('crm_notifs_read', JSON.stringify(notifsRead))
+      item.classList.remove('unread')
+      closeAllDropdowns()
+      navigateToSection('contatos')
+    })
+  })
+}
+
+function markNotifsRead() {
+  document.querySelectorAll('.notif-item').forEach(item => notifsRead.push(item.dataset.id))
+  notifsRead = [...new Set(notifsRead)]
+  localStorage.setItem('crm_notifs_read', JSON.stringify(notifsRead))
+  document.getElementById('notif-badge')?.classList.add('hidden')
+  document.querySelectorAll('.notif-item').forEach(i => i.classList.remove('unread'))
+}
+
+function timeAgo(iso) {
+  if (!iso) return ''
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000
+  if (diff < 60)    return 'agora'
+  if (diff < 3600)  return `${Math.floor(diff/60)}min atrás`
+  if (diff < 86400) return `${Math.floor(diff/3600)}h atrás`
+  return `${Math.floor(diff/86400)}d atrás`
+}
+
+async function initNotifBadge() {
+  let query = supabase.from('leads').select('id').order('created_at', { ascending: false }).limit(20)
+  if (currentProfile?.tenant_id) query = query.eq('tenant_id', currentProfile.tenant_id)
+  const { data } = await query
+  const leads = data || []
+  const unread = leads.filter(l => !notifsRead.includes(String(l.id)))
+  const badge = document.getElementById('notif-badge')
+  if (badge) {
+    badge.textContent = unread.length
+    unread.length > 0 ? badge.classList.remove('hidden') : badge.classList.add('hidden')
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1836,6 +2436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       applyRolePermissions(currentProfile.role)
       await initSettings(currentProfile)
       if (window.lucide) lucide.createIcons()
+      initNotifBadge()
     } else {
       if (adminRoot) adminRoot.classList.add('hidden')
       loginModal.classList.remove('hidden')
