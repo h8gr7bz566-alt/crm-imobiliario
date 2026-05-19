@@ -425,7 +425,13 @@ let activeFilters = {}
 let currentPropertyId = null
 
 // ── utils ──
-const fmtPrice = v => v ? 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0 }) : '—'
+const fmtPrice = v => {
+  if (!v) return '—'
+  // Remove pontos de milhar e troca vírgula por ponto para parse correto
+  const n = parseFloat(String(v).replace(/\./g,'').replace(',','.'))
+  if (isNaN(n)) return 'R$ ' + v
+  return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 0 })
+}
 const fmtArea  = v => v ? v + ' m²' : ''
 
 function typeTag(type) {
