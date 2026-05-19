@@ -268,7 +268,8 @@
 <!-- ──────── HEADER ──────── -->
 <header>
   <a class="logo" href="#">
-    <svg class="logo-icon" viewBox="0 0 28 28" fill="none">
+    <img id="logo-img" src="" alt="Logo" style="display:none;height:38px;max-width:140px;object-fit:contain;">
+    <svg id="logo-svg" class="logo-icon" viewBox="0 0 28 28" fill="none">
       <rect x="2"  y="8"  width="7" height="18" rx="1.5" fill="#c9a84c"/>
       <rect x="11" y="4"  width="7" height="22" rx="1.5" fill="#c9a84c"/>
       <rect x="20" y="11" width="6" height="15" rx="1.5" fill="#c9a84c"/>
@@ -483,24 +484,54 @@ async function loadSettings() {
     const email   = s['company.email']   || ''
     const city    = s['company.city']    || ''
     const wa      = WHATSAPP || (s['company.whatsapp'] || '').replace(/\D/g,'')
+    const logoUrl = s['company.logo_url'] || ''
+    const heroBg  = s['visual.hero_bg_url'] || ''
+    const accent  = s['visual.accent_color'] || ''
+    const dark    = s['visual.primary_bg']   || ''
+    const dark2   = s['visual.secondary_bg'] || ''
 
     document.title = name + ' — Imóveis'
-    document.getElementById('company-name').textContent  = name
+    document.getElementById('company-name').textContent   = name
     document.getElementById('company-slogan').textContent = slogan
-    document.getElementById('hero-title').textContent    = 'Encontre o imóvel ideal em ' + (city || 'nossa cidade')
-    document.getElementById('footer-name').textContent   = name
+    document.getElementById('hero-title').textContent     = 'Encontre o imóvel ideal em ' + (city || 'nossa cidade')
+    document.getElementById('footer-name').textContent    = name
     document.getElementById('footer-company').textContent = name
     if (phone) document.getElementById('footer-phone').textContent = '📞 ' + phone
     if (email) { const el = document.getElementById('footer-email'); el.textContent = '✉ ' + email; el.href = 'mailto:' + email }
     if (city)  document.getElementById('footer-city').textContent  = '📍 ' + city
 
+    // Logo image
+    if (logoUrl) {
+      const imgEl = document.getElementById('logo-img')
+      const svgEl = document.getElementById('logo-svg')
+      if (imgEl) { imgEl.src = logoUrl; imgEl.style.display = 'block' }
+      if (svgEl)   svgEl.style.display = 'none'
+      // Also hide text name next to logo (company name rendered in img)
+    }
+
+    // Hero background image
+    if (heroBg) {
+      const heroEl = document.querySelector('.hero')
+      if (heroEl) {
+        heroEl.style.backgroundImage = `url('${heroBg}')`
+        heroEl.style.backgroundSize  = 'cover'
+        heroEl.style.backgroundPosition = 'center'
+        heroEl.style.backgroundRepeat = 'no-repeat'
+      }
+    }
+
+    // Brand colors
+    const root = document.documentElement
+    if (accent) root.style.setProperty('--accent', accent)
+    if (dark)   root.style.setProperty('--dark',   dark)
+    if (dark2)  root.style.setProperty('--dark2',  dark2)
+
+    // WhatsApp
     waNumber = wa
     if (wa) {
       const fab = document.getElementById('whatsapp-fab')
       fab.href = 'https://wa.me/' + wa
       fab.style.display = 'flex'
-
-      // Botão na seção de contato
       const waDivider = document.getElementById('wa-divider')
       const waBtn     = document.getElementById('wa-contact-btn')
       if (waDivider) waDivider.style.display = 'block'
