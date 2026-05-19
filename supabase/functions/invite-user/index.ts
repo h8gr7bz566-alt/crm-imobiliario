@@ -99,19 +99,40 @@ Deno.serve(async (req: Request) => {
     }
 
     // Enviar email com as credenciais de acesso via Resend
-    const loginUrl = 'https://omarcorretor.com.br/admin.html'
+    const loginUrl  = 'https://omarcorretor.com.br/admin.html'
+    const crmName   = 'IOS imobi - Gerenciamento de Imóveis'
     const emailHtml = [
-      '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">',
-      '<h2 style="color:#1a1a2e;">Bem-vindo ao CRM Omar Corretor!</h2>',
-      '<p>Seu acesso foi criado. Use as credenciais abaixo para entrar no sistema:</p>',
-      '<div style="background:#f5f5f5;border-radius:8px;padding:16px;margin:16px 0;">',
-      '<p style="margin:4px 0;"><strong>E-mail:</strong> ' + email + '</p>',
-      '<p style="margin:4px 0;"><strong>Senha:</strong> ' + password + '</p>',
+      '<div style="font-family:\'Segoe UI\',Arial,sans-serif;max-width:580px;margin:0 auto;padding:0;background:#f4f5f7;border-radius:12px;overflow:hidden;">',
+
+      // Header
+      '<div style="background:linear-gradient(135deg,#0a1628 0%,#1a2f4a 100%);padding:32px 32px 24px;text-align:center;">',
+      '<div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:8px;">',
+      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="8" width="7" height="18" rx="1.5" fill="#c9a84c"/><rect x="11" y="4" width="7" height="22" rx="1.5" fill="#c9a84c"/><rect x="20" y="11" width="6" height="15" rx="1.5" fill="#c9a84c"/></svg>',
+      '<span style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">' + crmName.split(' - ')[0] + '</span>',
       '</div>',
-      '<a href="' + loginUrl + '" style="display:inline-block;background:#b8962e;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin:16px 0;">Acessar o CRM</a>',
-      '<p style="color:#999;font-size:12px;margin-top:16px;">Recomendamos alterar sua senha apos o primeiro acesso.</p>',
-      '<hr style="border:none;border-top:1px solid #eee;margin:24px 0;">',
-      '<p style="color:#999;font-size:12px;">Omar Corretor de Imoveis - CRECI 69965F</p>',
+      '<p style="color:#94a3b8;font-size:13px;margin:0;">' + crmName.split(' - ')[1] + '</p>',
+      '</div>',
+
+      // Body
+      '<div style="background:#ffffff;padding:32px;">',
+      '<h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 8px;">Bem-vindo ao ' + crmName.split(' - ')[0] + '!</h2>',
+      '<p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 24px;">Seu acesso foi criado. Use as credenciais abaixo para entrar no sistema:</p>',
+
+      '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:24px;">',
+      '<p style="margin:0 0 10px;font-size:14px;color:#334155;"><strong>E-mail:</strong> <span style="color:#2563eb;">' + email + '</span></p>',
+      '<p style="margin:0;font-size:14px;color:#334155;"><strong>Senha:</strong> <span style="font-family:monospace;background:#f1f5f9;padding:2px 8px;border-radius:4px;">' + password + '</span></p>',
+      '</div>',
+
+      '<a href="' + loginUrl + '" style="display:inline-block;background:#c9a84c;color:#fff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;margin-bottom:24px;">Acessar o CRM →</a>',
+
+      '<p style="color:#94a3b8;font-size:13px;margin:0;">Recomendamos alterar sua senha após o primeiro acesso.</p>',
+      '</div>',
+
+      // Footer
+      '<div style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;text-align:center;">',
+      '<p style="color:#94a3b8;font-size:12px;margin:0;">' + crmName + '</p>',
+      '</div>',
+
       '</div>',
     ].join('')
 
@@ -122,9 +143,9 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Omar Corretor <noreply@omarcorretor.com.br>',
+        from: 'IOS imobi <noreply@omarcorretor.com.br>',
         to: email,
-        subject: 'Seu acesso ao CRM - Omar Corretor',
+        subject: 'Seu acesso ao CRM - IOS imobi',
         html: emailHtml,
       })
     })
