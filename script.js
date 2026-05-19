@@ -5,7 +5,6 @@ import {
   saveMultipleSettings, saveSetting, saveContent, saveIntegration,
   applyVisualSettings, applyDynamicContent, applyWhatsAppLinks
 } from './lib/settings.js'
-import { initEditMode } from './lib/editmode.js'
 
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
@@ -804,26 +803,34 @@ function renderViewGallery() {
   })
 }
 
-// ─── Profile: load, sidebar, permissions ─────────────────────────────────────
+// ─── Profile: load, topnav, permissions ──────────────────────────────────────
 async function loadProfile(userId) {
   const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
   return data
 }
 
 function renderSidebarUser(profile) {
-  const imgEl     = document.getElementById('sidebar-avatar')
-  const initEl    = document.getElementById('sidebar-avatar-initial')
-  const nameEl    = document.getElementById('sidebar-name')
-  const roleEl    = document.getElementById('sidebar-role')
+  // Updated to use topnav IDs (sidebar-* IDs removed)
+  const initEl    = document.getElementById('topnav-avatar-initial')
+  const nameEl    = document.getElementById('topnav-name')
+  const roleEl    = document.getElementById('topnav-role')
   if (!nameEl) return
   const name = profile?.name || 'Sem nome'
   nameEl.textContent = name
-  roleEl.textContent = profile?.role === 'super_admin' ? 'Super Admin' : profile?.role === 'admin' ? 'Administrador' : 'Corretor'
+  if (roleEl) roleEl.textContent = profile?.role === 'super_admin' ? 'Super Admin' : profile?.role === 'admin' ? 'Administrador' : 'Corretor'
   if (initEl) initEl.textContent = name[0]?.toUpperCase() || '?'
-  if (imgEl && profile?.avatar_url) {
-    imgEl.src = profile.avatar_url; imgEl.style.display = ''
-    if (initEl) initEl.style.display = 'none'
-  }
+}
+
+// Helper: navigate to a section by name
+function navigateToSection(sectionName) {
+  document.querySelectorAll('.topnav-link, .topnav-dropdown-item').forEach(b => b.classList.remove('active'))
+  const btn = document.querySelector(`.topnav-link[data-section="${sectionName}"], .topnav-dropdown-item[data-section="${sectionName}"]`)
+  if (btn) btn.classList.add('active')
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'))
+  document.getElementById(`section-${sectionName}`)?.classList.remove('hidden')
+  // Close mobile menu
+  document.getElementById('topnav-links')?.classList.remove('open')
+  if (sectionName === 'contatos') initContatosSection()
 }
 
 function applyRolePermissions(role) {
@@ -841,34 +848,316 @@ function applyRolePermissions(role) {
       'midia':        initMidiaSection,
     }
     Object.entries(adminSections).forEach(([name, fn]) => {
-      const btn = document.querySelector(`.nav-item[data-section="${name}"]`)
+      // Support both old .nav-item and new .topnav-dropdown-item selectors
+      const btn = document.querySelector(`.topnav-dropdown-item[data-section="${name}"]`)
+        || document.querySelector(`.nav-item[data-section="${name}"]`)
       if (btn) btn.addEventListener('click', () => fn(), { once: true })
     })
+    // Re-run lucide icons after showing admin-only elements
+    if (window.lucide) lucide.createIcons()
   }
 
   if (role === 'super_admin') {
     document.querySelectorAll('.super-admin-only').forEach(el => { el.style.display = '' })
-    const btn = document.querySelector('.nav-item[data-section="super-admin"]')
+    const btn = document.querySelector('.topnav-link[data-section="super-admin"]')
+      || document.querySelector('.nav-item[data-section="super-admin"]')
     if (btn) btn.addEventListener('click', () => initSuperAdminSection(), { once: true })
+    if (window.lucide) lucide.createIcons()
   }
 }
 
-// Clicar no avatar/nome da sidebar abre Configurações
+// Clicking on topnav user area opens Settings
 function attachSidebarUserClick() {
-  const sidebarUser = document.getElementById('sidebar-user')
-  if (!sidebarUser) return
-  sidebarUser.addEventListener('click', () => {
-    // Ativa a seção de configurações
-    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'))
-    const settingsBtn = document.querySelector('.nav-item[data-section="settings"]')
-    if (settingsBtn) settingsBtn.classList.add('active')
-    document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'))
-    const settingsSection = document.getElementById('section-settings')
-    if (settingsSection) settingsSection.classList.remove('hidden')
-    // Fechar sidebar no mobile
-    document.getElementById('admin-sidebar')?.classList.remove('open')
-    document.getElementById('sidebar-overlay')?.classList.remove('active')
+  const topnavUser = document.getElementById('topnav-user')
+  if (!topnavUser) return
+  topnavUser.addEventListener('click', () => navigateToSection('settings'))
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEÇÃO CONTATOS
+// SQL necessário (rodar no Supabase SQL Editor):
+// ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS company text;
+// ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS job_title text;
+// ═══════════════════════════════════════════════════════════════════
+
+let allContatos = []
+let contatosPage = 1
+const CONTATOS_PER_PAGE = 10
+let contatosInitialized = false
+
+async function initContatosSection() {
+  const sec = document.getElementById('section-contatos')
+  if (!sec) return
+  if (contatosInitialized) return
+  contatosInitialized = true
+
+  await loadContatos()
+
+  document.getElementById('btn-contato-search')?.addEventListener('click', () => {
+    contatosPage = 1
+    renderContatos()
   })
+  document.getElementById('contato-search')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { contatosPage = 1; renderContatos() }
+  })
+  document.getElementById('btn-novo-contato')?.addEventListener('click', () => openContatoModal())
+  document.getElementById('btn-import-contato')?.addEventListener('click', openImportModal)
+  document.getElementById('import-modal-close')?.addEventListener('click', closeImportModal)
+  document.getElementById('import-modal-cancel')?.addEventListener('click', closeImportModal)
+  document.getElementById('download-template')?.addEventListener('click', e => {
+    e.preventDefault()
+    const csv = 'nome,email,telefone,empresa,cargo\nJoão Silva,joao@email.com,(47)99999-0000,Imobiliária ABC,Diretor'
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'modelo_contatos.csv'; a.click()
+  })
+  document.getElementById('import-csv-file')?.addEventListener('change', onCSVSelected)
+  document.getElementById('import-modal-confirm')?.addEventListener('click', importCSV)
+}
+
+async function loadContatos() {
+  const tbody = document.getElementById('contatos-tbody')
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Carregando…</td></tr>'
+
+  let query = supabase.from('leads').select('*').order('created_at', { ascending: false })
+
+  const role = currentProfile?.role
+  if (role === 'corretor') {
+    query = query.eq('assigned_to', currentProfile.id)
+  } else {
+    if (currentProfile?.tenant_id) query = query.eq('tenant_id', currentProfile.tenant_id)
+  }
+
+  const { data } = await query
+  allContatos = data || []
+  renderContatos()
+}
+
+function renderContatos() {
+  const search = (document.getElementById('contato-search')?.value || '').toLowerCase()
+  const filtered = search
+    ? allContatos.filter(c =>
+        (c.name || '').toLowerCase().includes(search) ||
+        (c.email || '').toLowerCase().includes(search) ||
+        (c.phone || '').toLowerCase().includes(search)
+      )
+    : allContatos
+
+  const total = filtered.length
+  const totalPages = Math.max(1, Math.ceil(total / CONTATOS_PER_PAGE))
+  if (contatosPage > totalPages) contatosPage = totalPages
+  const slice = filtered.slice((contatosPage - 1) * CONTATOS_PER_PAGE, contatosPage * CONTATOS_PER_PAGE)
+
+  const tbody = document.getElementById('contatos-tbody')
+  if (!tbody) return
+
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Nenhum contato encontrado.</td></tr>'
+  } else {
+    tbody.innerHTML = slice.map(c => `
+      <tr>
+        <td><input type="checkbox" class="contato-check" data-id="${c.id}"></td>
+        <td>
+          <a href="#" class="contato-name-link" data-id="${c.id}" style="color:#2563eb;font-weight:500;text-decoration:none;">${escapeHTML(c.name || '—')}</a>
+        </td>
+        <td>${escapeHTML(c.company || '')}</td>
+        <td style="color:#64748b;font-size:13px;">${c.email ? escapeHTML(c.email) : '—'}</td>
+        <td style="font-size:13px;">${c.phone ? escapeHTML(c.phone) : '—'}</td>
+        <td style="font-size:13px;color:#64748b;">${escapeHTML(c.job_title || '')}</td>
+        <td style="text-align:center;">
+          <span style="background:#eff6ff;color:#2563eb;border-radius:12px;padding:2px 8px;font-size:12px;font-weight:600;">0</span>
+        </td>
+        <td>
+          <button class="icon-btn contato-edit-btn" data-id="${c.id}" title="Editar" style="color:#64748b;">
+            ✏️
+          </button>
+        </td>
+      </tr>
+    `).join('')
+  }
+
+  // Pagination
+  const pag = document.getElementById('contatos-pagination')
+  if (pag) {
+    const from = total === 0 ? 0 : (contatosPage - 1) * CONTATOS_PER_PAGE + 1
+    const to = Math.min(contatosPage * CONTATOS_PER_PAGE, total)
+    pag.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-size:13px;color:#64748b;">
+        <span>Exibindo <strong>${from}–${to}</strong> de <strong>${total}</strong> contatos</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-cancel" id="pag-prev" ${contatosPage <= 1 ? 'disabled' : ''} style="padding:4px 12px;font-size:13px;">Anterior</button>
+          <span style="padding:4px 8px;">${contatosPage} / ${totalPages}</span>
+          <button class="btn-cancel" id="pag-next" ${contatosPage >= totalPages ? 'disabled' : ''} style="padding:4px 12px;font-size:13px;">Próxima</button>
+        </div>
+      </div>
+    `
+    pag.querySelector('#pag-prev')?.addEventListener('click', () => { contatosPage--; renderContatos() })
+    pag.querySelector('#pag-next')?.addEventListener('click', () => { contatosPage++; renderContatos() })
+  }
+
+  // Bind edit buttons + name links
+  document.querySelectorAll('.contato-edit-btn, .contato-name-link').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault()
+      const id = btn.dataset.id
+      const c = allContatos.find(x => String(x.id) === String(id))
+      if (c) openContatoModal(c)
+    })
+  })
+}
+
+function openContatoModal(contato = null) {
+  const existing = document.getElementById('contato-modal-root')
+  if (existing) existing.remove()
+
+  const isEdit = !!contato
+  const wrap = document.createElement('div')
+  wrap.id = 'contato-modal-root'
+  wrap.className = 'modal-backdrop'
+  wrap.innerHTML = `
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header">
+        <h3>${isEdit ? 'Editar Contato' : 'Novo Contato'}</h3>
+        <button class="modal-close" id="cm-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="contato-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nome *</label>
+              <input name="name" required class="form-control" placeholder="Nome completo" value="${escapeHTML(contato?.name || '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Empresa</label>
+              <input name="company" class="form-control" placeholder="Nome da empresa" value="${escapeHTML(contato?.company || '')}">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">E-mail</label>
+              <input name="email" type="email" class="form-control" placeholder="email@exemplo.com" value="${escapeHTML(contato?.email || '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Telefone</label>
+              <input name="phone" class="form-control" placeholder="(47) 99999-0000" value="${escapeHTML(contato?.phone || '')}">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cargo</label>
+              <input name="job_title" class="form-control" placeholder="Ex: Diretor, Investidor…" value="${escapeHTML(contato?.job_title || '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cidade de Interesse</label>
+              <input name="city_interest" class="form-control" placeholder="Ex: Balneário Camboriú" value="${escapeHTML(contato?.city_interest || '')}">
+            </div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Observações</label>
+              <textarea name="notes" class="form-control" rows="3" placeholder="Notas sobre o contato…">${escapeHTML(contato?.notes || '')}</textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="cm-cancel">Cancelar</button>
+        <button class="btn-primary" id="cm-save" style="margin:0;">${isEdit ? 'Salvar' : 'Criar Contato'}</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(wrap)
+  const close = () => wrap.remove()
+  document.getElementById('cm-close')?.addEventListener('click', close)
+  document.getElementById('cm-cancel')?.addEventListener('click', close)
+  wrap.addEventListener('click', e => { if (e.target === wrap) close() })
+
+  document.getElementById('cm-save')?.addEventListener('click', async () => {
+    const form = document.getElementById('contato-form')
+    if (!form.checkValidity()) { form.reportValidity(); return }
+    const fd = new FormData(form)
+    const btn = document.getElementById('cm-save')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+
+    const payload = {
+      name:          fd.get('name')?.trim(),
+      company:       fd.get('company')?.trim() || null,
+      email:         fd.get('email')?.trim() || null,
+      phone:         fd.get('phone')?.trim() || null,
+      job_title:     fd.get('job_title')?.trim() || null,
+      city_interest: fd.get('city_interest')?.trim() || null,
+      notes:         fd.get('notes')?.trim() || null,
+      stage:         contato?.stage || 'novo',
+      assigned_to:   currentProfile?.id || null,
+      tenant_id:     currentProfile?.tenant_id || null,
+      source:        'manual',
+    }
+
+    let error
+    if (isEdit) {
+      ;({ error } = await supabase.from('leads').update(payload).eq('id', contato.id))
+      if (!error) {
+        const idx = allContatos.findIndex(c => String(c.id) === String(contato.id))
+        if (idx >= 0) allContatos[idx] = { ...allContatos[idx], ...payload }
+      }
+    } else {
+      const { data, error: e } = await supabase.from('leads').insert(payload).select()
+      error = e
+      if (!error && data?.[0]) allContatos.unshift(data[0])
+    }
+
+    btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Criar Contato'
+    if (error) { alert('Erro: ' + error.message); return }
+    close()
+    renderContatos()
+  })
+}
+
+let csvRows = []
+function onCSVSelected(e) {
+  const file = e.target.files[0]; if (!file) return
+  const reader = new FileReader()
+  reader.onload = ev => {
+    const lines = ev.target.result.split('\n').filter(l => l.trim())
+    csvRows = lines.slice(1).map(line => {
+      const [nome, email, telefone, empresa, cargo] = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''))
+      return { name: nome, email, phone: telefone, company: empresa, job_title: cargo }
+    }).filter(r => r.name)
+    const preview = document.getElementById('import-preview')
+    if (preview) preview.textContent = `${csvRows.length} contato(s) encontrados para importar.`
+    const btn = document.getElementById('import-modal-confirm')
+    if (btn) btn.disabled = csvRows.length === 0
+  }
+  reader.readAsText(file)
+}
+
+async function importCSV() {
+  if (!csvRows.length) return
+  const btn = document.getElementById('import-modal-confirm')
+  if (btn) { btn.disabled = true; btn.textContent = 'Importando…' }
+  const rows = csvRows.map(r => ({
+    ...r,
+    stage: 'novo', source: 'importado',
+    assigned_to: currentProfile?.id || null,
+    tenant_id: currentProfile?.tenant_id || null,
+  }))
+  const { error } = await supabase.from('leads').insert(rows)
+  if (btn) { btn.disabled = false; btn.textContent = 'Importar' }
+  if (error) { alert('Erro na importação: ' + error.message); return }
+  closeImportModal()
+  await loadContatos()
+  alert(`${rows.length} contato(s) importados com sucesso!`)
+}
+
+function openImportModal() {
+  const m = document.getElementById('import-modal')
+  if (m) m.classList.remove('hidden')
+  csvRows = []
+  const prev = document.getElementById('import-preview'); if (prev) prev.textContent = ''
+  const btn = document.getElementById('import-modal-confirm'); if (btn) btn.disabled = true
+  const fi = document.getElementById('import-csv-file'); if (fi) fi.value = ''
+}
+function closeImportModal() {
+  const m = document.getElementById('import-modal'); if (m) m.classList.add('hidden')
 }
 
 // ─── Edge Function helper ────────────────────────────────────────────────────
@@ -1235,30 +1524,24 @@ function attachAdminUI() {
     renderAdminTable(cachedProperties)
   })
 
-  // Sidebar navigation
-  document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+  // Top nav navigation — main links and dropdown items
+  document.querySelectorAll('.topnav-link[data-section], .topnav-dropdown-item[data-section]').forEach(item => {
     item.addEventListener('click', () => {
-      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-      item.classList.add('active')
-      document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'))
-      document.getElementById(`section-${item.dataset.section}`)?.classList.remove('hidden')
-      // Funil de Vendas: carrega sob demanda
-      const section = item.dataset.section
-      if (section === 'funil' && !document.getElementById('section-funil')?.dataset.loaded) {
-        initFunilSection()
-      }
-      // Re-inicializa ícones Lucide após trocar de seção
-      if (window.lucide) lucide.createIcons()
+      navigateToSection(item.dataset.section)
     })
   })
 
-  // Mobile sidebar toggle
-  const sidebar  = document.getElementById('admin-sidebar')
-  const overlay  = document.getElementById('sidebar-overlay')
-  const toggle   = document.getElementById('sidebar-toggle')
-  const closeSb  = () => { sidebar?.classList.remove('open'); overlay?.classList.remove('open') }
-  toggle?.addEventListener('click', () => { sidebar?.classList.toggle('open'); overlay?.classList.toggle('open') })
-  overlay?.addEventListener('click', closeSb)
+  // Legacy: keep .nav-item[data-section] support in case any are still in DOM
+  document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+    item.addEventListener('click', () => {
+      navigateToSection(item.dataset.section)
+    })
+  })
+
+  // Mobile hamburger toggle
+  const topnavLinks = document.getElementById('topnav-links')
+  const hamburger   = document.getElementById('topnav-hamburger')
+  hamburger?.addEventListener('click', () => { topnavLinks?.classList.toggle('open') })
 
   // Modal close
   document.getElementById('modal-close')?.addEventListener('click', closeModal)
@@ -1498,6 +1781,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       attachAdminForm()
       attachAdminUI()
       attachSidebarUserClick()
+      if (window.lucide) lucide.createIcons()
 
       currentProfile = await loadProfile(session.user.id)
       if (!currentProfile) {
@@ -1551,6 +1835,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderSidebarUser(currentProfile)
       applyRolePermissions(currentProfile.role)
       await initSettings(currentProfile)
+      if (window.lucide) lucide.createIcons()
     } else {
       if (adminRoot) adminRoot.classList.add('hidden')
       loginModal.classList.remove('hidden')
@@ -1582,6 +1867,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             await renderAdmin()
             attachAdminForm()
             attachAdminUI()
+            if (window.lucide) lucide.createIcons()
 
             const { data: { session: s2 } } = await supabase.auth.getSession()
             currentProfile = s2 ? await loadProfile(s2.user.id) : null
@@ -1599,6 +1885,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderSidebarUser(currentProfile)
             applyRolePermissions(currentProfile.role)
             await initSettings(currentProfile)
+            if (window.lucide) lucide.createIcons()
           } else {
             alert('E-mail ou senha incorretos')
           }
@@ -1616,11 +1903,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const lang = (() => { try { return localStorage.getItem('lang') || 'pt' } catch(e) { return 'pt' } })()
   applyDynamicContent(lang)
   applyWhatsAppLinks(WHATSAPP_NUMBER)
-
-  // Modo de edição visual — ativado com ?edit=1 por admins
-  if (new URLSearchParams(location.search).get('edit') === '1') {
-    initEditMode()
-  }
 })
 
 
@@ -2678,13 +2960,7 @@ async function initSuperAdminSection() {
 
   sec.innerHTML = `
     <div class="cfg-card">
-      <div class="cfg-card-title" style="display:flex;align-items:center;justify-content:space-between;">
-        <span>⚡ Painel Global da Plataforma</span>
-        <button id="sa-edit-site-btn" style="display:flex;align-items:center;gap:6px;background:#b8962e;color:#0f1c2e;border:none;padding:7px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Editar Site
-        </button>
-      </div>
+      <div class="cfg-card-title">⚡ Painel Global da Plataforma</div>
       <div class="sa-tabs">
         <button class="sa-tab active" data-tab="tenants">🏢 Imobiliárias</button>
         <button class="sa-tab" data-tab="plans">📦 Planos</button>
@@ -2779,9 +3055,6 @@ async function initSuperAdminSection() {
     })
   })
 
-  sec.querySelector('#sa-edit-site-btn')?.addEventListener('click', () => {
-    window.open(location.origin + '/?edit=1', '_blank')
-  })
   sec.querySelector('#sa-sub-filter')?.addEventListener('change', loadSASubscriptions)
   sec.querySelector('#sa-tenant-search')?.addEventListener('input', loadSATenants)
   sec.querySelector('#sa-user-search')?.addEventListener('input', loadSAUsers)
@@ -2953,354 +3226,6 @@ async function savePlatformSettings() {
   ])
   if (btn) { btn.disabled = false; btn.textContent = 'Salvar Configurações' }
   showSaveMsg(msg, true)
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// FUNIL DE VENDAS — KANBAN
-// ═══════════════════════════════════════════════════════════════════
-
-const KANBAN_STAGES = [
-  { key: 'novo',      label: 'Novo',             color: '#6366f1' },
-  { key: 'contato',   label: 'Contato Feito',    color: '#3b82f6' },
-  { key: 'visita',    label: 'Visita Agendada',  color: '#f59e0b' },
-  { key: 'proposta',  label: 'Proposta Enviada', color: '#8b5cf6' },
-  { key: 'negociacao',label: 'Negociação',        color: '#f97316' },
-  { key: 'ganho',     label: 'Fechado Ganho',    color: '#10b981' },
-  { key: 'perdido',   label: 'Fechado Perdido',  color: '#6b7280' },
-]
-
-function formatLeadValue(v) {
-  if (!v) return ''
-  const n = parseFloat(String(v).replace(/[^\d,\.]/g, '').replace(',', '.'))
-  if (isNaN(n)) return ''
-  return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
-
-function formatLeadDate(d) {
-  if (!d) return ''
-  const dt = new Date(d)
-  return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
-}
-
-async function initFunilSection() {
-  const sec = document.getElementById('section-funil')
-  if (!sec || sec.dataset.loaded) return
-  sec.dataset.loaded = '1'
-
-  // ── Skeleton inicial ─────────────────────────────────────────────
-  sec.innerHTML = `
-    <div class="section-topbar">
-      <div>
-        <div class="section-title">Funil de Vendas</div>
-        <div class="section-sub">Gerencie seus leads em pipeline visual</div>
-      </div>
-      <button id="btn-novo-lead" class="btn-primary">+ Novo Lead</button>
-    </div>
-    <div class="funil-kpi-bar" id="funil-kpi-bar">
-      <div class="funil-kpi-card"><div class="funil-kpi-label">Total de Leads</div><div class="funil-kpi-value" id="kpi-total">—</div></div>
-      <div class="funil-kpi-card"><div class="funil-kpi-label">Fechados Ganhos</div><div class="funil-kpi-value kpi-ganhos" id="kpi-ganhos">—</div></div>
-      <div class="funil-kpi-card"><div class="funil-kpi-label">Fechados Perdidos</div><div class="funil-kpi-value kpi-perdidos" id="kpi-perdidos">—</div></div>
-    </div>
-    <div class="kanban-board" id="kanban-board">
-      ${KANBAN_STAGES.map(s => `
-        <div class="kanban-col" data-stage="${s.key}" id="col-${s.key}">
-          <div class="kanban-col-header">
-            <div class="kanban-col-title-row">
-              <div class="kanban-col-dot" style="background:${s.color}"></div>
-              <span class="kanban-col-name">${s.label}</span>
-              <span class="kanban-col-count" id="count-${s.key}">0</span>
-            </div>
-          </div>
-          <div class="kanban-cards" id="cards-${s.key}" data-stage="${s.key}">
-            <div class="kanban-empty">Carregando…</div>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `
-
-  // ── Carregar leads ───────────────────────────────────────────────
-  await loadAndRenderKanban()
-
-  // ── Drag & Drop ──────────────────────────────────────────────────
-  attachKanbanDragDrop()
-
-  // ── Botão Novo Lead ──────────────────────────────────────────────
-  document.getElementById('btn-novo-lead')?.addEventListener('click', () => openLeadModal())
-}
-
-let allLeads = []
-
-async function loadAndRenderKanban() {
-  let query = supabase.from('leads').select('*, profiles(name)').order('created_at', { ascending: false })
-
-  // Filtro por role
-  if (currentProfile?.role === 'corretor') {
-    query = query.eq('assigned_to', currentProfile.id)
-  } else if (currentProfile?.tenant_id) {
-    query = query.eq('tenant_id', currentProfile.tenant_id)
-  }
-
-  const { data, error } = await query
-  if (error) {
-    console.error('Kanban load error:', error)
-    allLeads = []
-  } else {
-    allLeads = data || []
-  }
-
-  renderKanban(allLeads)
-}
-
-function renderKanban(leads) {
-  // KPIs
-  const total   = leads.length
-  const ganhos  = leads.filter(l => l.stage === 'ganho').length
-  const perdidos = leads.filter(l => l.stage === 'perdido').length
-  const kpiTotal = document.getElementById('kpi-total')
-  const kpiGanhos = document.getElementById('kpi-ganhos')
-  const kpiPerdidos = document.getElementById('kpi-perdidos')
-  if (kpiTotal)    kpiTotal.textContent   = total
-  if (kpiGanhos)   kpiGanhos.textContent  = ganhos
-  if (kpiPerdidos) kpiPerdidos.textContent = perdidos
-
-  // Colunas
-  KANBAN_STAGES.forEach(stage => {
-    const stageLeads = leads.filter(l => (l.stage || 'novo') === stage.key)
-    const countEl    = document.getElementById(`count-${stage.key}`)
-    const cardsEl    = document.getElementById(`cards-${stage.key}`)
-    if (countEl) countEl.textContent = stageLeads.length
-    if (!cardsEl) return
-
-    if (!stageLeads.length) {
-      cardsEl.innerHTML = '<div class="kanban-empty">Sem leads</div>'
-      return
-    }
-
-    cardsEl.innerHTML = stageLeads.map(lead => {
-      const corretor = lead.profiles?.name || ''
-      const canDelete = currentProfile?.role === 'admin' || currentProfile?.role === 'super_admin'
-      return `
-        <div class="kanban-card" draggable="true" data-id="${lead.id}" data-stage="${lead.stage || 'novo'}">
-          ${canDelete ? `<button class="kanban-card-delete" data-id="${lead.id}" title="Remover lead">✕</button>` : ''}
-          <div class="kanban-card-name">${escapeHTML(lead.name || '—')}</div>
-          ${lead.interest ? `<div class="kanban-card-prop">🏠 ${escapeHTML(lead.interest)}</div>` : ''}
-          ${lead.budget_max ? `<div class="kanban-card-value">${escapeHTML(formatLeadValue(lead.budget_max))}</div>` : ''}
-          <div class="kanban-card-meta">
-            <span class="kanban-card-date">${formatLeadDate(lead.created_at)}</span>
-            ${corretor ? `<span class="kanban-card-corretor">${escapeHTML(corretor)}</span>` : ''}
-          </div>
-        </div>
-      `
-    }).join('')
-
-    // Delete buttons
-    cardsEl.querySelectorAll('.kanban-card-delete').forEach(btn => {
-      btn.addEventListener('click', async e => {
-        e.stopPropagation()
-        const id = btn.dataset.id
-        if (!confirm('Remover este lead?')) return
-        const { error } = await supabase.from('leads').delete().eq('id', id)
-        if (error) { alert('Erro ao remover: ' + error.message); return }
-        allLeads = allLeads.filter(l => String(l.id) !== String(id))
-        renderKanban(allLeads)
-      })
-    })
-  })
-}
-
-function attachKanbanDragDrop() {
-  let draggedId   = null
-  let draggedStage = null
-
-  const board = document.getElementById('kanban-board')
-  if (!board) return
-
-  board.addEventListener('dragstart', e => {
-    const card = e.target.closest('.kanban-card')
-    if (!card) return
-    draggedId    = card.dataset.id
-    draggedStage = card.dataset.stage
-    card.classList.add('dragging')
-    e.dataTransfer.effectAllowed = 'move'
-  })
-
-  board.addEventListener('dragend', e => {
-    const card = e.target.closest('.kanban-card')
-    if (card) card.classList.remove('dragging')
-    document.querySelectorAll('.kanban-col').forEach(col => col.classList.remove('drag-over'))
-  })
-
-  board.addEventListener('dragover', e => {
-    e.preventDefault()
-    const col = e.target.closest('.kanban-col')
-    if (!col) return
-    document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'))
-    col.classList.add('drag-over')
-  })
-
-  board.addEventListener('dragleave', e => {
-    const col = e.target.closest('.kanban-col')
-    if (col && !col.contains(e.relatedTarget)) col.classList.remove('drag-over')
-  })
-
-  board.addEventListener('drop', async e => {
-    e.preventDefault()
-    document.querySelectorAll('.kanban-col').forEach(col => col.classList.remove('drag-over'))
-    const col = e.target.closest('.kanban-col')
-    if (!col || !draggedId) return
-    const newStage = col.dataset.stage
-    if (!newStage || newStage === draggedStage) return
-
-    const fromStage = draggedStage
-    // Otimismo local
-    const lead = allLeads.find(l => String(l.id) === String(draggedId))
-    if (lead) lead.stage = newStage
-    renderKanban(allLeads)
-
-    // Persistir no Supabase
-    const { error } = await supabase.from('leads').update({ stage: newStage }).eq('id', draggedId)
-    if (error) {
-      console.error('Kanban update error:', error)
-      if (lead) lead.stage = fromStage
-      renderKanban(allLeads)
-    } else {
-      // Registrar histórico (silencioso)
-      supabase.from('lead_activities').insert({
-        lead_id:    draggedId,
-        action:     'moved',
-        from_stage: fromStage,
-        to_stage:   newStage,
-        user_id:    currentProfile?.id
-      }).then(() => {}).catch(() => {})
-    }
-
-    draggedId    = null
-    draggedStage = null
-  })
-}
-
-async function openLeadModal(lead = null) {
-  const existing = document.getElementById('lead-modal-root')
-  if (existing) existing.remove()
-
-  const isEdit = !!lead
-  const wrap = document.createElement('div')
-  wrap.id = 'lead-modal-root'
-  wrap.className = 'lead-modal-backdrop'
-
-  // Carrega funis disponíveis para o seletor
-  const { data: pipelines } = await supabase.from('crm_pipelines').select('id,name').order('sort_order')
-  const pipeOptions = (pipelines || []).map(p =>
-    `<option value="${p.id}" ${lead?.pipeline_id === p.id ? 'selected' : ''}>${escapeHTML(p.name)}</option>`
-  ).join('')
-  const pipeSelect = pipelines?.length
-    ? `<div class="form-row single">
-        <div class="form-group">
-          <label class="form-label">Funil</label>
-          <select name="pipeline_id" class="form-control">
-            <option value="">Sem funil</option>
-            ${pipeOptions}
-          </select>
-        </div>
-      </div>`
-    : ''
-
-  wrap.innerHTML = `
-    <div class="lead-modal">
-      <div class="modal-header">
-        <h2>${isEdit ? 'Editar Lead' : 'Novo Lead'}</h2>
-        <button class="modal-close" id="lead-modal-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <form id="lead-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Nome *</label>
-              <input name="name" required class="form-control" placeholder="Nome do lead" value="${escapeHTML(lead?.name || '')}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">E-mail</label>
-              <input name="email" type="email" class="form-control" placeholder="email@exemplo.com" value="${escapeHTML(lead?.email || '')}">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Telefone</label>
-              <input name="phone" class="form-control" placeholder="(47) 99999-9999" value="${escapeHTML(lead?.phone || '')}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Valor (R$)</label>
-              <input name="budget_max" type="number" min="0" class="form-control" placeholder="Ex: 850000" value="${escapeHTML(String(lead?.budget_max || ''))}">
-            </div>
-          </div>
-          <div class="form-row single">
-            <div class="form-group">
-              <label class="form-label">Imóvel de Interesse</label>
-              <input name="interest" class="form-control" placeholder="Ex: Apartamento 3 quartos em Balneário Camboriú…" value="${escapeHTML(lead?.interest || '')}">
-            </div>
-          </div>
-          ${pipeSelect}
-          <div class="form-row single">
-            <div class="form-group">
-              <label class="form-label">Observações</label>
-              <textarea name="notes" class="form-control" rows="3" placeholder="Notas sobre o lead…">${escapeHTML(lead?.notes || '')}</textarea>
-            </div>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-cancel" id="lead-modal-cancel">Cancelar</button>
-        <button class="btn-primary" id="lead-modal-save">${isEdit ? 'Salvar Alterações' : 'Criar Lead'}</button>
-      </div>
-    </div>
-  `
-  document.body.appendChild(wrap)
-
-  const close = () => wrap.remove()
-  document.getElementById('lead-modal-close')?.addEventListener('click', close)
-  document.getElementById('lead-modal-cancel')?.addEventListener('click', close)
-  wrap.addEventListener('click', e => { if (e.target === wrap) close() })
-
-  document.getElementById('lead-modal-save')?.addEventListener('click', async () => {
-    const form = document.getElementById('lead-form')
-    if (!form.checkValidity()) { form.reportValidity(); return }
-    const fd = new FormData(form)
-    const btn = document.getElementById('lead-modal-save')
-    btn.disabled = true; btn.textContent = 'Salvando…'
-
-    const pipeVal = fd.get('pipeline_id')
-    const payload = {
-      name:        fd.get('name')?.trim(),
-      email:       fd.get('email')?.trim() || null,
-      phone:       fd.get('phone')?.trim() || null,
-      budget_max:  parseFloat(fd.get('budget_max')) || null,
-      interest:    fd.get('interest')?.trim() || null,
-      notes:       fd.get('notes')?.trim() || null,
-      stage:       lead?.stage || 'novo',
-      pipeline_id: pipeVal ? parseInt(pipeVal) : null,
-      assigned_to: currentProfile?.id || null,
-      tenant_id:   currentProfile?.tenant_id || null,
-    }
-
-    let error
-    if (isEdit) {
-      ;({ error } = await supabase.from('leads').update(payload).eq('id', lead.id))
-      if (!error) {
-        const idx = allLeads.findIndex(l => l.id === lead.id)
-        if (idx >= 0) allLeads[idx] = { ...allLeads[idx], ...payload }
-      }
-    } else {
-      const { data, error: e } = await supabase.from('leads').insert(payload).select('*, profiles(name)')
-      error = e
-      if (!error && data?.[0]) allLeads.unshift(data[0])
-    }
-
-    btn.disabled = false; btn.textContent = isEdit ? 'Salvar Alterações' : 'Criar Lead'
-    if (error) { alert('Erro ao salvar lead: ' + error.message); return }
-    close()
-    renderKanban(allLeads)
-  })
 }
 
 function openNewTenantModal() {
