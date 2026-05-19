@@ -24,7 +24,7 @@ Deno.serve(async (req: Request) => {
     )
 
     const body = await req.json()
-    const { action, email, password, userId, active } = body
+    const { action, email, password, userId, active, role, tenant_id } = body
 
     // ── Toggle ativo/pausado ──────────────────────────────────────────────
     if (action === 'toggle') {
@@ -59,22 +59,19 @@ Deno.serve(async (req: Request) => {
     })
     if (createError) return json({ success: false, error: createError.message })
 
-    // Criar perfil (sem needs_password_reset para evitar erros de coluna inexistente)
-    const { error: profileError } = await supabase.from('profiles').upsert({
+    // Criar/atualizar perfil com role e tenant_id opcionais
+    const profileData: Record<string, unknown> = {
       id: data.user.id,
       name: email,
-      role: 'corretor',
+      role: role || 'corretor',
       active: true,
-    }, { onConflict: 'id' })
+    }
+    if (tenant_id) profileData.tenant_id = tenant_id
+
+    const { error: profileError } = await supabase.from('profiles').upsert(profileData, { onConflict: 'id' })
     if (profileError) {
       console.error('Erro ao criar perfil:', profileError.message)
-      // Tenta insert simples se upsert falhar
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        name: email,
-        role: 'corretor',
-        active: true,
-      }).select()
+      await supabase.from('profiles').insert(profileData).select()
     }
 
     // Enviar email com as credenciais de acesso via Resend
@@ -110,10 +107,11 @@ Deno.serve(async (req: Request) => {
 
     if (!resendRes.ok) {
       const err = await resendRes.text()
-      return json({ success: false, error: 'Erro ao enviar email: ' + err })
+      // Email failed but user was created — return success with user_id
+      console.error('Erro ao enviar email:', err)
     }
 
-    return json({ success: true })
+    return json({ success: true, user_id: data.user.id })
 
   } catch (err) {
     return json({ success: false, error: String(err) }, 500)

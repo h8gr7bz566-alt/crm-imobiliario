@@ -3710,6 +3710,13 @@ async function loadSATenants() {
       loadSATenants()
     })
   })
+
+  list.querySelectorAll('[data-action="edit-tenant"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tenant = (filtered || []).find(t => String(t.id) === String(btn.dataset.id))
+      if (tenant) openEditTenantModal(tenant)
+    })
+  })
 }
 
 async function loadSAPlans() {
@@ -3829,6 +3836,10 @@ async function savePlatformSettings() {
   showSaveMsg(msg, true)
 }
 
+function toSlug(str) {
+  return str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
 function openNewTenantModal() {
   const existing = document.getElementById('sa-new-tenant-modal')
   if (existing) existing.remove()
@@ -3837,12 +3848,14 @@ function openNewTenantModal() {
   modal.id = 'sa-new-tenant-modal'
   modal.className = 'sa-modal-backdrop'
   modal.innerHTML = `
-    <div class="sa-modal">
+    <div class="sa-modal" style="max-width:540px;">
       <div class="sa-modal-header">
         <h3>Nova Imobiliária</h3>
         <button class="sa-modal-close" id="sa-modal-close-btn">✕</button>
       </div>
       <div class="sa-modal-body">
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:10px;">Dados da Imobiliária</div>
         <div class="form-group"><label>Nome da Imobiliária *</label><input id="nt-name" class="form-input" type="text" placeholder="Ex: Imobiliária ABC"></div>
         <div class="form-group"><label>Slug (URL única) *</label><input id="nt-slug" class="form-input" type="text" placeholder="imobiliaria-abc"></div>
         <div class="form-group"><label>Domínio personalizado</label><input id="nt-domain" class="form-input" type="text" placeholder="abc.imobipro.com.br"></div>
@@ -3851,11 +3864,23 @@ function openNewTenantModal() {
             <option value="">Carregando planos…</option>
           </select>
         </div>
+
+        <div style="height:1px;background:#e2e8f0;margin:16px 0;"></div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:10px;">Login do Administrador</div>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px;">O admin desta imobiliária poderá criar e gerenciar os corretores dela.</p>
+        <div class="form-group"><label>E-mail do Admin *</label><input id="nt-admin-email" class="form-input" type="email" placeholder="admin@imobiliariaabc.com.br"></div>
+        <div class="form-group"><label>Senha *</label>
+          <div style="position:relative;">
+            <input id="nt-admin-password" class="form-input" type="password" placeholder="Mínimo 6 caracteres" style="padding-right:38px;">
+            <button type="button" id="nt-pwd-toggle" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;">👁</button>
+          </div>
+        </div>
+
+        <div id="nt-msg" style="font-size:13px;margin-top:4px;"></div>
       </div>
       <div class="sa-modal-footer">
         <button id="nt-cancel" class="btn-secondary-sm">Cancelar</button>
         <button id="nt-save" class="btn-primary-sm">Criar Imobiliária</button>
-        <span id="nt-msg" class="cfg-save-msg"></span>
       </div>
     </div>
   `
@@ -3863,16 +3888,18 @@ function openNewTenantModal() {
 
   supabase.from('plans').select('id, name').then(({ data }) => {
     const sel = document.getElementById('nt-plan')
-    if (sel && data) sel.innerHTML = data.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('')
+    if (sel && data) sel.innerHTML = '<option value="">Sem plano</option>' + data.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('')
   })
 
   document.getElementById('nt-name')?.addEventListener('input', e => {
     const slug = document.getElementById('nt-slug')
-    if (slug && !slug.dataset.manual) {
-      slug.value = e.target.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    }
+    if (slug && !slug.dataset.manual) slug.value = toSlug(e.target.value)
   })
   document.getElementById('nt-slug')?.addEventListener('input', e => { e.target.dataset.manual = '1' })
+  document.getElementById('nt-pwd-toggle')?.addEventListener('click', () => {
+    const inp = document.getElementById('nt-admin-password')
+    inp.type = inp.type === 'password' ? 'text' : 'password'
+  })
 
   const close = () => modal.remove()
   document.getElementById('sa-modal-close-btn')?.addEventListener('click', close)
@@ -3880,18 +3907,208 @@ function openNewTenantModal() {
   modal.addEventListener('click', e => { if (e.target === modal) close() })
 
   document.getElementById('nt-save')?.addEventListener('click', async () => {
-    const name   = document.getElementById('nt-name')?.value?.trim()
-    const slug   = document.getElementById('nt-slug')?.value?.trim()
-    const domain = document.getElementById('nt-domain')?.value?.trim()
-    const planId = document.getElementById('nt-plan')?.value
-    const msgEl  = document.getElementById('nt-msg')
-    const saveBtn= document.getElementById('nt-save')
-    if (!name || !slug) { showSaveMsg(msgEl, false); msgEl.textContent = 'Nome e slug são obrigatórios.'; return }
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Criando…' }
-    const { error } = await supabase.from('tenants').insert({ name, slug, domain: domain || null, plan_id: planId || null, active: true })
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Criar Imobiliária' }
-    if (error) { showSaveMsg(msgEl, false); msgEl.textContent = error.message; return }
-    showSaveMsg(msgEl, true)
-    setTimeout(() => { close(); loadSATenants() }, 800)
+    const name       = document.getElementById('nt-name')?.value?.trim()
+    const slug       = document.getElementById('nt-slug')?.value?.trim()
+    const domain     = document.getElementById('nt-domain')?.value?.trim()
+    const planId     = document.getElementById('nt-plan')?.value
+    const adminEmail = document.getElementById('nt-admin-email')?.value?.trim()
+    const adminPwd   = document.getElementById('nt-admin-password')?.value?.trim()
+    const msgEl      = document.getElementById('nt-msg')
+    const saveBtn    = document.getElementById('nt-save')
+
+    if (!name || !slug) { msgEl.textContent = '❌ Nome e slug são obrigatórios.'; msgEl.style.color = '#ef4444'; return }
+    if (!adminEmail)    { msgEl.textContent = '❌ Informe o e-mail do admin.'; msgEl.style.color = '#ef4444'; return }
+    if (!adminPwd || adminPwd.length < 6) { msgEl.textContent = '❌ A senha precisa ter mínimo 6 caracteres.'; msgEl.style.color = '#ef4444'; return }
+
+    saveBtn.disabled = true; saveBtn.textContent = 'Criando…'
+    msgEl.textContent = '⏳ Criando imobiliária…'; msgEl.style.color = '#64748b'
+
+    // 1. Create tenant
+    const { data: tenantData, error: tenantErr } = await supabase
+      .from('tenants')
+      .insert({ name, slug, domain: domain || null, plan_id: planId || null, active: true })
+      .select()
+    if (tenantErr) {
+      saveBtn.disabled = false; saveBtn.textContent = 'Criar Imobiliária'
+      msgEl.textContent = '❌ ' + tenantErr.message; msgEl.style.color = '#ef4444'; return
+    }
+    const newTenantId = tenantData?.[0]?.id
+
+    msgEl.textContent = '⏳ Criando usuário admin…'
+
+    // 2. Create admin user via Edge Function
+    const result = await callEdgeFunction({ email: adminEmail, password: adminPwd, role: 'admin', tenant_id: newTenantId })
+    if (!result?.success) {
+      saveBtn.disabled = false; saveBtn.textContent = 'Criar Imobiliária'
+      msgEl.textContent = '⚠️ Imobiliária criada, mas erro ao criar usuário: ' + (result?.error || 'Desconhecido')
+      msgEl.style.color = '#f59e0b'
+      setTimeout(() => { close(); loadSATenants() }, 2500)
+      return
+    }
+
+    // 3. Try to update profile role + tenant_id (Edge Function may have already done this)
+    if (newTenantId && result?.user_id) {
+      await supabase.from('profiles').update({ role: 'admin', tenant_id: newTenantId }).eq('id', result.user_id)
+    }
+
+    saveBtn.disabled = false; saveBtn.textContent = 'Criar Imobiliária'
+    msgEl.textContent = '✅ Imobiliária e admin criados com sucesso!'; msgEl.style.color = '#22c55e'
+    setTimeout(() => { close(); loadSATenants() }, 1200)
+  })
+}
+
+function openEditTenantModal(tenant) {
+  const existing = document.getElementById('sa-edit-tenant-modal')
+  if (existing) existing.remove()
+
+  const modal = document.createElement('div')
+  modal.id = 'sa-edit-tenant-modal'
+  modal.className = 'sa-modal-backdrop'
+  modal.innerHTML = `
+    <div class="sa-modal" style="max-width:560px;">
+      <div class="sa-modal-header">
+        <h3>Editar Imobiliária</h3>
+        <button class="sa-modal-close" id="et-close">✕</button>
+      </div>
+      <div class="sa-modal-body">
+
+        <!-- Logo upload -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+          <div id="et-logo-preview" style="width:72px;height:72px;border-radius:12px;border:2px dashed #e2e8f0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#f8fafc;flex-shrink:0;cursor:pointer;" title="Clique para alterar a logo">
+            ${tenant.logo_url
+              ? `<img src="${escapeHTML(tenant.logo_url)}" style="width:100%;height:100%;object-fit:cover;" id="et-logo-img">`
+              : `<span style="font-size:28px;">🏢</span>`}
+          </div>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:#0f172a;margin-bottom:4px;">Logo da Imobiliária</div>
+            <label for="et-logo-input" class="btn-secondary-sm" style="cursor:pointer;display:inline-block;">📷 Alterar logo</label>
+            <input type="file" id="et-logo-input" accept="image/*" style="display:none;">
+            <div style="font-size:12px;color:#94a3b8;margin-top:4px;">PNG ou JPG · recomendado 256×256px</div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:10px;">Dados da Imobiliária</div>
+        <div class="form-group"><label>Nome *</label><input id="et-name" class="form-input" type="text" value="${escapeHTML(tenant.name || '')}"></div>
+        <div class="form-group"><label>Slug</label><input id="et-slug" class="form-input" type="text" value="${escapeHTML(tenant.slug || '')}"></div>
+        <div class="form-group"><label>Domínio personalizado</label><input id="et-domain" class="form-input" type="text" value="${escapeHTML(tenant.domain || '')}" placeholder="abc.imobipro.com.br"></div>
+        <div class="form-group"><label>Plano</label>
+          <select id="et-plan" class="form-input">
+            <option value="">Sem plano</option>
+          </select>
+        </div>
+
+        <div style="height:1px;background:#e2e8f0;margin:16px 0;"></div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:10px;">Criar Novo Admin</div>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px;">Opcional: crie um acesso de administrador para esta imobiliária.</p>
+        <div class="form-group"><label>E-mail do novo Admin</label><input id="et-admin-email" class="form-input" type="email" placeholder="admin@imobiliaria.com.br"></div>
+        <div class="form-group"><label>Senha</label>
+          <div style="position:relative;">
+            <input id="et-admin-password" class="form-input" type="password" placeholder="Mínimo 6 caracteres" style="padding-right:38px;">
+            <button type="button" id="et-pwd-toggle" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;">👁</button>
+          </div>
+        </div>
+
+        <div id="et-msg" style="font-size:13px;margin-top:4px;"></div>
+      </div>
+      <div class="sa-modal-footer">
+        <button id="et-cancel" class="btn-secondary-sm">Cancelar</button>
+        <button id="et-save" class="btn-primary-sm">Salvar</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+
+  // Load plans
+  supabase.from('plans').select('id, name').then(({ data }) => {
+    const sel = document.getElementById('et-plan')
+    if (sel && data) {
+      sel.innerHTML = '<option value="">Sem plano</option>' + data.map(p =>
+        `<option value="${p.id}"${String(p.id) === String(tenant.plan_id) ? ' selected' : ''}>${escapeHTML(p.name)}</option>`
+      ).join('')
+    }
+  })
+
+  // Logo preview
+  document.getElementById('et-logo-input')?.addEventListener('change', e => {
+    const file = e.target.files[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    const preview = document.getElementById('et-logo-preview')
+    if (preview) preview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`
+  })
+  document.getElementById('et-logo-preview')?.addEventListener('click', () => {
+    document.getElementById('et-logo-input')?.click()
+  })
+
+  document.getElementById('et-pwd-toggle')?.addEventListener('click', () => {
+    const inp = document.getElementById('et-admin-password')
+    inp.type = inp.type === 'password' ? 'text' : 'password'
+  })
+
+  const close = () => modal.remove()
+  document.getElementById('et-close')?.addEventListener('click', close)
+  document.getElementById('et-cancel')?.addEventListener('click', close)
+  modal.addEventListener('click', e => { if (e.target === modal) close() })
+
+  document.getElementById('et-save')?.addEventListener('click', async () => {
+    const name       = document.getElementById('et-name')?.value?.trim()
+    const slug       = document.getElementById('et-slug')?.value?.trim()
+    const domain     = document.getElementById('et-domain')?.value?.trim()
+    const planId     = document.getElementById('et-plan')?.value
+    const adminEmail = document.getElementById('et-admin-email')?.value?.trim()
+    const adminPwd   = document.getElementById('et-admin-password')?.value?.trim()
+    const logoFile   = document.getElementById('et-logo-input')?.files[0]
+    const msgEl      = document.getElementById('et-msg')
+    const saveBtn    = document.getElementById('et-save')
+
+    if (!name) { msgEl.textContent = '❌ Nome é obrigatório.'; msgEl.style.color = '#ef4444'; return }
+    saveBtn.disabled = true; saveBtn.textContent = 'Salvando…'
+    msgEl.textContent = '⏳ Salvando…'; msgEl.style.color = '#64748b'
+
+    // Upload logo if selected
+    let logo_url = tenant.logo_url
+    if (logoFile) {
+      try {
+        const blob = await compressToBlob(logoFile, 256, 0.85)
+        const path = `tenant-logos/${tenant.id}-${Date.now()}.jpg`
+        const { error: upErr } = await supabase.storage.from('imoveis').upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+        if (!upErr) {
+          const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
+          logo_url = publicUrl
+        }
+      } catch (err) { console.error('Logo upload:', err) }
+    }
+
+    // Update tenant
+    const { error: tenantErr } = await supabase.from('tenants').update({
+      name, slug: slug || tenant.slug,
+      domain: domain || null,
+      plan_id: planId || null,
+      logo_url,
+    }).eq('id', tenant.id)
+
+    if (tenantErr) {
+      saveBtn.disabled = false; saveBtn.textContent = 'Salvar'
+      msgEl.textContent = '❌ ' + tenantErr.message; msgEl.style.color = '#ef4444'; return
+    }
+
+    // Optionally create new admin
+    if (adminEmail && adminPwd && adminPwd.length >= 6) {
+      msgEl.textContent = '⏳ Criando usuário admin…'
+      const result = await callEdgeFunction({ email: adminEmail, password: adminPwd, role: 'admin', tenant_id: tenant.id })
+      if (result?.success) {
+        if (result?.user_id) {
+          await supabase.from('profiles').update({ role: 'admin', tenant_id: tenant.id }).eq('id', result.user_id)
+        }
+        msgEl.textContent = '✅ Salvo e admin criado!'; msgEl.style.color = '#22c55e'
+      } else {
+        msgEl.textContent = '⚠️ Salvo, mas erro ao criar admin: ' + (result?.error || 'Tente novamente'); msgEl.style.color = '#f59e0b'
+      }
+    } else {
+      msgEl.textContent = '✅ Imobiliária atualizada!'; msgEl.style.color = '#22c55e'
+    }
+
+    saveBtn.disabled = false; saveBtn.textContent = 'Salvar'
+    setTimeout(() => { close(); loadSATenants() }, 1200)
   })
 }
