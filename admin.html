@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IOS imobi">
   <script type="module" crossorigin src="/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/assets/script-DORCLo-6.js"></script>
+  <script type="module" crossorigin src="/assets/script-CRTtplYq.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/admin-CZMTiP5p.css">
 </head>
 <body>
@@ -588,6 +588,22 @@
             <button id="btn-funil-add-lead" class="btn-primary">+ Novo Lead</button>
           </div>
         </div>
+        <!-- Filtros do kanban -->
+        <div id="kanban-filters" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="position:relative;flex:1;min-width:180px;">
+              <input id="kf-search" type="text" placeholder="Buscar por nome, telefone, email…"
+                style="width:100%;padding:8px 12px 8px 34px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
+              <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#94a3b8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+            <select id="kf-status" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;background:#fff;min-width:140px;">
+              <option value="">Todos os status</option>
+            </select>
+            <button id="kf-clear" style="padding:8px 14px;background:#f1f5f9;border:none;border-radius:8px;font-size:13px;color:#64748b;cursor:pointer;white-space:nowrap;">✕ Limpar</button>
+          </div>
+          <div id="kf-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+        </div>
+
         <div id="kanban-board" class="kanban-board">
           <div class="kanban-loading">Carregando funil…</div>
         </div>
