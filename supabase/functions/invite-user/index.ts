@@ -63,16 +63,22 @@ Deno.serve(async (req: Request) => {
       const alreadyExists = createError.message?.toLowerCase().includes('already') ||
                             createError.message?.toLowerCase().includes('registered')
       if (alreadyExists) {
-        // Busca usuário existente pelo e-mail
-        const { data: { users } } = await supabase.auth.admin.listUsers({ perPage: 1000 })
-        const existing = users?.find((u: { email?: string }) => u.email?.toLowerCase() === email.toLowerCase())
-        if (existing) {
-          const profileUpd: Record<string, unknown> = { active: true }
-          if (role)      profileUpd.role      = role
-          if (tenant_id) profileUpd.tenant_id = tenant_id
-          await supabase.from('profiles').update(profileUpd).eq('id', existing.id)
-          return json({ success: true, user_id: existing.id, linked: true })
+        try {
+          // Busca usuário existente pelo e-mail
+          const listResult = await supabase.auth.admin.listUsers({ perPage: 1000 })
+          const users: Array<{ id: string; email?: string }> = (listResult?.data as any)?.users ?? []
+          const existing = users.find((u) => u.email?.toLowerCase() === email.toLowerCase())
+          if (existing) {
+            const profileUpd: Record<string, unknown> = { active: true }
+            if (role)      profileUpd.role      = role
+            if (tenant_id) profileUpd.tenant_id = tenant_id
+            await supabase.from('profiles').update(profileUpd).eq('id', existing.id)
+            return json({ success: true, user_id: existing.id, linked: true })
+          }
+        } catch (listErr) {
+          console.error('Erro ao buscar usuário existente:', listErr)
         }
+        return json({ success: false, error: 'Usuário já cadastrado. Verifique o e-mail informado.' })
       }
       return json({ success: false, error: createError.message })
     }

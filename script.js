@@ -1862,7 +1862,7 @@ async function initSettings(profile) {
     if (sInit) sInit.textContent = name[0]?.toUpperCase() || '?'
   })
 
-  if (profile?.role === 'admin') {
+  if (profile?.role === 'admin' || profile?.role === 'super_admin') {
     const section = document.getElementById('settings-corretores-section')
     if (section) section.style.display = ''
     await loadCorretores()
@@ -1870,13 +1870,23 @@ async function initSettings(profile) {
       const email    = document.getElementById('invite-email')?.value.trim()
       const password = document.getElementById('invite-password')?.value.trim()
       const btn      = document.getElementById('btn-invite-corretor')
+      const noteEl   = document.getElementById('invite-note')
       if (!email) { alert('Informe o e-mail do corretor.'); return }
       if (!password || password.length < 6) { alert('A senha precisa ter no mínimo 6 caracteres.'); return }
       if (btn) { btn.disabled = true; btn.textContent = 'Criando…' }
+      if (noteEl) { noteEl.style.display = 'none' }
       try {
-        const result = await callEdgeFunction({ email, password })
+        const result = await callEdgeFunction({
+          email,
+          password,
+          tenant_id: currentProfile?.tenant_id || null,
+        })
         if (result.success) {
-          alert('Acesso criado! O corretor receberá um e-mail com o login e a senha que você definiu.')
+          if (noteEl) {
+            noteEl.textContent = '✅ Acesso criado! O corretor receberá um e-mail com o login e a senha definida.'
+            noteEl.style.color = '#16a34a'
+            noteEl.style.display = ''
+          }
           const emailInput = document.getElementById('invite-email')
           const passInput  = document.getElementById('invite-password')
           if (emailInput) emailInput.value = ''
@@ -1923,7 +1933,9 @@ async function initSettings(profile) {
 async function loadCorretores() {
   const listEl = document.getElementById('corretores-list')
   if (!listEl) return
-  const { data, error } = await supabase.from('profiles').select('*').order('created_at')
+  let query = supabase.from('profiles').select('*').order('created_at')
+  if (currentProfile?.tenant_id) query = query.eq('tenant_id', currentProfile.tenant_id)
+  const { data, error } = await query
   if (error || !data) { listEl.innerHTML = '<p style="color:#6b7280;font-size:14px">Erro ao carregar.</p>'; return }
   listEl.innerHTML = data.map(p => {
     const initial = (p.name || '?')[0].toUpperCase()
@@ -2142,6 +2154,23 @@ function attachAdminUI() {
   const topnavLinks = document.getElementById('topnav-links')
   const hamburger   = document.getElementById('topnav-hamburger')
   hamburger?.addEventListener('click', () => { topnavLinks?.classList.toggle('open') })
+
+  // Mobile: Configurações dropdown toggle (hover doesn't work on touch)
+  document.querySelectorAll('.topnav-dropdown-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation()
+      const dropdown = btn.closest('.topnav-dropdown')
+      const isOpen = dropdown?.classList.toggle('open')
+      // Close other dropdowns
+      document.querySelectorAll('.topnav-dropdown').forEach(d => {
+        if (d !== dropdown) d.classList.remove('open')
+      })
+    })
+  })
+  // Close dropdown on outside click
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.topnav-dropdown').forEach(d => d.classList.remove('open'))
+  })
 
   // Modal close
   document.getElementById('modal-close')?.addEventListener('click', closeModal)
