@@ -1232,3 +1232,108 @@ select option { background: #0c1830; color: var(--text); }
   .planta-title { font-size: 26px; }
   .planta-right { flex: 1 1 100%; }
 }
+
+/* ── Botão flutuante WhatsApp ─────────────────────────────────────────────── */
+.wa-float {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 8000;
+  background: #25d366;
+  color: #fff;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(37,211,102,0.45);
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+}
+.wa-float:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(37,211,102,0.6);
+}
+.wa-float svg { display: block; }
+
+/* ── Seção de Depoimentos ─────────────────────────────────────────────────── */
+.dep-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 26px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.dep-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.11);
+}
+.dep-stars {
+  color: #b8962e;
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+.dep-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #4a5568;
+  margin: 0;
+  flex: 1;
+}
+.dep-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #f0f2f5;
+  padding-top: 16px;
+}
+.dep-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f1c2e, #b8962e);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dep-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f1c2e;
+}
+.dep-role {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* ── Botão compartilhar na página do imóvel ──────────────────────────────── */
+.prop-share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.85);
+  transition: background 0.2s, border-color 0.2s;
+}
+.prop-share-btn:hover {
+  background: rgba(255,255,255,0.13);
+  border-color: rgba(255,255,255,0.4);
+}
