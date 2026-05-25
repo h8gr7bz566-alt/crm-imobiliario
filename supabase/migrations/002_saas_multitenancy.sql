@@ -39,12 +39,15 @@ CREATE TABLE IF NOT EXISTS public.tenants (
 );
 
 ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "tenants_super_admin" ON public.tenants;
-DROP POLICY IF EXISTS "tenants_self_read"   ON public.tenants;
+DROP POLICY IF EXISTS "tenants_super_admin"          ON public.tenants;
+DROP POLICY IF EXISTS "tenants_self_read"             ON public.tenants;
+DROP POLICY IF EXISTS "tenants_public_domain_lookup"  ON public.tenants;
 CREATE POLICY "tenants_super_admin" ON public.tenants FOR ALL
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'super_admin'));
 CREATE POLICY "tenants_self_read" ON public.tenants FOR SELECT
   USING (id IN (SELECT tenant_id FROM public.profiles WHERE id = auth.uid()));
+-- Permite que visitantes anônimos encontrem o tenant pelo domínio (necessário para o site público)
+CREATE POLICY "tenants_public_domain_lookup" ON public.tenants FOR SELECT TO anon USING (true);
 
 -- Tenant padrão (Isaac Omar — imobiliária existente)
 INSERT INTO public.tenants (id, name, slug, plan_id, domain)

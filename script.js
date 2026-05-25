@@ -3,7 +3,8 @@ import { supabase } from './lib/supabase.js'
 import {
   loadAllSettings, getSetting, getContent,
   saveMultipleSettings, saveSetting, saveContent, saveIntegration,
-  applyVisualSettings, applyDynamicContent, applyWhatsAppLinks
+  applyVisualSettings, applyDynamicContent, applyWhatsAppLinks,
+  setSettingsTenant, getSettingsTenantId, GLOBAL_TENANT_ID
 } from './lib/settings.js'
 
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -58,28 +59,109 @@ supabase.auth.onAuthStateChange((event) => {
   }
 })
 
+// ─── Cache helpers (localStorage com TTL) ────────────────────────────────
+function cacheSet(key, value, ttlMs) {
+  try { localStorage.setItem(key, JSON.stringify({ v: value, exp: Date.now() + ttlMs })) } catch (_) {}
+}
+function cacheGet(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const obj = JSON.parse(raw)
+    if (Date.now() > obj.exp) { localStorage.removeItem(key); return null }
+    return obj.v
+  } catch (_) { return null }
+}
+
 // ─── Supabase: buscar imóveis publicados (listagem pública) ───────────────
-async function getPublishedProperties() {
+async function getPublishedProperties({ background = false } = {}) {
+  const rawHost = window.location.hostname
+  const isLocal = rawHost === 'localhost' || rawHost === '127.0.0.1'
+
+  if (isLocal) {
+    const { data, error } = await supabase
+      .from('properties').select('*').eq('published', true)
+      .order('created_at', { ascending: false })
+    if (error) console.error('Supabase select error:', error)
+    return data || []
+  }
+
+  // ── Resolve tenant ──────────────────────────────────────────────────────
+  const tenantCacheKey = `imobi_tenant_${rawHost.replace(/^www\./, '')}`
+  let tenantId = getSettingsTenantId()
+
+  if (!tenantId || tenantId === GLOBAL_TENANT_ID) {
+    // Tenta cache local antes de ir ao servidor
+    const cached = cacheGet(tenantCacheKey)
+    if (cached) {
+      tenantId = cached
+      setSettingsTenant(tenantId)
+    } else {
+      const base = rawHost.replace(/^www\./, '')
+      for (const d of [base, 'www.' + base]) {
+        const { data } = await supabase.from('tenants').select('id').eq('domain', d).maybeSingle()
+        if (data?.id) { tenantId = data.id; setSettingsTenant(tenantId); break }
+      }
+      if (tenantId && tenantId !== GLOBAL_TENANT_ID) {
+        cacheSet(tenantCacheKey, tenantId, 24 * 60 * 60 * 1000) // 24h
+      }
+    }
+  }
+
+  if (!tenantId || tenantId === GLOBAL_TENANT_ID) {
+    console.warn('[ImobiCRM] Tenant não encontrado para domínio:', rawHost)
+    return []
+  }
+
+  // ── Propriedades com stale-while-revalidate ─────────────────────────────
+  const propsCacheKey = `imobi_props_${tenantId}`
+  const PROPS_TTL = 5 * 60 * 1000 // 5 minutos
+
+  // Em modo normal: retorna cache se fresco (< 5 min) e dispara refresh em fundo
+  if (!background) {
+    const cached = cacheGet(propsCacheKey)
+    if (cached) {
+      // Agenda refresh silencioso em 100ms para não bloquear a renderização
+      setTimeout(() => getPublishedProperties({ background: true }), 100)
+      return cached
+    }
+  }
+
+  // Busca no servidor
   const { data, error } = await supabase
-    .from('properties')
-    .select('*')
+    .from('properties').select('*')
     .eq('published', true)
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
-  if (error) { console.error('Supabase select error:', error); return [] }
-  return data || []
+  if (error) { console.error('Supabase select error:', error); return cacheGet(propsCacheKey) || [] }
+
+  const result = data || []
+  cacheSet(propsCacheKey, result, PROPS_TTL)
+
+  // Se foi refresh em fundo e o conteúdo mudou, re-renderiza silenciosamente
+  if (background && typeof renderPublic === 'function') {
+    renderPublic().catch(() => {})
+  }
+
+  return result
 }
 
 // ─── Supabase: buscar todos os imóveis (painel admin) ────────────────────
 async function getAllProperties() {
-  const { data, error } = await supabase
-    .from('properties')
-    .select('*')
-    .order('created_at', { ascending: false })
+  let query = supabase.from('properties').select('*').order('created_at', { ascending: false })
+
+  if (currentProfile?.role === 'super_admin') {
+    // Super admin vê todos os seus imóveis (sem filtro de tenant)
+  } else if (currentProfile?.tenant_id) {
+    query = query.eq('tenant_id', currentProfile.tenant_id)
+  } else {
+    query = query.or('tenant_id.is.null,tenant_id.eq.00000000-0000-0000-0000-000000000000')
+  }
+
+  const { data, error } = await query
   if (error) { console.error('Supabase select error:', error); return [] }
   cachedProperties = data || []
-  // Auto-assign references silently in background
   autoAssignReferences()
-  // Auto-apply watermarks to unprocessed images in background
   autoApplyWatermarks()
   return cachedProperties
 }
@@ -93,14 +175,9 @@ async function saveProperty(prop) {
     const idx = cachedProperties.findIndex(p => p.id === id)
     if (idx >= 0) cachedProperties[idx] = { ...cachedProperties[idx], ...rest }
   } else {
-    // Gera referência automática IO-XXXX se não tiver
+    // Gera referência única baseada em timestamp (evita conflito entre tenants)
     if (!prop.reference) {
-      const refs = cachedProperties
-        .map(p => p.reference || '')
-        .filter(r => /^IO-\d+$/.test(r))
-        .map(r => parseInt(r.replace('IO-', ''), 10))
-      const next = refs.length ? Math.max(...refs) + 1 : 1
-      prop.reference = 'IO-' + String(next).padStart(4, '0')
+      prop.reference = 'IO-' + Date.now().toString(36).toUpperCase().slice(-5)
     }
     const { data, error } = await supabase.from('properties').insert(prop).select()
     if (error) throw error
@@ -214,8 +291,7 @@ async function renderPublic() {
   const bedrooms     = document.getElementById('bedrooms-filter')?.value || ''
   const parking      = document.getElementById('parking-filter')?.value || ''
   const construction = document.getElementById('construction-filter')?.value || ''
-  const slider       = document.getElementById('price-slider')
-  const priceMaxVal  = slider ? parseInt(slider.value, 10) : 130000000
+  const { min: priceMin, max: priceMax } = getPriceRange()
 
   const filtered = all.filter(p => {
     if (city && p.city !== city) return false
@@ -231,7 +307,8 @@ async function renderPublic() {
     if (construction && p.construction_status !== construction) return false
     const priceStr = String(p.price || '').replace(/,\d{0,2}$/, '').replace(/[^0-9]/g, '')
     const price = parseInt(priceStr, 10) || 0
-    if (price < 0 || price > priceMaxVal) return false
+    if (price < priceMin) return false
+    if (priceMax !== Infinity && price > priceMax) return false
     return true
   })
 
@@ -244,16 +321,17 @@ async function renderPublic() {
     vendasCarousel.innerHTML = filtered.map(p => {
       const img = p.cover_image || p.images?.[0] || SAMPLE_URLS[0]
       const loc = [p.neighborhood, p.city].filter(Boolean).join(', ')
+      const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?`)
       return `
         <div class="selecao-card">
-          <img src="${img}" alt="${escapeHTML(p.title)}" class="selecao-card-img">
+          <div class="img-wm-wrap"><img src="${img}" alt="${escapeHTML(p.title)}" class="selecao-card-img"></div>
           <div class="selecao-card-body">
             <div class="selecao-card-title">${escapeHTML(p.title)}</div>
             <div class="selecao-card-loc">${escapeHTML(loc)}</div>
             <div class="selecao-card-price">${escapeHTML(formatPrice(p.price, window.currentLang || 'pt'))}</div>
             <div class="selecao-card-actions">
               <a href="property.html?id=${p.id}" class="btn-det">Ver Detalhes</a>
-              <a href="${WHATSAPP_URL}" target="_blank" rel="noopener" class="btn-wa">WhatsApp</a>
+              <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}" target="_blank" rel="noopener" class="btn-wa">WhatsApp</a>
             </div>
           </div>
         </div>
@@ -271,6 +349,7 @@ async function renderPublic() {
   gridContainer.innerHTML = filtered.map(p => {
     const images = p.images?.length ? p.images : SAMPLE_URLS
     const total = images.length
+    const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?`)
     return `
       <div class="card property-card">
         <div class="carousel-wrap" style="position:relative" data-total="${total}" data-idx="0" data-pid="${p.id}">
@@ -288,7 +367,7 @@ async function renderPublic() {
           <p class="muted">${escapeHTML((p.description || '').slice(0, 110))}</p>
           <div style="display:flex;gap:8px;margin-top:6px">
             <a class="btn btn-outline" href="property.html?id=${p.id}" style="flex:1;justify-content:center">Ver Detalhes</a>
-            <a class="btn hero-whatsapp-btn" href="${WHATSAPP_URL}" target="_blank" rel="noopener" style="flex:1;justify-content:center">WhatsApp</a>
+            <a class="btn hero-whatsapp-btn" href="https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}" target="_blank" rel="noopener" style="flex:1;justify-content:center">WhatsApp</a>
           </div>
         </div>
       </div>
@@ -314,16 +393,17 @@ function renderSelecao(props) {
   carousel.innerHTML = featured.map(p => {
     const img = p.cover_image || p.images?.[0] || SAMPLE_URLS[0]
     const loc = [p.neighborhood, p.city].filter(Boolean).join(', ')
+    const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?`)
     return `
       <div class="selecao-card">
-        <img src="${img}" alt="${escapeHTML(p.title)}" class="selecao-card-img">
+        <div class="img-wm-wrap"><img src="${img}" alt="${escapeHTML(p.title)}" class="selecao-card-img"></div>
         <div class="selecao-card-body">
           <div class="selecao-card-title">${escapeHTML(p.title)}</div>
           <div class="selecao-card-loc">${escapeHTML(loc)}</div>
           <div class="selecao-card-price">${escapeHTML(formatPrice(p.price, window.currentLang || 'pt'))}</div>
           <div class="selecao-card-actions">
             <a href="property.html?id=${p.id}" class="btn-det">Ver Detalhes</a>
-            <a href="${WHATSAPP_URL}" target="_blank" rel="noopener" class="btn-wa">WhatsApp</a>
+            <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}" target="_blank" rel="noopener" class="btn-wa">WhatsApp</a>
           </div>
         </div>
       </div>
@@ -364,21 +444,21 @@ function carouselHandler(e) {
   wrap.querySelector('.carousel-img').src = prop.images[idx]
 }
 
-// ─── Slider de Preço ─────────────────────────────────────────────────────
+// ─── Faixa de Preço (select) ──────────────────────────────────────────────
+function getPriceRange() {
+  const val = document.getElementById('price-range')?.value || ''
+  if (!val) return { min: 0, max: Infinity }
+  const [minStr, maxStr] = val.split('-')
+  return {
+    min: parseInt(minStr, 10) || 0,
+    max: maxStr ? parseInt(maxStr, 10) : Infinity,
+  }
+}
+
 function attachPriceSlider() {
-  const slider = document.getElementById('price-slider')
-  const label  = document.getElementById('price-label')
-  if (!slider || !label) return
-  slider.min   = '0'
-  slider.max   = '130000000'
-  slider.step  = '1000000'
-  slider.value = '130000000'
-  label.textContent = 'Até R$ 130.000.000'
-  slider.addEventListener('input', () => {
-    const val = parseInt(slider.value, 10)
-    label.textContent = 'Até R$ ' + val.toLocaleString('pt-BR')
-    renderPublic()
-  })
+  const sel = document.getElementById('price-range')
+  if (!sel) return
+  sel.addEventListener('change', () => renderPublic())
 }
 
 // ─── Filtros ──────────────────────────────────────────────────────────────
@@ -432,8 +512,8 @@ function renderAdminTable(props) {
       <td>${badge}</td>
       <td>
         <div class="action-btns">
-          ${currentProfile?.role === 'admin' ? `<button data-id="${p.id}" class="icon-btn edit-btn" title="Editar">✏️</button>` : ''}
-          ${currentProfile?.role === 'admin' ? `<button data-id="${p.id}" class="icon-btn del-btn" title="Remover">🗑️</button>` : ''}
+          ${(currentProfile?.role === 'admin' || currentProfile?.role === 'super_admin') ? `<button data-id="${p.id}" class="icon-btn edit-btn" title="Editar">✏️</button>` : ''}
+          ${(currentProfile?.role === 'admin' || currentProfile?.role === 'super_admin') ? `<button data-id="${p.id}" class="icon-btn del-btn" title="Remover">🗑️</button>` : ''}
         </div>
       </td>
     </tr>`
@@ -610,7 +690,10 @@ function attachAdminForm() {
       owner_notes:  fd.get('owner_notes') || '',
       cover_image:  selectedCover || '',
       construction_status: fd.get('construction_status') || '',
-      condominium:  fd.get('condominium') || ''
+      condominium:  fd.get('condominium') || '',
+      tenant_id:    editingId
+                      ? (cachedProperties.find(x => x.id === editingId)?.tenant_id ?? currentProfile?.tenant_id ?? null)
+                      : (currentProfile?.tenant_id ?? null),
     }
 
     try {
@@ -633,7 +716,7 @@ function attachAdminForm() {
       console.error(err)
       submitBtn.disabled    = false
       submitBtn.textContent = editingId ? 'Salvar Alterações' : 'Salvar Imóvel'
-      alert('Erro ao salvar imóvel. Verifique o console.')
+      alert('Erro ao salvar imóvel:\n' + (err?.message || JSON.stringify(err)))
     }
   })
 
@@ -650,7 +733,7 @@ function attachAdminForm() {
     }
 
     if (e.target.matches('.edit-btn')) {
-      if (currentProfile?.role !== 'admin') return
+      if (currentProfile?.role !== 'admin' && currentProfile?.role !== 'super_admin') return
       const id = Number(e.target.dataset.id)
       if (!id) return
       const p = cachedProperties.find(x => x.id === id)
@@ -705,6 +788,10 @@ let viewImages = []
 let viewIdx    = 0
 
 function openViewModal(p) {
+  // Store property ID on edit button for reliable lookup
+  const editBtn = document.getElementById('view-modal-edit')
+  if (editBtn) editBtn.dataset.pid = p.id
+
   // Header: code, title, status badge
   document.getElementById('view-code').textContent         = p.id || ''
   document.getElementById('view-modal-title').textContent  = p.title || 'Imóvel'
@@ -760,13 +847,12 @@ function openViewModal(p) {
   document.getElementById('tab-principal').classList.remove('hidden')
 
   // Preencher link de compartilhamento
-  // Usa property.html?id=[id] — sempre disponível para qualquer imóvel
   const shareUrl = 'https://omarcorretor.com.br/property.html?id=' + p.id
   const shareLinkInput = document.getElementById('share-link-input')
   if (shareLinkInput) shareLinkInput.value = shareUrl
-  // Fechar share panel ao abrir novo modal
+  // Fechar share panel ao abrir novo modal; armazena pid para mensagem WhatsApp
   const sharePanel = document.getElementById('share-panel')
-  if (sharePanel) sharePanel.style.display = 'none'
+  if (sharePanel) { sharePanel.style.display = 'none'; sharePanel.dataset.pid = p.id }
 
   document.getElementById('view-modal').classList.remove('hidden')
   document.body.style.overflow = 'hidden'
@@ -847,6 +933,37 @@ function renderSidebarUser(profile) {
   }
 }
 
+// Atualiza o link "Ver site" com a URL correta para o tenant do usuário logado
+async function updateVerSiteLink(profile) {
+  const link = document.getElementById('avatar-dd-ver-site')
+  if (!link) return
+
+  // Tenta tenant_id do perfil; fallback via settings (caso perfil não tenha o campo)
+  const tenantId = profile?.tenant_id || getSettingsTenantId()
+  const validTenant = tenantId && tenantId !== GLOBAL_TENANT_ID
+
+  // URL absoluta para evitar ambiguidade de caminhos relativos
+  const origin  = window.location.origin // ex: https://omarcorretor.com.br
+  const demoUrl = validTenant ? `${origin}/demo.html?key=${tenantId}` : `${origin}/index.html`
+  link.href = demoUrl
+
+  if (!validTenant) return
+
+  try {
+    const { data: tenant } = await supabase
+      .from('tenants').select('domain').eq('id', tenantId).maybeSingle()
+
+    const currentHost = window.location.hostname.replace(/^www\./, '')
+    const rawDomain   = (tenant?.domain || '').replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').trim()
+
+    if (rawDomain && rawDomain !== currentHost) {
+      // Tenant tem domínio próprio diferente do hosting → vai para o site deles
+      link.href = `https://${rawDomain}`
+    }
+    // Sem domínio, ou domínio igual ao hosting → fica no demo
+  } catch (_) { /* mantém demoUrl */ }
+}
+
 // Helper: navigate to a section by name
 function navigateToSection(sectionName) {
   document.querySelectorAll('.topnav-link, .topnav-dropdown-item').forEach(b => b.classList.remove('active'))
@@ -901,6 +1018,200 @@ function closeAllDropdowns() {
   document.getElementById('notif-dropdown')?.classList.add('hidden')
 }
 
+function openChangePasswordModal() {
+  const existing = document.getElementById('change-pass-modal-root')
+  if (existing) existing.remove()
+  const wrap = document.createElement('div')
+  wrap.id = 'change-pass-modal-root'
+  wrap.className = 'modal-backdrop'
+  wrap.innerHTML = `
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <h3>Alterar Senha</h3>
+        <button class="modal-close" id="cp-close">✕</button>
+      </div>
+      <div class="modal-body" style="padding:24px;display:flex;flex-direction:column;gap:14px;">
+        <div class="form-group">
+          <label class="form-label">Nova senha</label>
+          <input id="cp-new" type="password" class="form-control" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmar nova senha</label>
+          <input id="cp-confirm" type="password" class="form-control" placeholder="Repita a senha">
+        </div>
+        <p id="cp-msg" style="display:none;font-size:13px;margin:0;"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="cp-cancel">Cancelar</button>
+        <button class="btn-primary" id="cp-save" style="margin:0;">Salvar Senha</button>
+      </div>
+    </div>`
+  document.body.appendChild(wrap)
+  const close = () => wrap.remove()
+  document.getElementById('cp-close')?.addEventListener('click', close)
+  document.getElementById('cp-cancel')?.addEventListener('click', close)
+  wrap.addEventListener('click', e => { if (e.target === wrap) close() })
+  document.getElementById('cp-save')?.addEventListener('click', async () => {
+    const nova     = document.getElementById('cp-new')?.value || ''
+    const confirma = document.getElementById('cp-confirm')?.value || ''
+    const msgEl    = document.getElementById('cp-msg')
+    const btn      = document.getElementById('cp-save')
+    msgEl.style.display = 'none'
+    if (nova.length < 6) { msgEl.style.color = '#ef4444'; msgEl.textContent = 'Mínimo 6 caracteres.'; msgEl.style.display = ''; return }
+    if (nova !== confirma) { msgEl.style.color = '#ef4444'; msgEl.textContent = 'As senhas não coincidem.'; msgEl.style.display = ''; return }
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    const { error } = await supabase.auth.updateUser({ password: nova })
+    btn.disabled = false; btn.textContent = 'Salvar Senha'
+    if (error) { msgEl.style.color = '#ef4444'; msgEl.textContent = 'Erro: ' + error.message; msgEl.style.display = ''; return }
+    msgEl.style.color = '#16a34a'; msgEl.textContent = '✅ Senha alterada com sucesso!'; msgEl.style.display = ''
+    setTimeout(close, 1500)
+  })
+}
+
+function openChangePhotoModal() {
+  const existing = document.getElementById('change-photo-modal-root')
+  if (existing) existing.remove()
+  const wrap = document.createElement('div')
+  wrap.id = 'change-photo-modal-root'
+  wrap.className = 'modal-backdrop'
+  const currentSrc = document.getElementById('topnav-avatar-img')?.src || ''
+  const hasPhoto = currentSrc && !currentSrc.endsWith('/')
+  wrap.innerHTML = `
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <h3>Alterar Foto</h3>
+        <button class="modal-close" id="cph-close">✕</button>
+      </div>
+      <div class="modal-body" style="padding:24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;">
+        <div style="width:90px;height:90px;border-radius:50%;overflow:hidden;border:3px solid #e2e8f0;background:#f1f5f9;display:flex;align-items:center;justify-content:center;">
+          <img id="cph-preview" src="${hasPhoto ? currentSrc : ''}" alt="" style="width:100%;height:100%;object-fit:cover;display:${hasPhoto ? '' : 'none'};">
+          <span id="cph-initial" style="font-size:32px;font-weight:700;color:#64748b;display:${hasPhoto ? 'none' : ''};">${(currentProfile?.name || '?')[0].toUpperCase()}</span>
+        </div>
+        <label class="btn-secondary" style="cursor:pointer;padding:10px 20px;">
+          <input id="cph-file" type="file" accept="image/*" style="display:none"> Escolher Foto
+        </label>
+        <p id="cph-msg" style="display:none;font-size:13px;margin:0;"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="cph-cancel">Cancelar</button>
+        <button class="btn-primary" id="cph-save" style="margin:0;" disabled>Salvar Foto</button>
+      </div>
+    </div>`
+  document.body.appendChild(wrap)
+  const close = () => wrap.remove()
+  document.getElementById('cph-close')?.addEventListener('click', close)
+  document.getElementById('cph-cancel')?.addEventListener('click', close)
+  wrap.addEventListener('click', e => { if (e.target === wrap) close() })
+  document.getElementById('cph-file')?.addEventListener('change', e => {
+    const file = e.target.files[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    const img = document.getElementById('cph-preview')
+    const init = document.getElementById('cph-initial')
+    if (img) { img.src = url; img.style.display = '' }
+    if (init) init.style.display = 'none'
+    document.getElementById('cph-save').disabled = false
+  })
+  document.getElementById('cph-save')?.addEventListener('click', async () => {
+    const file = document.getElementById('cph-file')?.files[0]
+    if (!file) return
+    const btn   = document.getElementById('cph-save')
+    const msgEl = document.getElementById('cph-msg')
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    try {
+      const blob = await compressToBlob(file, 400, 0.85)
+      const path = `avatars/${currentProfile.id}-${Date.now()}.jpg`
+      const { error: upErr } = await supabase.storage.from('imoveis')
+        .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+      if (upErr) throw upErr
+      const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentProfile.id)
+      currentProfile = { ...currentProfile, avatar_url: publicUrl }
+      renderSidebarUser(currentProfile)
+      close()
+    } catch (err) {
+      msgEl.style.color = '#ef4444'; msgEl.textContent = 'Erro: ' + err.message; msgEl.style.display = ''
+      btn.disabled = false; btn.textContent = 'Salvar Foto'
+    }
+  })
+}
+
+function openAddCorretorModal(overrideTenantId, onSuccess) {
+  const existing = document.getElementById('add-corretor-modal-root')
+  if (existing) existing.remove()
+  const wrap = document.createElement('div')
+  wrap.id = 'add-corretor-modal-root'
+  wrap.className = 'modal-backdrop'
+  wrap.innerHTML = `
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header">
+        <h3>Adicionar Usuário</h3>
+        <button class="modal-close" id="ac-close">✕</button>
+      </div>
+      <div class="modal-body" style="padding:24px;display:flex;flex-direction:column;gap:14px;">
+        <div class="form-group">
+          <label class="form-label">Função *</label>
+          <select id="ac-role" class="form-control">
+            <option value="corretor">Corretor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail *</label>
+          <input id="ac-email" type="email" class="form-control" placeholder="usuario@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha de acesso *</label>
+          <input id="ac-password" type="text" class="form-control" placeholder="Mínimo 6 caracteres">
+        </div>
+        <p id="ac-note" style="display:none;font-size:13px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin:0;line-height:1.6;"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="ac-cancel">Cancelar</button>
+        <button class="btn-primary" id="ac-save" style="margin:0;">+ Criar Acesso</button>
+      </div>
+    </div>`
+  document.body.appendChild(wrap)
+  const close = () => wrap.remove()
+  document.getElementById('ac-close')?.addEventListener('click', close)
+  document.getElementById('ac-cancel')?.addEventListener('click', close)
+  wrap.addEventListener('click', e => { if (e.target === wrap) close() })
+  document.getElementById('ac-save')?.addEventListener('click', async () => {
+    const email    = document.getElementById('ac-email')?.value.trim()
+    const password = document.getElementById('ac-password')?.value.trim()
+    const btn      = document.getElementById('ac-save')
+    const noteEl   = document.getElementById('ac-note')
+    if (!email) { alert('Informe o e-mail do corretor.'); return }
+    if (!password || password.length < 6) { alert('A senha precisa ter no mínimo 6 caracteres.'); return }
+    btn.disabled = true; btn.textContent = 'Criando…'
+    noteEl.style.display = 'none'
+    try {
+      const tenantIdToUse = overrideTenantId || currentProfile?.tenant_id || null
+      const role = document.getElementById('ac-role')?.value || 'corretor'
+      const result = await callEdgeFunction({ email, password, role, tenant_id: tenantIdToUse })
+      btn.disabled = false; btn.textContent = '+ Criar Acesso'
+      if (result.success) {
+        document.getElementById('ac-email').value = ''
+        document.getElementById('ac-password').value = ''
+        if (result.email_sent === false) {
+          noteEl.innerHTML = `✅ Acesso criado! <span style="color:#ef4444;">⚠️ E-mail não enviado.</span><br>Compartilhe manualmente:<br><strong>E-mail:</strong> ${escapeHTML(email)}<br><strong>Senha:</strong> ${escapeHTML(password)}`
+          noteEl.style.color = '#0f172a'
+        } else {
+          noteEl.textContent = '✅ Acesso criado! O corretor receberá um e-mail com as credenciais.'
+          noteEl.style.color = '#16a34a'
+        }
+        noteEl.style.display = ''
+        if (typeof onSuccess === 'function') setTimeout(onSuccess, 1500)
+      } else {
+        alert('Erro: ' + (result.error || 'Falha desconhecida'))
+      }
+    } catch (err) {
+      btn.disabled = false; btn.textContent = '+ Criar Acesso'
+      alert('Erro: ' + err.message)
+    }
+  })
+}
+
 function attachSidebarUserClick() {
   // Avatar dropdown toggle
   const avatarWrap = document.getElementById('topnav-avatar-wrap')
@@ -911,10 +1222,13 @@ function attachSidebarUserClick() {
     if (!hidden) document.getElementById('notif-dropdown')?.classList.add('hidden')
   })
 
-  // Avatar dropdown actions
-  document.getElementById('avatar-dd-profile')?.addEventListener('click', () => { closeAllDropdowns(); navigateToSection('settings') })
-  document.getElementById('avatar-dd-settings')?.addEventListener('click', () => { closeAllDropdowns(); navigateToSection('settings') })
-  document.getElementById('avatar-dd-logout')?.addEventListener('click', async () => {
+  // Avatar dropdown actions — stopPropagation evita que o clique suba para avatarWrap e re-abra o dropdown
+  document.getElementById('avatar-dd-change-photo')?.addEventListener('click', e => { e.stopPropagation(); closeAllDropdowns(); openChangePhotoModal() })
+  document.getElementById('avatar-dd-change-pass')?.addEventListener('click', e => { e.stopPropagation(); closeAllDropdowns(); openChangePasswordModal() })
+  document.getElementById('avatar-dd-add-corretor')?.addEventListener('click', e => { e.stopPropagation(); closeAllDropdowns(); openAddCorretorModal() })
+  document.getElementById('avatar-dd-settings')?.addEventListener('click', e => { e.stopPropagation(); closeAllDropdowns(); navigateToSection('settings') })
+  document.getElementById('avatar-dd-logout')?.addEventListener('click', async e => {
+    e.stopPropagation()
     await supabase.auth.signOut()
     location.reload()
   })
@@ -961,34 +1275,123 @@ let funilInitialized = false
 let kanbanPipes = []
 let kanbanStages = []
 let kanbanLeads = []
+let kanbanTagMap = {}    // name → { color }
+let kanbanStatuses = []
 let activePipeId = null
 let dragLeadId = null
+let kanbanFilter = { search: '', tags: new Set(), status: '' }
 
 async function initFunilSection() {
-  if (funilInitialized) return
+  // Não usa guard funilInitialized para que recarregue quando funnils forem criados
+  if (funilInitialized) {
+    // Já inicializado: apenas recarrega listas
+    await reloadFunilData()
+    return
+  }
   funilInitialized = true
 
-  const [{ data: pipes }, { data: stages }] = await Promise.all([
-    supabase.from('crm_pipelines').select('*').order('sort_order'),
-    supabase.from('crm_stages').select('*').order('sort_order'),
-  ])
-  kanbanPipes  = pipes  || []
-  kanbanStages = stages || []
+  await reloadFunilData()
+
+  document.getElementById('btn-funil-add-lead')?.addEventListener('click', () => openLeadModal())
 
   const sel = document.getElementById('funil-pipe-sel')
-  if (sel) {
-    sel.innerHTML = kanbanPipes.length
-      ? kanbanPipes.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('')
-      : '<option value="">Sem funis cadastrados</option>'
-    const def = kanbanPipes.find(p => p.is_default) || kanbanPipes[0]
-    if (def) { sel.value = def.id; activePipeId = def.id }
-    sel.addEventListener('change', async () => {
-      activePipeId = parseInt(sel.value, 10)
-      await loadKanbanLeads()
+  sel?.addEventListener('change', async () => {
+    activePipeId = parseInt(sel.value, 10)
+    await loadKanbanLeads()
+  })
+}
+
+function buildKanbanFilters(tags) {
+  const filtersEl = document.getElementById('kanban-filters')
+  if (!filtersEl) return
+  filtersEl.style.display = 'block'
+
+  // Status options
+  const statusSel = document.getElementById('kf-status')
+  if (statusSel) {
+    statusSel.innerHTML = '<option value="">Todos os status</option>' +
+      kanbanStatuses.map(s => `<option value="${escapeHTML(s.name)}">${escapeHTML(s.name)}</option>`).join('')
+    statusSel.value = kanbanFilter.status
+    statusSel.onchange = () => { kanbanFilter.status = statusSel.value; renderKanban() }
+  }
+
+  // Tag pills
+  const tagsEl = document.getElementById('kf-tags')
+  if (tagsEl) {
+    if (!tags.length) { tagsEl.style.display = 'none'; return }
+    tagsEl.style.display = 'flex'
+    tagsEl.innerHTML = tags.map(t => {
+      const active = kanbanFilter.tags.has(t.name)
+      return `<button class="kf-tag-btn" data-tag="${escapeHTML(t.name)}"
+        style="padding:4px 12px;border-radius:20px;border:1.5px solid ${t.color};
+               background:${active ? t.color : t.color + '18'};
+               color:${active ? '#fff' : t.color};
+               font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;">
+        ${escapeHTML(t.name)}
+      </button>`
+    }).join('')
+    tagsEl.querySelectorAll('.kf-tag-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tag = btn.dataset.tag
+        if (kanbanFilter.tags.has(tag)) kanbanFilter.tags.delete(tag)
+        else kanbanFilter.tags.add(tag)
+        // Rebuild just the tag pills to update active state
+        buildKanbanFilters(tags)
+        renderKanban()
+      })
     })
   }
 
-  document.getElementById('btn-funil-add-lead')?.addEventListener('click', () => openLeadModal())
+  // Search
+  const searchEl = document.getElementById('kf-search')
+  if (searchEl) {
+    searchEl.value = kanbanFilter.search
+    searchEl.oninput = () => { kanbanFilter.search = searchEl.value.toLowerCase(); renderKanban() }
+  }
+
+  // Clear
+  document.getElementById('kf-clear')?.addEventListener('click', () => {
+    kanbanFilter = { search: '', tags: new Set(), status: '' }
+    buildKanbanFilters(tags)
+    renderKanban()
+  })
+}
+
+async function reloadFunilData() {
+  const tid = getSettingsTenantId()
+  const [{ data: pipes }, { data: tags }, { data: statuses }] = await Promise.all([
+    supabase.from('crm_pipelines').select('*').eq('tenant_id', tid).order('sort_order'),
+    supabase.from('crm_tags').select('*').eq('tenant_id', tid).order('name'),
+    supabase.from('crm_lead_statuses').select('*').eq('tenant_id', tid).order('sort_order'),
+  ])
+  kanbanPipes = pipes || []
+  kanbanStatuses = statuses || []
+
+  // Build tag color map
+  kanbanTagMap = {}
+  ;(tags || []).forEach(t => { kanbanTagMap[t.name] = t })
+
+  // Load stages by pipeline IDs to avoid tenant_id NULL mismatch on pre-migration rows
+  const pipeIds = kanbanPipes.map(p => p.id)
+  const { data: stages } = pipeIds.length
+    ? await supabase.from('crm_stages').select('*').in('pipeline_id', pipeIds).order('sort_order')
+    : { data: [] }
+  kanbanStages = stages || []
+
+  // Build filter UI
+  buildKanbanFilters(tags || [])
+
+
+  const sel = document.getElementById('funil-pipe-sel')
+  if (sel) {
+    const prev = activePipeId
+    sel.innerHTML = kanbanPipes.length
+      ? kanbanPipes.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('')
+      : '<option value="">Sem funis cadastrados</option>'
+    const def = kanbanPipes.find(p => p.id === prev) || kanbanPipes.find(p => p.is_default) || kanbanPipes[0]
+    if (def) { sel.value = def.id; activePipeId = def.id }
+    else activePipeId = null
+  }
 
   await loadKanbanLeads()
 }
@@ -1019,9 +1422,24 @@ function renderKanban() {
     return
   }
 
+  // Apply filters
+  const f = kanbanFilter
+  const visibleLeads = kanbanLeads.filter(l => {
+    if (f.search) {
+      const hay = `${l.name||''} ${l.phone||''} ${l.email||''}`.toLowerCase()
+      if (!hay.includes(f.search)) return false
+    }
+    if (f.status && l.status !== f.status) return false
+    if (f.tags.size > 0) {
+      const lt = Array.isArray(l.tags) ? l.tags : []
+      if (![...f.tags].every(t => lt.includes(t))) return false
+    }
+    return true
+  })
+
   const grouped = {}
   stages.forEach(s => { grouped[s.name] = [] })
-  kanbanLeads.forEach(l => {
+  visibleLeads.forEach(l => {
     const key = l.stage || stages[0]?.name
     if (!grouped[key]) grouped[stages[0]?.name || ''] = []
     ;(grouped[key] || grouped[stages[0]?.name])?.push(l)
@@ -1030,16 +1448,32 @@ function renderKanban() {
   board.innerHTML = stages.map(stage => {
     const cards = (grouped[stage.name] || [])
     const cardsHTML = cards.length
-      ? cards.map(l => `
-        <div class="kanban-card" draggable="true" data-id="${l.id}" data-stage="${escapeHTML(stage.name)}">
-          <div class="kanban-card-name">${escapeHTML(l.name || '—')}</div>
-          ${l.phone ? `<div class="kanban-card-info">📞 ${escapeHTML(l.phone)}</div>` : ''}
-          ${l.interest ? `<div class="kanban-card-info">🏠 ${escapeHTML(l.interest)}</div>` : ''}
-          ${l.budget_max ? `<div class="kanban-card-info">💰 R$ ${Number(l.budget_max).toLocaleString('pt-BR')}</div>` : ''}
-          <div class="kanban-card-tags">
-            ${l.source ? `<span class="kanban-card-tag">${escapeHTML(l.source)}</span>` : ''}
+      ? cards.map(l => {
+          const waNum = (l.phone || '').replace(/\D/g,'')
+          const waMsg = encodeURIComponent(`Olá ${l.name}! Aqui é da ${getSetting('company.name','nossa imobiliária')}. Vi seu interesse e gostaria de ajudar. Posso falar agora?`)
+          return `
+        <div class="kanban-card" draggable="true" data-id="${l.id}" data-stage="${escapeHTML(stage.name)}" style="cursor:pointer;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;">
+            <div class="kanban-card-name" style="flex:1;">${escapeHTML(l.name || '—')}</div>
+            ${waNum ? `<a href="https://wa.me/${waNum}?text=${waMsg}" target="_blank" rel="noopener"
+              onclick="event.stopPropagation()"
+              style="flex-shrink:0;width:28px;height:28px;background:#25d366;border-radius:6px;display:flex;align-items:center;justify-content:center;text-decoration:none;"
+              title="Abrir WhatsApp">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </a>` : ''}
           </div>
-        </div>`).join('')
+          ${l.phone ? `<div class="kanban-card-info">📞 ${escapeHTML(l.phone)}</div>` : ''}
+          ${l.email ? `<div class="kanban-card-info" style="font-size:11px;color:#94a3b8;">✉ ${escapeHTML(l.email)}</div>` : ''}
+          ${l.notes ? `<div class="kanban-card-info" style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">📝 ${escapeHTML(l.notes)}</div>` : ''}
+          <div class="kanban-card-tags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">
+            ${l.source ? `<span class="kanban-card-tag">${escapeHTML(l.source)}</span>` : ''}
+            ${Array.isArray(l.tags) ? l.tags.map(t => {
+              const td = kanbanTagMap[t]
+              const c = td?.color || '#0369a1'
+              return `<span class="kanban-card-tag" style="background:${c}18;color:${c};border:1px solid ${c}44;">${escapeHTML(t)}</span>`
+            }).join('') : ''}
+          </div>
+        </div>`}).join('')
       : '<div class="kanban-empty-col">Sem leads nesta etapa</div>'
 
     return `
@@ -1098,6 +1532,140 @@ function attachKanbanEvents() {
       dragLeadId = null
       renderKanban()
     })
+  })
+}
+
+// ─── Modal de detalhe / edição de lead no kanban ─────────────────────────────
+async function openLeadModal(lead = null) {
+  document.getElementById('lead-detail-panel')?.remove()
+
+  const isNew = !lead
+  const tid = getSettingsTenantId()
+  const { data: tags  } = await supabase.from('crm_tags').select('*').eq('tenant_id', tid).order('name')
+  const { data: statuses } = await supabase.from('crm_lead_statuses').select('*').eq('tenant_id', tid).order('sort_order')
+
+  const stageOptions = kanbanStages
+    .filter(s => s.pipeline_id === activePipeId)
+    .map(s => `<option value="${escapeHTML(s.name)}" ${lead?.stage === s.name ? 'selected' : ''}>${escapeHTML(s.name)}</option>`)
+    .join('')
+
+  const waNum = (lead?.phone || '').replace(/\D/g,'')
+
+  const panel = document.createElement('div')
+  panel.id = 'lead-detail-panel'
+  panel.style.cssText = 'position:fixed;top:0;right:0;bottom:0;width:420px;max-width:100vw;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.15);z-index:1000;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;'
+  panel.innerHTML = `
+    <div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">${isNew ? '+ Novo Lead' : '✏️ Editar Lead'}</h3>
+      <button id="ldp-close" style="background:none;border:none;cursor:pointer;font-size:22px;color:#94a3b8;line-height:1;">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">NOME *</label>
+        <input id="ldp-name" class="form-input" type="text" value="${escapeHTML(lead?.name||'')}" placeholder="Nome do cliente">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">TELEFONE</label>
+          <input id="ldp-phone" class="form-input" type="tel" value="${escapeHTML(lead?.phone||'')}" placeholder="(00) 00000-0000">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">E-MAIL</label>
+          <input id="ldp-email" class="form-input" type="email" value="${escapeHTML(lead?.email||'')}" placeholder="email@...">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">ORIGEM</label>
+        <input id="ldp-source" class="form-input" type="text" value="${escapeHTML(lead?.source||'')}" placeholder="site, indicação, instagram…">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">ETAPA DO FUNIL</label>
+        <select id="ldp-stage" class="form-input">${stageOptions}</select>
+      </div>
+      ${statuses?.length ? `
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">STATUS</label>
+        <select id="ldp-status" class="form-input">
+          <option value="">— Sem status —</option>
+          ${statuses.map(s => `<option value="${s.name}" ${lead?.status===s.name?'selected':''}>${escapeHTML(s.name)}</option>`).join('')}
+        </select>
+      </div>` : ''}
+      ${tags?.length ? `
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:6px;">TAGS</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${tags.map(t => `
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 10px;border-radius:20px;background:${t.color}18;border:1px solid ${t.color}44;font-size:12px;font-weight:600;color:${t.color};">
+              <input type="checkbox" value="${t.name}" style="margin:0;" ${(lead?.tags||[]).includes(t.name)?'checked':''}>
+              ${escapeHTML(t.name)}
+            </label>`).join('')}
+        </div>
+      </div>` : ''}
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">ANOTAÇÕES</label>
+        <textarea id="ldp-notes" class="form-input" rows="4" placeholder="Observações, interesses, próximos passos…" style="resize:vertical;">${escapeHTML(lead?.notes||'')}</textarea>
+      </div>
+      ${waNum ? (() => {
+        const waTxt = encodeURIComponent(`Olá ${lead?.name ? lead.name.split(' ')[0] : ''}! Aqui é da ${getSetting('company.name','nossa imobiliária')}. Vi seu interesse em imóveis e gostaria de ajudá-lo. Posso falar agora?`)
+        return `<a href="https://wa.me/${waNum}?text=${waTxt}" target="_blank" rel="noopener"
+          style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25d366;color:#fff;text-decoration:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.116 1.527 5.845L.057 23.882l6.199-1.625A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.793 9.793 0 01-4.992-1.368l-.358-.213-3.685.967.983-3.596-.234-.369A9.79 9.79 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
+          Iniciar conversa no WhatsApp
+        </a>`
+      })() : ''}
+      <div id="ldp-msg" style="font-size:13px;min-height:18px;"></div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;gap:10px;flex-shrink:0;">
+      ${!isNew ? `<button id="ldp-delete" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;">🗑️ Excluir</button>` : ''}
+      <button id="ldp-save" style="flex:1;background:#0a1628;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;">💾 Salvar</button>
+    </div>
+  `
+  document.body.appendChild(panel)
+  requestAnimationFrame(() => { panel.style.transform = 'translateX(0)' })
+
+  const close = () => {
+    panel.style.transform = 'translateX(100%)'
+    setTimeout(() => panel.remove(), 250)
+  }
+  document.getElementById('ldp-close').addEventListener('click', close)
+
+  document.getElementById('ldp-save').addEventListener('click', async () => {
+    const btn   = document.getElementById('ldp-save')
+    const msgEl = document.getElementById('ldp-msg')
+    const name  = document.getElementById('ldp-name').value.trim()
+    if (!name) { msgEl.style.color='#ef4444'; msgEl.textContent='Nome é obrigatório.'; return }
+    btn.disabled = true; btn.textContent = 'Salvando…'
+
+    const selectedTags = [...panel.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value)
+    const row = {
+      name,
+      phone:     document.getElementById('ldp-phone').value.trim() || null,
+      email:     document.getElementById('ldp-email').value.trim() || null,
+      source:    document.getElementById('ldp-source').value.trim() || null,
+      stage:     document.getElementById('ldp-stage')?.value || null,
+      status:    document.getElementById('ldp-status')?.value || null,
+      notes:     document.getElementById('ldp-notes').value.trim() || null,
+      tags:      selectedTags,
+      tenant_id: getSettingsTenantId(),
+    }
+
+    let error
+    if (isNew) {
+      ;({ error } = await supabase.from('leads').insert(row))
+    } else {
+      ;({ error } = await supabase.from('leads').update(row).eq('id', lead.id))
+    }
+
+    btn.disabled = false; btn.textContent = '💾 Salvar'
+    if (error) { msgEl.style.color='#ef4444'; msgEl.textContent='Erro: ' + error.message; return }
+    msgEl.style.color='#22c55e'; msgEl.textContent='✅ Salvo!'
+    setTimeout(() => { close(); loadKanbanLeads() }, 700)
+  })
+
+  document.getElementById('ldp-delete')?.addEventListener('click', async () => {
+    if (!confirm(`Excluir o lead "${lead?.name}"?`)) return
+    await supabase.from('leads').delete().eq('id', lead.id)
+    close(); loadKanbanLeads()
   })
 }
 
@@ -1180,6 +1748,13 @@ CREATE POLICY "tasks_access" ON public.tasks
   renderTarefas()
 }
 
+function parseTarefaDate(due_date) {
+  if (!due_date) return null
+  // Handle both YYYY-MM-DD and full timestamps
+  const d = due_date.includes('T') ? new Date(due_date) : new Date(due_date + 'T00:00:00')
+  return isNaN(d.getTime()) ? null : d
+}
+
 function renderTarefas() {
   const list = document.getElementById('tarefas-list')
   if (!list) return
@@ -1196,11 +1771,13 @@ function renderTarefas() {
     return
   }
 
+  const today = new Date(); today.setHours(0,0,0,0)
   list.innerHTML = filtered.map(t => {
-    const due = t.due_date ? new Date(t.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : ''
-    const overdue = t.due_date && t.status !== 'done' && new Date(t.due_date) < new Date()
+    const dObj = parseTarefaDate(t.due_date)
+    const due  = dObj ? dObj.toLocaleDateString('pt-BR') : ''
+    const overdue = dObj && t.status !== 'done' && dObj < today
     return `
-      <div class="tarefa-item${t.status === 'done' ? ' done' : ''}" data-id="${t.id}">
+      <div class="tarefa-item${t.status === 'done' ? ' done' : ''}" data-id="${t.id}" style="cursor:pointer;">
         <input type="checkbox" class="tarefa-check" data-id="${t.id}" ${t.status === 'done' ? 'checked' : ''}>
         <div class="tarefa-body">
           <div class="tarefa-title">${escapeHTML(t.title)}</div>
@@ -1215,7 +1792,8 @@ function renderTarefas() {
   }).join('')
 
   list.querySelectorAll('.tarefa-check').forEach(chk => {
-    chk.addEventListener('change', async () => {
+    chk.addEventListener('change', async e => {
+      e.stopPropagation()
       const id = chk.dataset.id
       const status = chk.checked ? 'done' : 'pending'
       await supabase.from('tasks').update({ status }).eq('id', id)
@@ -1226,11 +1804,21 @@ function renderTarefas() {
   })
 
   list.querySelectorAll('.tarefa-del-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation()
       if (!confirm('Excluir esta tarefa?')) return
       await supabase.from('tasks').delete().eq('id', btn.dataset.id)
       allTarefas = allTarefas.filter(t => String(t.id) !== String(btn.dataset.id))
       renderTarefas()
+    })
+  })
+
+  list.querySelectorAll('.tarefa-item').forEach(item => {
+    item.addEventListener('click', e => {
+      if (e.target.closest('.tarefa-check') || e.target.closest('.tarefa-del-btn')) return
+      const id = item.dataset.id
+      const t  = allTarefas.find(x => String(x.id) === id)
+      if (t) openTarefaModal(t)
     })
   })
 }
@@ -1240,17 +1828,28 @@ function openTarefaModal(tarefa = null) {
   if (existing) existing.remove()
 
   const isEdit = !!tarefa
+  const isDone = tarefa?.status === 'done'
+  const dObj   = parseTarefaDate(tarefa?.due_date)
+  const dueFmt = dObj ? dObj.toLocaleDateString('pt-BR') : ''
+  const dueDateValue = tarefa?.due_date
+    ? (tarefa.due_date.includes('T') ? tarefa.due_date.split('T')[0] : tarefa.due_date)
+    : ''
+
   const wrap = document.createElement('div')
   wrap.id = 'tarefa-modal-root'
   wrap.className = 'modal-backdrop'
   wrap.innerHTML = `
-    <div class="modal" style="max-width:480px;">
+    <div class="modal" style="max-width:520px;">
       <div class="modal-header">
-        <h3>${isEdit ? 'Editar Tarefa' : 'Nova Tarefa'}</h3>
+        <h3 style="display:flex;align-items:center;gap:10px;">
+          ${isDone ? '<span style="color:#22c55e;font-size:18px;">✅</span>' : '<span style="font-size:18px;">📋</span>'}
+          ${isEdit ? 'Editar Tarefa' : 'Nova Tarefa'}
+        </h3>
         <button class="modal-close" id="tm-close">✕</button>
       </div>
-      <div class="modal-body">
-        <form id="tarefa-form" style="display:flex;flex-direction:column;gap:14px;">
+      <div class="modal-body" style="padding:24px;">
+        ${isEdit && isDone ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:16px;color:#15803d;font-size:13px;font-weight:600;">✅ Tarefa concluída</div>` : ''}
+        <form id="tarefa-form" style="display:flex;flex-direction:column;gap:16px;">
           <div class="form-group">
             <label class="form-label">Título *</label>
             <input name="title" required class="form-control" placeholder="Ex: Ligar para cliente…" value="${escapeHTML(tarefa?.title || '')}">
@@ -1258,7 +1857,7 @@ function openTarefaModal(tarefa = null) {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Prazo</label>
-              <input name="due_date" type="date" class="form-control" value="${tarefa?.due_date || ''}">
+              <input name="due_date" type="date" class="form-control" value="${dueDateValue}">
             </div>
             <div class="form-group">
               <label class="form-label">Prioridade</label>
@@ -1271,13 +1870,20 @@ function openTarefaModal(tarefa = null) {
           </div>
           <div class="form-group">
             <label class="form-label">Descrição</label>
-            <textarea name="description" class="form-control" rows="2" placeholder="Detalhes…">${escapeHTML(tarefa?.description || '')}</textarea>
+            <textarea name="description" class="form-control" rows="4" placeholder="Detalhes, observações…">${escapeHTML(tarefa?.description || '')}</textarea>
           </div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button class="btn-cancel" id="tm-cancel">Cancelar</button>
-        <button class="btn-primary" id="tm-save" style="margin:0;">${isEdit ? 'Salvar' : 'Criar Tarefa'}</button>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between;align-items:center;">
+        <div style="display:flex;gap:8px;">
+          ${isEdit ? `<button id="tm-toggle-done" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid ${isDone ? '#94a3b8' : '#22c55e'};background:${isDone ? '#f8fafc' : '#f0fdf4'};color:${isDone ? '#64748b' : '#15803d'};">
+            ${isDone ? '↩ Reabrir tarefa' : '✅ Marcar como Concluída'}
+          </button>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-cancel" id="tm-cancel">Cancelar</button>
+          <button class="btn-primary" id="tm-save" style="margin:0;">${isEdit ? 'Salvar' : 'Criar Tarefa'}</button>
+        </div>
       </div>
     </div>
   `
@@ -1286,6 +1892,23 @@ function openTarefaModal(tarefa = null) {
   document.getElementById('tm-close')?.addEventListener('click', close)
   document.getElementById('tm-cancel')?.addEventListener('click', close)
   wrap.addEventListener('click', e => { if (e.target === wrap) close() })
+
+  // Toggle concluída / reabrir
+  document.getElementById('tm-toggle-done')?.addEventListener('click', async () => {
+    const newStatus = isDone ? 'pending' : 'done'
+    await supabase.from('tasks').update({ status: newStatus }).eq('id', tarefa.id)
+    const t = allTarefas.find(x => String(x.id) === String(tarefa.id))
+    if (t) t.status = newStatus
+    close()
+    // Se marcou como concluída, muda o filtro para "done"
+    if (newStatus === 'done') {
+      tarefasFilter = 'done'
+      document.querySelectorAll('.tarefa-filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === 'done')
+      })
+    }
+    renderTarefas()
+  })
 
   document.getElementById('tm-save')?.addEventListener('click', async () => {
     const form = document.getElementById('tarefa-form')
@@ -1566,7 +2189,16 @@ function renderContatos() {
         <td style="text-align:center;">
           <span style="background:#eff6ff;color:#2563eb;border-radius:12px;padding:2px 8px;font-size:12px;font-weight:600;">0</span>
         </td>
-        <td>
+        <td style="display:flex;gap:6px;align-items:center;">
+          ${(() => {
+            const waNum = (c.phone || '').replace(/\D/g, '')
+            if (!waNum) return ''
+            const waTxt = encodeURIComponent(`Olá ${(c.name||'').split(' ')[0]}! Aqui é da ${getSetting('company.name','nossa imobiliária')}. Podemos conversar sobre seu interesse em imóveis?`)
+            return `<a href="https://wa.me/${waNum}?text=${waTxt}" target="_blank" rel="noopener" title="WhatsApp"
+              style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#25d366;border-radius:6px;color:#fff;text-decoration:none;flex-shrink:0;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.116 1.527 5.845L.057 23.882l6.199-1.625A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.793 9.793 0 01-4.992-1.368l-.358-.213-3.685.967.983-3.596-.234-.369A9.79 9.79 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
+            </a>`
+          })()}
           <button class="icon-btn contato-edit-btn" data-id="${c.id}" title="Editar" style="color:#64748b;">
             ✏️
           </button>
@@ -1605,21 +2237,51 @@ function renderContatos() {
   })
 }
 
-function openContatoModal(contato = null) {
+async function openContatoModal(contato = null) {
   const existing = document.getElementById('contato-modal-root')
   if (existing) existing.remove()
 
   const isEdit = !!contato
+  const tid = getSettingsTenantId()
+
+  // Load pipelines, tags and statuses filtered by tenant
+  const [{ data: pipes }, { data: tags }, { data: statuses }] = await Promise.all([
+    supabase.from('crm_pipelines').select('*').eq('tenant_id', tid).order('sort_order'),
+    supabase.from('crm_tags').select('*').eq('tenant_id', tid).order('name'),
+    supabase.from('crm_lead_statuses').select('*').eq('tenant_id', tid).order('sort_order'),
+  ])
+
+  const pipeList   = pipes    || []
+  const tagList    = tags      || []
+  const statusList = statuses  || []
+
+  // Load stages by pipeline IDs to avoid tenant_id NULL mismatch on older rows
+  const pipeIds = pipeList.map(p => p.id)
+  const { data: allStages } = pipeIds.length
+    ? await supabase.from('crm_stages').select('*').in('pipeline_id', pipeIds).order('sort_order')
+    : { data: [] }
+  const stageList = allStages || []
+
+  // Determine initial pipeline selection
+  const initPipeId = contato?.pipeline_id || pipeList[0]?.id || ''
+
+  function buildStageOptions(pipeId) {
+    const stages = stageList.filter(s => s.pipeline_id === pipeId)
+    if (!stages.length) return '<option value="">— Nenhuma etapa —</option>'
+    return '<option value="">— Selecionar etapa —</option>' +
+      stages.map(s => `<option value="${escapeHTML(s.name)}" ${contato?.stage === s.name ? 'selected' : ''}>${escapeHTML(s.name)}</option>`).join('')
+  }
+
   const wrap = document.createElement('div')
   wrap.id = 'contato-modal-root'
   wrap.className = 'modal-backdrop'
   wrap.innerHTML = `
-    <div class="modal" style="max-width:560px;">
-      <div class="modal-header">
+    <div class="modal" style="max-width:600px;max-height:90vh;display:flex;flex-direction:column;">
+      <div class="modal-header" style="flex-shrink:0;">
         <h3>${isEdit ? 'Editar Contato' : 'Novo Contato'}</h3>
         <button class="modal-close" id="cm-close">✕</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="overflow-y:auto;flex:1;">
         <form id="contato-form">
           <div class="form-row">
             <div class="form-group">
@@ -1651,6 +2313,52 @@ function openContatoModal(contato = null) {
               <input name="city_interest" class="form-control" placeholder="Ex: Balneário Camboriú" value="${escapeHTML(contato?.city_interest || '')}">
             </div>
           </div>
+
+          ${pipeList.length ? `
+          <div style="border-top:1px solid #f1f5f9;margin:8px 0 12px;padding-top:14px;">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;margin-bottom:10px;">FUNIL DE NEGOCIAÇÃO</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Funil</label>
+                <select id="cm-pipe" name="pipeline_id" class="form-control">
+                  <option value="">— Sem funil —</option>
+                  ${pipeList.map(p => `<option value="${p.id}" ${String(contato?.pipeline_id) === String(p.id) ? 'selected' : ''}>${escapeHTML(p.name)}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Etapa</label>
+                <select id="cm-stage" name="stage" class="form-control">
+                  ${buildStageOptions(initPipeId)}
+                </select>
+              </div>
+            </div>
+          </div>` : ''}
+
+          ${statusList.length ? `
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select name="status" class="form-control">
+                <option value="">— Sem status —</option>
+                ${statusList.map(s => `<option value="${escapeHTML(s.name)}" ${contato?.status === s.name ? 'selected' : ''}>${escapeHTML(s.name)}</option>`).join('')}
+              </select>
+            </div>
+          </div>` : ''}
+
+          ${tagList.length ? `
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Tags</label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+                ${tagList.map(t => `
+                  <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 12px;border-radius:20px;background:${t.color}18;border:1.5px solid ${t.color}55;font-size:12px;font-weight:600;color:${t.color};transition:opacity .15s;">
+                    <input type="checkbox" name="tag" value="${escapeHTML(t.name)}" style="margin:0;accent-color:${t.color};" ${(contato?.tags||[]).includes(t.name) ? 'checked' : ''}>
+                    ${escapeHTML(t.name)}
+                  </label>`).join('')}
+              </div>
+            </div>
+          </div>` : ''}
+
           <div class="form-row single">
             <div class="form-group">
               <label class="form-label">Observações</label>
@@ -1659,7 +2367,8 @@ function openContatoModal(contato = null) {
           </div>
         </form>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="flex-shrink:0;">
+        ${isEdit ? `<button class="btn-danger" id="cm-delete" style="margin-right:auto;">🗑️ Excluir</button>` : ''}
         <button class="btn-cancel" id="cm-cancel">Cancelar</button>
         <button class="btn-primary" id="cm-save" style="margin:0;">${isEdit ? 'Salvar' : 'Criar Contato'}</button>
       </div>
@@ -1671,12 +2380,30 @@ function openContatoModal(contato = null) {
   document.getElementById('cm-cancel')?.addEventListener('click', close)
   wrap.addEventListener('click', e => { if (e.target === wrap) close() })
 
+  // Pipeline → stage cascade
+  document.getElementById('cm-pipe')?.addEventListener('change', e => {
+    const stageEl = document.getElementById('cm-stage')
+    if (stageEl) stageEl.innerHTML = buildStageOptions(e.target.value)
+  })
+
+  document.getElementById('cm-delete')?.addEventListener('click', async () => {
+    if (!confirm(`Excluir o contato "${contato?.name}"?`)) return
+    await supabase.from('leads').delete().eq('id', contato.id)
+    const idx = allContatos.findIndex(c => String(c.id) === String(contato.id))
+    if (idx >= 0) allContatos.splice(idx, 1)
+    close()
+    renderContatos()
+  })
+
   document.getElementById('cm-save')?.addEventListener('click', async () => {
     const form = document.getElementById('contato-form')
     if (!form.checkValidity()) { form.reportValidity(); return }
     const fd = new FormData(form)
     const btn = document.getElementById('cm-save')
     btn.disabled = true; btn.textContent = 'Salvando…'
+
+    const selectedTags = fd.getAll('tag')
+    const pipeId = fd.get('pipeline_id') || null
 
     const payload = {
       name:          fd.get('name')?.trim(),
@@ -1686,10 +2413,13 @@ function openContatoModal(contato = null) {
       job_title:     fd.get('job_title')?.trim() || null,
       city_interest: fd.get('city_interest')?.trim() || null,
       notes:         fd.get('notes')?.trim() || null,
-      stage:         contato?.stage || 'novo',
+      pipeline_id:   pipeId,
+      stage:         fd.get('stage') || null,
+      status:        fd.get('status') || null,
+      tags:          selectedTags,
       assigned_to:   currentProfile?.id || null,
       tenant_id:     currentProfile?.tenant_id || null,
-      source:        'manual',
+      source:        contato?.source || 'manual',
     }
 
     let error
@@ -2137,13 +2867,18 @@ function attachAdminUI() {
   })
 
   document.getElementById('f-clear-btn')?.addEventListener('click', () => {
-    const ids = ['f-title','f-condominium','f-price-min','f-price-max','f-area-min','f-area-max']
-    ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
-    const sels = ['f-type','f-city','f-construction','f-published']
-    sels.forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
-    const neigh = document.getElementById('f-neighborhood')
-    if (neigh) neigh.innerHTML = '<option value="">Todos</option>'
-    document.querySelectorAll('.filter-btn.active').forEach(b => b.classList.remove('active'))
+    const panel = document.querySelector('.admin-filter-panel')
+    if (panel) {
+      // Clear every text/number input inside the filter panel
+      panel.querySelectorAll('input[type="text"], input[type="number"]').forEach(el => { el.value = '' })
+      // Reset every select to first option
+      panel.querySelectorAll('select').forEach(el => { el.selectedIndex = 0 })
+      // Rebuild neighborhood options (depends on city select)
+      const neigh = document.getElementById('f-neighborhood')
+      if (neigh) neigh.innerHTML = '<option value="">Todos</option>'
+      // Deactivate toggle buttons (dormitórios, suítes, vagas)
+      panel.querySelectorAll('.filter-btn.active').forEach(b => b.classList.remove('active'))
+    }
     renderAdminTable(cachedProperties)
   })
 
@@ -2237,8 +2972,14 @@ function attachAdminUI() {
   document.getElementById('share-whatsapp')?.addEventListener('click', () => {
     const link = document.getElementById('share-link-input')?.value
     if (!link) return
-    const title = document.getElementById('view-modal-title')?.textContent || 'Imóvel'
-    const msg = encodeURIComponent('Olha esse imóvel que encontrei: ' + title + '\n' + link)
+    const pid = Number(document.getElementById('share-panel')?.dataset.pid)
+    const p = cachedProperties.find(x => x.id === pid)
+    const title = p?.title || document.getElementById('view-modal-title')?.textContent || 'Imóvel'
+    const price = p?.price ? ` — ${formatPrice(p.price, 'pt')}` : ''
+    const ref   = p?.reference ? ` | Ref: ${p.reference}` : ''
+    const loc   = [p?.neighborhood, p?.city].filter(Boolean).join(', ')
+    const locLine = loc ? `\n📍 ${loc}` : ''
+    const msg = encodeURIComponent(`Olha esse imóvel que encontrei: *${title}*${price}${ref}${locLine}\n\n${link}`)
     window.open('https://wa.me/?text=' + msg, '_blank')
   })
 
@@ -2270,9 +3011,9 @@ function attachAdminUI() {
   })
 
   document.getElementById('view-modal-edit')?.addEventListener('click', () => {
-    if (currentProfile?.role !== 'admin') return
-    const title = document.getElementById('view-modal-title').textContent
-    const p = cachedProperties.find(x => x.title === title)
+    if (currentProfile?.role !== 'admin' && currentProfile?.role !== 'super_admin') return
+    const pid = Number(document.getElementById('view-modal-edit').dataset.pid)
+    const p = cachedProperties.find(x => x.id === pid)
     if (!p) return
     closeViewModal()
     // simulate edit-btn click
@@ -2336,6 +3077,27 @@ function attachAdminUI() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  // Detecta tenant pelo domínio — usa cache local para evitar roundtrip na maioria das visitas
+  const _rawHost = window.location.hostname
+  const _host    = _rawHost.replace(/^www\./, '')
+  if (_host && _host !== 'localhost' && _host !== '127.0.0.1') {
+    const _tenantCacheKey = `imobi_tenant_${_host}`
+    const _cachedTenant = cacheGet(_tenantCacheKey)
+    if (_cachedTenant) {
+      setSettingsTenant(_cachedTenant)
+    } else {
+      let _tenantData = null
+      for (const d of [_host, 'www.' + _host]) {
+        const { data } = await supabase.from('tenants').select('id').eq('domain', d).maybeSingle()
+        if (data?.id) { _tenantData = data; break }
+      }
+      if (_tenantData?.id) {
+        setSettingsTenant(_tenantData.id)
+        cacheSet(_tenantCacheKey, _tenantData.id, 24 * 60 * 60 * 1000) // 24h
+      }
+    }
+  }
+
   // Carrega settings e locations em paralelo
   await Promise.all([loadAllSettings(), loadLocations()])
 
@@ -2417,7 +3179,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (session) {
       loginModal.classList.add('hidden')
       if (adminRoot) adminRoot.classList.remove('hidden')
-      await renderAdmin()
       attachAdminForm()
       attachAdminUI()
       attachSidebarUserClick()
@@ -2472,8 +3233,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
         return
       }
+      setSettingsTenant(currentProfile?.tenant_id || null)
       renderSidebarUser(currentProfile)
+      updateVerSiteLink(currentProfile)
       applyRolePermissions(currentProfile.role)
+      await renderAdmin()
       await initSettings(currentProfile)
       if (window.lucide) lucide.createIcons()
       initNotifBadge()
@@ -2498,37 +3262,53 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         lf.addEventListener('submit', async e => {
           e.preventDefault()
-          const fd       = new FormData(lf)
-          const email    = fd.get('email')
-          const password = fd.get('password')
-          const ok = await loginAdmin(email, password)
-          if (ok) {
-            loginModal.classList.add('hidden')
-            if (adminRoot) adminRoot.classList.remove('hidden')
-            await renderAdmin()
-            attachAdminForm()
-            attachAdminUI()
-            if (window.lucide) lucide.createIcons()
+          const submitBtn = lf.querySelector('button[type="submit"]')
+          const fd        = new FormData(lf)
+          const email     = fd.get('email')
+          const password  = fd.get('password')
 
-            const { data: { session: s2 } } = await supabase.auth.getSession()
-            currentProfile = s2 ? await loadProfile(s2.user.id) : null
-            if (!currentProfile) {
-              await supabase.auth.signOut()
-              return
+          if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Entrando…' }
+
+          try {
+            const ok = await loginAdmin(email, password)
+            if (ok) {
+              loginModal.classList.add('hidden')
+              if (adminRoot) adminRoot.classList.remove('hidden')
+              attachAdminForm()
+              attachAdminUI()
+              if (window.lucide) lucide.createIcons()
+
+              const { data: { session: s2 } } = await supabase.auth.getSession()
+              currentProfile = s2 ? await loadProfile(s2.user.id) : null
+              if (!currentProfile) {
+                await supabase.auth.signOut()
+                loginModal.classList.remove('hidden')
+                if (adminRoot) adminRoot.classList.add('hidden')
+                alert('Perfil não encontrado. Entre em contato com o administrador.')
+                return
+              }
+              if (currentProfile.active === false) {
+                await supabase.auth.signOut()
+                loginModal.classList.remove('hidden')
+                if (adminRoot) adminRoot.classList.add('hidden')
+                alert('Seu acesso está pausado. Entre em contato com o administrador.')
+                return
+              }
+              attachSidebarUserClick()
+              setSettingsTenant(currentProfile?.tenant_id || null)
+              renderSidebarUser(currentProfile)
+              updateVerSiteLink(currentProfile)
+              applyRolePermissions(currentProfile.role)
+              await renderAdmin()
+              await initSettings(currentProfile)
+              if (window.lucide) lucide.createIcons()
+            } else {
+              alert('E-mail ou senha incorretos')
             }
-            if (currentProfile.active === false) {
-              await supabase.auth.signOut()
-              loginModal.classList.remove('hidden')
-              if (adminRoot) adminRoot.classList.add('hidden')
-              alert('Seu acesso está pausado. Entre em contato com o administrador.')
-              return
-            }
-            renderSidebarUser(currentProfile)
-            applyRolePermissions(currentProfile.role)
-            await initSettings(currentProfile)
-            if (window.lucide) lucide.createIcons()
-          } else {
-            alert('E-mail ou senha incorretos')
+          } catch (err) {
+            alert('Erro ao fazer login: ' + (err?.message || String(err)))
+          } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Entrar' }
           }
         })
       }
@@ -2544,6 +3324,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   const lang = (() => { try { return localStorage.getItem('lang') || 'pt' } catch(e) { return 'pt' } })()
   applyDynamicContent(lang)
   applyWhatsAppLinks(WHATSAPP_NUMBER)
+
+  // ── Dropdown de navegação pública (JS toggle — confiável em touch e desktop) ──
+  document.querySelectorAll('.nav-dropdown-btn').forEach(btn => {
+    const menu = btn.closest('.nav-dropdown')?.querySelector('.nav-dropdown-menu')
+    if (!menu) return
+    btn.addEventListener('click', e => {
+      e.stopPropagation()
+      const isOpen = menu.classList.toggle('js-open')
+      // Fecha outros dropdowns
+      document.querySelectorAll('.nav-dropdown-menu.js-open').forEach(m => {
+        if (m !== menu) m.classList.remove('js-open')
+      })
+    })
+  })
+  // Fecha ao clicar fora
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.nav-dropdown-menu.js-open').forEach(m => m.classList.remove('js-open'))
+  })
 })
 
 
@@ -2704,7 +3502,7 @@ async function initEmpresaSection() {
   if (!section || section.dataset.loaded) return
   section.dataset.loaded = '1'
 
-  const { data: rows } = await supabase.from('settings').select('key,value')
+  const { data: rows } = await supabase.from('settings').select('key,value').eq('tenant_id', getSettingsTenantId())
   const v = {}
   rows?.forEach(r => { v[r.key] = r.value || '' })
 
@@ -2721,6 +3519,7 @@ async function initEmpresaSection() {
         <div class="form-group">
           <label class="form-label">Nome da Empresa</label>
           <input id="co-name" class="form-control" value="${g('company.name')}" placeholder="Nome completo">
+          <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">📍 Aparece no <strong>cabeçalho, rodapé e aba do navegador</strong> do site.</p>
         </div>
         <div class="form-group">
           <label class="form-label">CRECI</label>
@@ -2735,6 +3534,7 @@ async function initEmpresaSection() {
             <input id="co-logo-file" type="file" accept="image/*" style="display:none"> Upload
           </label>
         </div>
+        <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">📍 Aparece no <strong>topo e rodapé do site</strong>. PNG transparente, mín. 200×60 px.</p>
         <div class="logo-preview-box" style="margin-top:10px">
           <img id="co-logo-preview" src="${g('company.logo_url') || '/logo.png'}" alt="Preview">
           <span style="font-size:12px;color:#9ca3af">Preview do logotipo</span>
@@ -2743,6 +3543,7 @@ async function initEmpresaSection() {
       <div class="form-group" style="margin-bottom:0">
         <label class="form-label">Favicon (URL)</label>
         <input id="co-favicon-url" class="form-control" value="${g('company.favicon_url')}" placeholder="/favicon.ico">
+        <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">📍 Ícone exibido na <strong>aba do navegador</strong>.</p>
       </div>
       <div class="cfg-save-row">
         <button class="btn-primary" id="co-save-identity">Salvar Identidade</button>
@@ -2756,6 +3557,7 @@ async function initEmpresaSection() {
         <div class="form-group">
           <label class="form-label">WhatsApp <small style="color:#9ca3af">(somente números, com DDI)</small></label>
           <input id="co-whatsapp" class="form-control" value="${g('company.whatsapp')}" placeholder="5547999701743">
+          <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">📍 Ativa o <strong>botão verde flutuante</strong> no site e no link de cada imóvel.</p>
         </div>
         <div class="form-group">
           <label class="form-label">Telefone (exibição)</label>
@@ -2880,7 +3682,7 @@ async function initVisualSection() {
   if (!section || section.dataset.loaded) return
   section.dataset.loaded = '1'
 
-  const { data: rows } = await supabase.from('settings').select('key,value')
+  const { data: rows } = await supabase.from('settings').select('key,value').eq('tenant_id', getSettingsTenantId())
   const v = {}
   rows?.forEach(r => { v[r.key] = r.value || '' })
 
@@ -2911,21 +3713,30 @@ async function initVisualSection() {
       <div class="cfg-card-title"><span>🖌️</span> Paleta de Cores</div>
 
       <div class="color-row">
-        <label class="form-label">Cor de Destaque (Dourado)</label>
+        <div>
+          <label class="form-label">Cor de Destaque</label>
+          <p style="font-size:12px;color:#94a3b8;margin:2px 0 0;">📍 Botões, links ativos e ícones no <strong>site e no CRM</strong>.</p>
+        </div>
         <div class="color-swatch">
           <input type="color" id="col-accent" value="${accent}">
           <input type="text"  id="col-accent-hex" value="${accent}" maxlength="7" placeholder="#b8962e">
         </div>
       </div>
       <div class="color-row">
-        <label class="form-label">Fundo Principal (Site Público)</label>
+        <div>
+          <label class="form-label">Fundo Principal</label>
+          <p style="font-size:12px;color:#94a3b8;margin:2px 0 0;">📍 Cor do <strong>cabeçalho e seções escuras</strong> do site.</p>
+        </div>
         <div class="color-swatch">
           <input type="color" id="col-primary" value="${primBg}">
           <input type="text"  id="col-primary-hex" value="${primBg}" maxlength="7">
         </div>
       </div>
       <div class="color-row">
-        <label class="form-label">Fundo Secundário (Seções)</label>
+        <div>
+          <label class="form-label">Fundo Secundário</label>
+          <p style="font-size:12px;color:#94a3b8;margin:2px 0 0;">📍 Cor das <strong>seções intermediárias</strong> do site.</p>
+        </div>
         <div class="color-swatch">
           <input type="color" id="col-secondary" value="${secBg}">
           <input type="text"  id="col-secondary-hex" value="${secBg}" maxlength="7">
@@ -2941,13 +3752,14 @@ async function initVisualSection() {
     <div class="cfg-card">
       <div class="cfg-card-title"><span>🖼️</span> Imagens do Site</div>
       <div class="form-group" style="margin-bottom:16px">
-        <label class="form-label">Imagem de Fundo do Hero (URL)</label>
+        <label class="form-label">Imagem de Fundo do Hero (Banner Principal)</label>
         <div style="display:flex;gap:8px">
           <input id="vis-hero-url" class="form-control" value="${escapeHTML(heroBg)}" placeholder="https://... ou deixe vazio para padrão">
           <label class="btn-secondary" style="cursor:pointer;white-space:nowrap;padding:8px 14px;font-size:13px">
             <input id="vis-hero-file" type="file" accept="image/*" style="display:none"> Upload
           </label>
         </div>
+        <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">📍 <strong>Foto de fundo do banner</strong> no topo do site. Recomendado: 1920×1080 px.</p>
         <div id="vis-hero-preview" style="margin-top:10px;display:${heroBg ? '' : 'none'}">
           <img src="${escapeHTML(heroBg)}" style="max-width:100%;max-height:120px;border-radius:8px;object-fit:cover">
         </div>
@@ -3049,7 +3861,7 @@ async function initSiteConfigSection() {
   if (!section || section.dataset.loaded) return
   section.dataset.loaded = '1'
 
-  const { data: rows } = await supabase.from('site_content').select('*')
+  const { data: rows } = await supabase.from('site_content').select('*').eq('tenant_id', getSettingsTenantId())
   const v = {}
   rows?.forEach(r => { v[r.key] = r })
   const g = (key, lang) => escapeHTML(v[key]?.[`value_${lang}`] || '')
@@ -3065,22 +3877,27 @@ async function initSiteConfigSection() {
     <div class="content-field">
       <label class="form-label">Título do Hero</label>
       <input class="form-control sc-field" data-key="hero.title" data-lang="${lang}" value="${g('hero.title', lang)}">
+      <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">📍 Texto principal em <strong>destaque no banner do site</strong> (frase de impacto).</p>
     </div>
     <div class="content-field">
       <label class="form-label">Subtítulo do Hero</label>
       <textarea class="form-control sc-field" data-key="hero.subtitle" data-lang="${lang}" rows="3">${g('hero.subtitle', lang)}</textarea>
+      <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">📍 Texto menor abaixo do título, também no <strong>banner principal</strong>.</p>
     </div>
     <div class="content-field">
       <label class="form-label">Bio — Parágrafo 1 <small style="color:#9ca3af">(suporta &lt;strong&gt;)</small></label>
       <textarea class="form-control sc-field" data-key="inst.bio_p1" data-lang="${lang}" rows="4">${g('inst.bio_p1', lang)}</textarea>
+      <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">📍 Aparece na seção <strong>"Sobre"</strong> do site.</p>
     </div>
     <div class="content-field">
       <label class="form-label">Bio — Parágrafo 2</label>
       <textarea class="form-control sc-field" data-key="inst.bio_p2" data-lang="${lang}" rows="3">${g('inst.bio_p2', lang)}</textarea>
+      <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">📍 Segundo parágrafo da seção <strong>"Sobre"</strong>.</p>
     </div>
     <div class="content-field">
       <label class="form-label">Bio — Parágrafo 3</label>
       <textarea class="form-control sc-field" data-key="inst.bio_p3" data-lang="${lang}" rows="3">${g('inst.bio_p3', lang)}</textarea>
+      <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">📍 Terceiro parágrafo da seção <strong>"Sobre"</strong>.</p>
     </div>
     <div class="form-row triple">
       <div class="form-group">
@@ -3212,11 +4029,12 @@ async function renderCRMConfig() {
   const body = document.getElementById('crm-body')
   if (!body) return
 
+  const tid = getSettingsTenantId()
   const [{ data: pipes }, { data: stages }, { data: tags }, { data: statuses }] = await Promise.all([
-    supabase.from('crm_pipelines').select('*').order('sort_order'),
-    supabase.from('crm_stages').select('*').order('sort_order'),
-    supabase.from('crm_tags').select('*').order('name'),
-    supabase.from('crm_lead_statuses').select('*').order('sort_order'),
+    supabase.from('crm_pipelines').select('*').eq('tenant_id', tid).order('sort_order'),
+    supabase.from('crm_stages').select('*').eq('tenant_id', tid).order('sort_order'),
+    supabase.from('crm_tags').select('*').eq('tenant_id', tid).order('name'),
+    supabase.from('crm_lead_statuses').select('*').eq('tenant_id', tid).order('sort_order'),
   ])
 
   const pipeList = pipes || []
@@ -3295,7 +4113,7 @@ async function renderCRMConfig() {
     const color = document.getElementById('crm-new-stage-color').value
     const pipeId = parseInt(document.getElementById('crm-pipe-sel').value, 10)
     if (!name) return
-    await supabase.from('crm_stages').insert({ pipeline_id: pipeId, name, color, sort_order: 99 })
+    await supabase.from('crm_stages').insert({ pipeline_id: pipeId, name, color, sort_order: 99, tenant_id: getSettingsTenantId() })
     document.getElementById('crm-new-stage').value = ''
     await renderCRMConfig()
   })
@@ -3323,7 +4141,7 @@ async function renderCRMConfig() {
     const name  = document.getElementById('crm-new-tag').value.trim()
     const color = document.getElementById('crm-new-tag-color').value
     if (!name) return
-    await supabase.from('crm_tags').insert({ name, color })
+    await supabase.from('crm_tags').insert({ name, color, tenant_id: getSettingsTenantId() })
     document.getElementById('crm-new-tag').value = ''
     await renderCRMConfig()
   })
@@ -3342,7 +4160,7 @@ async function renderCRMConfig() {
     const color    = document.getElementById('crm-new-status-color').value
     const is_final = document.getElementById('crm-new-status-final').checked
     if (!name) return
-    await supabase.from('crm_lead_statuses').insert({ name, color, is_final, sort_order: 99 })
+    await supabase.from('crm_lead_statuses').insert({ name, color, is_final, sort_order: 99, tenant_id: getSettingsTenantId() })
     document.getElementById('crm-new-status').value = ''
     await renderCRMConfig()
   })
@@ -3360,7 +4178,9 @@ async function renderCRMConfig() {
   document.getElementById('crm-add-pipeline').addEventListener('click', async () => {
     const name = prompt('Nome do novo funil:')?.trim()
     if (!name) return
-    await supabase.from('crm_pipelines').insert({ name, sort_order: 99 })
+    const { error } = await supabase.from('crm_pipelines').insert({ name, sort_order: 99, tenant_id: getSettingsTenantId() })
+    if (error) { alert('Erro ao criar funil: ' + error.message); return }
+    funilInitialized = false  // força recarregar kanban na próxima abertura
     await renderCRMConfig()
   })
 }
@@ -3727,7 +4547,7 @@ async function loadSATenants() {
     : '<span class="sa-badge sa-badge-red">Inativo</span>'
 
   list.innerHTML = filtered.map(t => `
-    <div class="sa-list-row">
+    <div class="sa-list-row" data-action="open-panel" data-id="${t.id}" style="cursor:pointer;" title="Clique para gerenciar">
       <div class="sa-list-info">
         ${t.logo_url ? `<img class="sa-tenant-logo" src="${escapeHTML(t.logo_url)}" alt="">` : '<div class="sa-tenant-logo-placeholder">🏢</div>'}
         <div>
@@ -3738,23 +4558,24 @@ async function loadSATenants() {
       <div class="sa-list-actions">
         ${statusBadge(t)}
         <button class="sa-btn-icon" data-action="toggle-tenant" data-id="${t.id}" data-active="${t.active}" title="${t.active ? 'Desativar' : 'Ativar'}">${t.active ? '⏸️' : '▶️'}</button>
-        <button class="sa-btn-icon" data-action="edit-tenant" data-id="${t.id}" title="Editar">✏️</button>
+        <span style="font-size:12px;color:#94a3b8;padding:0 4px;">→</span>
       </div>
     </div>
   `).join('')
 
   list.querySelectorAll('[data-action="toggle-tenant"]').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation()
       const active = btn.dataset.active === 'true'
       await supabase.from('tenants').update({ active: !active }).eq('id', btn.dataset.id)
       loadSATenants()
     })
   })
 
-  list.querySelectorAll('[data-action="edit-tenant"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tenant = (filtered || []).find(t => String(t.id) === String(btn.dataset.id))
-      if (tenant) openEditTenantModal(tenant)
+  list.querySelectorAll('[data-action="open-panel"]').forEach(row => {
+    row.addEventListener('click', () => {
+      const tenant = (filtered || []).find(t => String(t.id) === String(row.dataset.id))
+      if (tenant) openTenantPanel(tenant)
     })
   })
 }
@@ -3986,9 +4807,9 @@ function openNewTenantModal() {
       return
     }
 
-    // 3. Try to update profile role + tenant_id (Edge Function may have already done this)
-    if (newTenantId && result?.user_id) {
-      await supabase.from('profiles').update({ role: 'admin', tenant_id: newTenantId }).eq('id', result.user_id)
+    // 3. Update tenant_id if needed; edge function handles role (never downgrades super_admin)
+    if (newTenantId && result?.user_id && !result?.linked) {
+      await supabase.from('profiles').update({ tenant_id: newTenantId }).eq('id', result.user_id)
     }
 
     saveBtn.disabled = false; saveBtn.textContent = 'Criar Imobiliária'
@@ -4011,6 +4832,432 @@ function openNewTenantModal() {
   })
 }
 
+// ─── Tenant Panel (painel completo por imobiliária) ──────────────────────────
+function openTenantPanel(tenant) {
+  document.getElementById('tenant-panel')?.remove()
+  const panel = document.createElement('div')
+  panel.id = 'tenant-panel'
+  panel.style.cssText = 'position:fixed;inset:0;z-index:300;background:#f1f5f9;overflow-y:auto;display:flex;flex-direction:column;'
+
+  const TABS = [
+    { id: 'properties', label: '🏠 Imóveis' },
+    { id: 'leads',      label: '📋 Leads' },
+    { id: 'users',      label: '👥 Corretores' },
+    { id: 'api',        label: '🔗 Site & API' },
+    { id: 'config',     label: '⚙️ Configurações' },
+  ]
+
+  panel.innerHTML = `
+    <div style="background:#0a1628;padding:14px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:10;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.3);">
+      <button id="tp-back" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">← Imobiliárias</button>
+      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+        ${tenant.logo_url ? `<img src="${escapeHTML(tenant.logo_url)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;">` : '<div style="width:36px;height:36px;background:rgba(255,255,255,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏢</div>'}
+        <div style="min-width:0;">
+          <div style="color:#fff;font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHTML(tenant.name)}</div>
+          <div style="color:#94a3b8;font-size:12px;">${escapeHTML(tenant.slug||'')} · ${tenant.active !== false ? '<span style="color:#4ade80;">● Ativo</span>' : '<span style="color:#f87171;">● Inativo</span>'}</div>
+        </div>
+      </div>
+      <button id="tp-edit-btn" style="background:#c9a84c;border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">✏️ Editar dados</button>
+    </div>
+    <div style="background:#fff;border-bottom:2px solid #e2e8f0;padding:0 24px;display:flex;gap:0;flex-shrink:0;overflow-x:auto;">
+      ${TABS.map((t,i) => `<button class="tp-tab" data-tab="${t.id}" style="padding:14px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:${i===0?'700':'500'};color:${i===0?'#2563eb':'#64748b'};border-bottom:2px solid ${i===0?'#2563eb':'transparent'};margin-bottom:-2px;white-space:nowrap;transition:all .15s;">${t.label}</button>`).join('')}
+    </div>
+    <div id="tp-content" style="padding:24px;flex:1;max-width:1200px;margin:0 auto;width:100%;box-sizing:border-box;"></div>
+  `
+  document.body.appendChild(panel)
+
+  document.getElementById('tp-back').addEventListener('click', () => panel.remove())
+  document.getElementById('tp-edit-btn').addEventListener('click', () => openEditTenantModal(tenant))
+
+  panel.querySelectorAll('.tp-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      panel.querySelectorAll('.tp-tab').forEach(t => {
+        t.style.fontWeight = '500'; t.style.color = '#64748b'; t.style.borderBottomColor = 'transparent'
+      })
+      tab.style.fontWeight = '700'; tab.style.color = '#2563eb'; tab.style.borderBottomColor = '#2563eb'
+      loadTenantPanelTab(tenant, tab.dataset.tab)
+    })
+  })
+
+  loadTenantPanelTab(tenant, 'properties')
+}
+
+function openTenantPropertyEdit(p, onSaved) {
+  const existing = document.getElementById('tp-prop-edit-modal')
+  if (existing) existing.remove()
+
+  const modal = document.createElement('div')
+  modal.id = 'tp-prop-edit-modal'
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;'
+
+  const fi = (id, label, val, type='text', extra='') =>
+    `<div style="display:flex;flex-direction:column;gap:4px;">
+      <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.05em;">${label}</label>
+      <input id="${id}" type="${type}" value="${escapeHTML(String(val||''))}" ${extra}
+        style="border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:14px;color:#0f172a;outline:none;">
+    </div>`
+
+  const sel = (id, label, opts, cur) =>
+    `<div style="display:flex;flex-direction:column;gap:4px;">
+      <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.05em;">${label}</label>
+      <select id="${id}" style="border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:14px;color:#0f172a;background:#fff;">
+        ${opts.map(([v,l]) => `<option value="${v}"${cur===v?' selected':''}>${l}</option>`).join('')}
+      </select>
+    </div>`
+
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.25);">
+      <div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <h3 style="margin:0;font-size:17px;font-weight:700;color:#0f172a;">✏️ Editar Imóvel</h3>
+        <button id="tpe-close" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;line-height:1;">✕</button>
+      </div>
+      <div style="padding:24px;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        ${fi('tpe-title', 'TÍTULO *', p.title, 'text', 'style="grid-column:span 2;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:14px;color:#0f172a;"')}
+        ${fi('tpe-price', 'PREÇO (R$)', p.price)}
+        ${fi('tpe-area', 'ÁREA (m²)', p.area)}
+        ${fi('tpe-bedrooms', 'DORMITÓRIOS', p.bedrooms, 'number')}
+        ${fi('tpe-suites', 'SUÍTES', p.suites, 'number')}
+        ${fi('tpe-parking', 'VAGAS', p.parking, 'number')}
+        ${fi('tpe-reference', 'REFERÊNCIA', p.reference)}
+        ${fi('tpe-city', 'CIDADE', p.city)}
+        ${fi('tpe-neighborhood', 'BAIRRO', p.neighborhood)}
+        ${fi('tpe-rua', 'RUA', p.rua)}
+        ${fi('tpe-numero', 'NÚMERO', p.numero)}
+        ${sel('tpe-construction', 'STATUS DA OBRA', [
+          ['','Selecione'],['pronto','Pronto'],['pre-lancamento','Pré-lançamento'],['lancamento','Lançamento'],['em-obra','Em obra']
+        ], p.construction_status)}
+        ${sel('tpe-published', 'PUBLICAÇÃO', [['true','Publicado'],['false','Rascunho']], String(p.published))}
+        <div style="grid-column:span 2;display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.05em;">DESCRIÇÃO</label>
+          <textarea id="tpe-description" rows="4" style="border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:14px;color:#0f172a;resize:vertical;font-family:inherit;">${escapeHTML(p.description||'')}</textarea>
+        </div>
+        <div id="tpe-msg" style="grid-column:span 2;font-size:13px;min-height:16px;"></div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
+        <button id="tpe-cancel" style="background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Cancelar</button>
+        <button id="tpe-save" style="background:#0a1628;color:#fff;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px;font-weight:700;">💾 Salvar</button>
+      </div>
+    </div>`
+
+  document.body.appendChild(modal)
+
+  const close = () => modal.remove()
+  document.getElementById('tpe-close').addEventListener('click', close)
+  document.getElementById('tpe-cancel').addEventListener('click', close)
+  modal.addEventListener('click', e => { if (e.target === modal) close() })
+
+  document.getElementById('tpe-save').addEventListener('click', async () => {
+    const btn   = document.getElementById('tpe-save')
+    const msgEl = document.getElementById('tpe-msg')
+    const title = document.getElementById('tpe-title').value.trim()
+    if (!title) { msgEl.style.color='#ef4444'; msgEl.textContent='Título é obrigatório.'; return }
+
+    btn.disabled = true; btn.textContent = 'Salvando…'
+    const payload = {
+      title,
+      price:               document.getElementById('tpe-price').value.trim() || null,
+      area:                document.getElementById('tpe-area').value.trim() || null,
+      bedrooms:            document.getElementById('tpe-bedrooms').value || null,
+      suites:              document.getElementById('tpe-suites').value || null,
+      parking:             document.getElementById('tpe-parking').value || null,
+      reference:           document.getElementById('tpe-reference').value.trim() || null,
+      city:                document.getElementById('tpe-city').value.trim() || null,
+      neighborhood:        document.getElementById('tpe-neighborhood').value.trim() || null,
+      rua:                 document.getElementById('tpe-rua').value.trim() || null,
+      numero:              document.getElementById('tpe-numero').value.trim() || null,
+      construction_status: document.getElementById('tpe-construction').value || null,
+      published:           document.getElementById('tpe-published').value === 'true',
+      description:         document.getElementById('tpe-description').value.trim() || null,
+    }
+
+    const { error } = await supabase.from('properties').update(payload).eq('id', p.id)
+    if (error) {
+      msgEl.style.color='#ef4444'; msgEl.textContent='Erro: ' + error.message
+      btn.disabled = false; btn.textContent = '💾 Salvar'
+      return
+    }
+    msgEl.style.color='#16a34a'; msgEl.textContent='✅ Salvo!'
+    setTimeout(() => { close(); if (typeof onSaved === 'function') onSaved() }, 800)
+  })
+}
+
+async function loadTenantPanelTab(tenant, tab) {
+  const content = document.getElementById('tp-content')
+  if (!content) return
+  content.innerHTML = '<div style="text-align:center;padding:64px;color:#94a3b8;font-size:14px;">Carregando…</div>'
+
+  const reload = () => loadTenantPanelTab(tenant, tab)
+  const btnStyle = (bg, color) => `background:${bg};color:${color};border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;`
+
+  // ── IMÓVEIS ──
+  if (tab === 'properties') {
+    const { data } = await supabase.from('properties').select('*').eq('tenant_id', tenant.id).order('created_at', { ascending: false })
+    if (!data?.length) {
+      content.innerHTML = '<div style="text-align:center;padding:64px;color:#94a3b8;"><div style="font-size:48px;margin-bottom:12px;">🏠</div><p style="font-size:14px;">Nenhum imóvel cadastrado ainda.</p></div>'
+      return
+    }
+    content.innerHTML = `
+      <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0;">${data.length} imóvel(is)</h3>
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;min-width:600px;">
+          <thead><tr style="background:#f8fafc;">
+            <th style="padding:11px 16px;text-align:left;font-size:11px;color:#64748b;font-weight:700;">IMÓVEL</th>
+            <th style="padding:11px 16px;text-align:left;font-size:11px;color:#64748b;font-weight:700;">CIDADE</th>
+            <th style="padding:11px 16px;text-align:left;font-size:11px;color:#64748b;font-weight:700;">PREÇO</th>
+            <th style="padding:11px 16px;text-align:center;font-size:11px;color:#64748b;font-weight:700;">STATUS</th>
+            <th style="padding:11px 16px;text-align:center;font-size:11px;color:#64748b;font-weight:700;">AÇÕES</th>
+          </tr></thead>
+          <tbody id="tp-prop-tbody">${data.map(p => `
+            <tr data-pid="${p.id}" style="border-top:1px solid #f1f5f9;">
+              <td style="padding:12px 16px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  ${p.images?.[0] ? `<img src="${p.images[0]}" style="width:52px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:52px;height:38px;background:#e2e8f0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏠</div>'}
+                  <div><div style="font-weight:600;font-size:13px;color:#0f172a;">${escapeHTML(p.title||'')}</div><div style="font-size:11px;color:#94a3b8;">${escapeHTML(p.reference||'')}</div></div>
+                </div>
+              </td>
+              <td style="padding:12px 16px;font-size:13px;color:#475569;">${escapeHTML([p.neighborhood,p.city].filter(Boolean).join(', '))}</td>
+              <td style="padding:12px 16px;font-size:13px;font-weight:700;color:#0f172a;">${escapeHTML(formatPrice(p.price,'pt'))}</td>
+              <td style="padding:12px 16px;text-align:center;">${p.published ? '<span style="background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Publicado</span>' : '<span style="background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Rascunho</span>'}</td>
+              <td style="padding:12px 16px;text-align:center;">
+                <div style="display:flex;gap:6px;justify-content:center;">
+                  <button class="tp-prop-edit" data-pid="${p.id}" style="${btnStyle('#eff6ff','#1d4ed8')}">✏️ Editar</button>
+                  <button class="tp-prop-toggle" data-pid="${p.id}" data-pub="${p.published?'1':'0'}" style="${btnStyle(p.published?'#fef3c7':'#dcfce7', p.published?'#92400e':'#15803d')}">${p.published?'Despublicar':'Publicar'}</button>
+                  <button class="tp-prop-del" data-pid="${p.id}" style="${btnStyle('#fee2e2','#dc2626')}">Excluir</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table></div>
+      </div>`
+
+    content.querySelectorAll('.tp-prop-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pid = Number(btn.dataset.pid)
+        const prop = data.find(p => p.id === pid)
+        if (prop) openTenantPropertyEdit(prop, reload)
+      })
+    })
+    content.querySelectorAll('.tp-prop-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const pid = Number(btn.dataset.pid)
+        const nowPub = btn.dataset.pub === '1'
+        btn.disabled = true; btn.textContent = '…'
+        await supabase.from('properties').update({ published: !nowPub }).eq('id', pid)
+        reload()
+      })
+    })
+    content.querySelectorAll('.tp-prop-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Excluir este imóvel permanentemente?')) return
+        btn.disabled = true; btn.textContent = '…'
+        await supabase.from('properties').delete().eq('id', Number(btn.dataset.pid))
+        reload()
+      })
+    })
+  }
+
+  // ── LEADS ──
+  if (tab === 'leads') {
+    const { data } = await supabase.from('leads').select('*').eq('tenant_id', tenant.id).order('created_at', { ascending: false }).limit(200)
+    if (!data?.length) {
+      content.innerHTML = '<div style="text-align:center;padding:64px;color:#94a3b8;"><div style="font-size:48px;margin-bottom:12px;">📋</div><p style="font-size:14px;">Nenhum lead ainda.</p></div>'
+      return
+    }
+    const stageColor = s => ({ novo:'#dbeafe,#1d4ed8', contato:'#fef3c7,#92400e', proposta:'#ede9fe,#6d28d9', fechado:'#dcfce7,#15803d' }[s] || '#f1f5f9,#64748b')
+    content.innerHTML = `
+      <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;">
+          <h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0;">${data.length} lead(s)</h3>
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;min-width:560px;">
+          <thead><tr style="background:#f8fafc;">
+            <th style="padding:11px 16px;text-align:left;font-size:11px;color:#64748b;font-weight:700;">NOME</th>
+            <th style="padding:11px 16px;text-align:left;font-size:11px;color:#64748b;font-weight:700;">CONTATO</th>
+            <th style="padding:11px 16px;text-align:left;font-size:11px;color:#64748b;font-weight:700;">ETAPA</th>
+            <th style="padding:11px 16px;text-align:left;font-size:11px;color:#64748b;font-weight:700;">DATA</th>
+            <th style="padding:11px 16px;text-align:center;font-size:11px;color:#64748b;font-weight:700;">AÇÕES</th>
+          </tr></thead>
+          <tbody>${data.map(l => {
+            const [bg,fg] = stageColor(l.stage||l.status||'').split(',')
+            const waNum = (l.phone||'').replace(/\D/g,'')
+            return `<tr data-lid="${l.id}" style="border-top:1px solid #f1f5f9;">
+              <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#0f172a;">${escapeHTML(l.name||'')}</td>
+              <td style="padding:12px 16px;">
+                <div style="font-size:13px;color:#475569;">${escapeHTML(l.phone||'—')}</div>
+                <div style="font-size:11px;color:#94a3b8;">${escapeHTML(l.email||'')}</div>
+              </td>
+              <td style="padding:12px 16px;"><span style="background:${bg};color:${fg};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">${escapeHTML(l.stage||l.status||'Novo')}</span></td>
+              <td style="padding:12px 16px;font-size:12px;color:#94a3b8;">${new Date(l.created_at).toLocaleDateString('pt-BR')}</td>
+              <td style="padding:12px 16px;text-align:center;">
+                <div style="display:flex;gap:6px;justify-content:center;align-items:center;">
+                  ${waNum ? `<a href="https://wa.me/${waNum}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#25d366;border-radius:6px;color:#fff;text-decoration:none;flex-shrink:0;" title="WhatsApp"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.116 1.527 5.845L.057 23.882l6.199-1.625A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.793 9.793 0 01-4.992-1.368l-.358-.213-3.685.967.983-3.596-.234-.369A9.79 9.79 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg></a>` : ''}
+                  <button class="tp-lead-del" data-lid="${l.id}" style="${btnStyle('#fee2e2','#dc2626')}">Excluir</button>
+                </div>
+              </td>
+            </tr>`
+          }).join('')}
+          </tbody>
+        </table></div>
+      </div>`
+
+    content.querySelectorAll('.tp-lead-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Excluir este lead permanentemente?')) return
+        btn.disabled = true; btn.textContent = '…'
+        await supabase.from('leads').delete().eq('id', btn.dataset.lid)
+        reload()
+      })
+    })
+  }
+
+  // ── CORRETORES ──
+  if (tab === 'users') {
+    const { data } = await supabase.from('profiles').select('*').eq('tenant_id', tenant.id).order('created_at', { ascending: false })
+    const addBtn = `<button id="tp-add-corretor" style="background:#0a1628;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Adicionar Usuário</button>`
+    if (!data?.length) {
+      content.innerHTML = `<div style="text-align:center;padding:64px;color:#94a3b8;"><div style="font-size:48px;margin-bottom:12px;">👥</div><p style="font-size:14px;margin-bottom:16px;">Nenhum corretor cadastrado ainda.</p>${addBtn}</div>`
+      content.querySelector('#tp-add-corretor')?.addEventListener('click', () => openAddCorretorModal(tenant.id, reload))
+      return
+    }
+    content.innerHTML = `
+      <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0;">${data.length} usuário(s)</h3>
+          ${addBtn}
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;min-width:520px;">
+          <thead><tr style="background:#f8fafc;">
+            <th style="padding:11px 16px;text-align:left;font-size:11px;color:#64748b;font-weight:700;">USUÁRIO</th>
+            <th style="padding:11px 16px;text-align:left;font-size:11px;color:#64748b;font-weight:700;">FUNÇÃO</th>
+            <th style="padding:11px 16px;text-align:center;font-size:11px;color:#64748b;font-weight:700;">STATUS</th>
+            <th style="padding:11px 16px;text-align:center;font-size:11px;color:#64748b;font-weight:700;">AÇÕES</th>
+          </tr></thead>
+          <tbody>${data.map(u => `
+            <tr data-uid="${u.id}" style="border-top:1px solid #f1f5f9;">
+              <td style="padding:12px 16px;"><div style="font-weight:600;font-size:13px;color:#0f172a;">${escapeHTML(u.name||u.email||'—')}</div><div style="font-size:11px;color:#94a3b8;">${escapeHTML(u.email||'')}</div></td>
+              <td style="padding:12px 16px;">
+                <select class="tp-role-sel" data-uid="${u.id}" style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;color:#0f172a;background:#fff;cursor:pointer;">
+                  <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+                  <option value="corretor" ${u.role==='corretor'?'selected':''}>Corretor</option>
+                </select>
+              </td>
+              <td style="padding:12px 16px;text-align:center;">${u.active!==false ? '<span style="background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Ativo</span>' : '<span style="background:#fee2e2;color:#dc2626;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Pausado</span>'}</td>
+              <td style="padding:12px 16px;text-align:center;">
+                <div style="display:flex;gap:6px;justify-content:center;">
+                  <button class="tp-user-toggle" data-uid="${u.id}" data-active="${u.active!==false?'1':'0'}" style="${btnStyle(u.active!==false?'#fef3c7':'#dcfce7', u.active!==false?'#92400e':'#15803d')}">${u.active!==false?'Pausar':'Ativar'}</button>
+                  <button class="tp-user-del" data-uid="${u.id}" style="${btnStyle('#fee2e2','#dc2626')}">Remover</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table></div>
+      </div>`
+
+    content.querySelector('#tp-add-corretor')?.addEventListener('click', () => openAddCorretorModal(tenant.id, reload))
+
+    content.querySelectorAll('.tp-role-sel').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        const uid = sel.dataset.uid
+        sel.disabled = true
+        await supabase.from('profiles').update({ role: sel.value }).eq('id', uid)
+        sel.disabled = false
+      })
+    })
+    content.querySelectorAll('.tp-user-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const uid = btn.dataset.uid
+        const nowActive = btn.dataset.active === '1'
+        btn.disabled = true; btn.textContent = '…'
+        await supabase.from('profiles').update({ active: !nowActive }).eq('id', uid)
+        reload()
+      })
+    })
+    content.querySelectorAll('.tp-user-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Remover este usuário da imobiliária? O acesso ao sistema será excluído permanentemente.')) return
+        btn.disabled = true; btn.textContent = '…'
+        await callEdgeFunction({ action: 'delete', userId: btn.dataset.uid })
+        reload()
+      })
+    })
+  }
+
+  // ── SITE & API ──
+  if (tab === 'api') {
+    const base       = 'https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/public-api'
+    const rawDomain  = (tenant.domain || '').replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').trim()
+    const siteUrl    = rawDomain ? `https://${rawDomain}` : `https://omarcorretor.com.br/demo.html?key=${tenant.id}`
+    const siteLabel  = rawDomain ? `🌐 Site da Imobiliária` : `🌐 Site Demonstração`
+    const siteDesc   = rawDomain
+      ? `Site oficial da imobiliária integrado ao CRM.`
+      : `Mostre ao cliente como o site integrado funciona com os imóveis desta imobiliária.`
+    const btnLabel   = rawDomain ? `Abrir site →` : `Abrir site demo →`
+    content.innerHTML = `
+      <div style="display:grid;gap:20px;max-width:800px;">
+        <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+          <h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 4px;">🔑 Chave de API</h3>
+          <p style="font-size:13px;color:#64748b;margin:0 0 16px;">Use para conectar qualquer site externo ao CRM desta imobiliária.</p>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <input type="text" value="${escapeHTML(tenant.id)}" readonly style="flex:1;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-family:monospace;font-size:13px;background:#f8fafc;min-width:0;">
+            <button id="tp-copy-key" style="background:#0a1628;color:#fff;border:none;border-radius:8px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">📋 Copiar</button>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+          <h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 4px;">${siteLabel}</h3>
+          <p style="font-size:13px;color:#64748b;margin:0 0 16px;">${siteDesc}</p>
+          <a href="${escapeHTML(siteUrl)}" target="_blank" style="display:inline-block;background:#c9a84c;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700;">${btnLabel}</a>
+          <p style="font-size:11px;color:#94a3b8;margin:10px 0 0;word-break:break-all;">${escapeHTML(siteUrl)}</p>
+        </div>
+        <div style="background:#0f172a;border-radius:12px;padding:24px;">
+          <h3 style="font-size:14px;font-weight:700;color:#e2e8f0;margin:0 0 16px;">📡 Endpoints disponíveis</h3>
+          <div style="font-family:monospace;font-size:12px;color:#94a3b8;line-height:2.2;">
+            <div><span style="color:#4ade80;margin-right:8px;">GET</span>${base}/properties?key=${escapeHTML(tenant.id)}</div>
+            <div><span style="color:#4ade80;margin-right:8px;">GET</span>${base}/properties/{id}?key=${escapeHTML(tenant.id)}</div>
+            <div><span style="color:#fb923c;margin-right:8px;">POST</span>${base}/leads?key=${escapeHTML(tenant.id)}</div>
+            <div><span style="color:#4ade80;margin-right:8px;">GET</span>${base}/settings?key=${escapeHTML(tenant.id)}</div>
+          </div>
+        </div>
+      </div>`
+    document.getElementById('tp-copy-key')?.addEventListener('click', () => {
+      navigator.clipboard?.writeText(tenant.id)
+      const btn = document.getElementById('tp-copy-key')
+      const orig = btn.textContent; btn.textContent = '✅ Copiada!'
+      setTimeout(() => { btn.textContent = orig }, 2000)
+    })
+  }
+
+  // ── CONFIGURAÇÕES ──
+  if (tab === 'config') {
+    const { data: rows } = await supabase.from('settings').select('key,value').eq('tenant_id', tenant.id)
+    const s = {}; rows?.forEach(r => { s[r.key] = r.value })
+    const field = (label, val) => `
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.06em;margin-bottom:4px;">${label}</div>
+        <div style="font-size:14px;color:#0f172a;">${escapeHTML(String(val||'—'))}</div>
+      </div>`
+    content.innerHTML = `
+      <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 6px rgba(0,0,0,.07);max-width:560px;">
+        <h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 20px;">⚙️ Configurações da imobiliária</h3>
+        ${field('NOME DA EMPRESA', s['company.name'] || tenant.name)}
+        ${field('TELEFONE', s['company.phone'])}
+        ${field('E-MAIL', s['company.email'])}
+        ${field('WHATSAPP', s['company.whatsapp'])}
+        ${field('CIDADE', s['company.city'])}
+        ${field('DOMÍNIO DO SITE', tenant.domain)}
+        ${field('PLANO', tenant.plans?.name || 'Sem plano')}
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid #e2e8f0;">
+          <button id="tp-open-edit" style="background:#0a1628;color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">✏️ Editar dados completos</button>
+        </div>
+      </div>`
+    document.getElementById('tp-open-edit')?.addEventListener('click', () => openEditTenantModal(tenant))
+  }
+}
+
 function openEditTenantModal(tenant) {
   const existing = document.getElementById('sa-edit-tenant-modal')
   if (existing) existing.remove()
@@ -4018,52 +5265,106 @@ function openEditTenantModal(tenant) {
   const modal = document.createElement('div')
   modal.id = 'sa-edit-tenant-modal'
   modal.className = 'sa-modal-backdrop'
+  const BASE_API = 'https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/public-api'
   modal.innerHTML = `
     <div class="sa-modal" style="max-width:560px;">
       <div class="sa-modal-header">
         <h3>Editar Imobiliária</h3>
         <button class="sa-modal-close" id="et-close">✕</button>
       </div>
-      <div class="sa-modal-body">
 
-        <!-- Logo upload -->
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+      <!-- Abas -->
+      <div style="display:flex;border-bottom:1px solid #e2e8f0;padding:0 20px;gap:4px;flex-shrink:0;">
+        <button id="et-tab-dados"   style="padding:10px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid #2563eb;color:#2563eb;">Dados</button>
+        <button id="et-tab-config"  style="padding:10px 16px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#64748b;">⚙️ Contato</button>
+        <button id="et-tab-api"     style="padding:10px 16px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#64748b;">🔑 API</button>
+      </div>
+
+      <!-- Aba: Dados -->
+      <div id="et-pane-dados" class="sa-modal-body">
+        <div style="display:flex;align-items:center;gap:16px;">
           <div id="et-logo-preview" style="width:72px;height:72px;border-radius:12px;border:2px dashed #e2e8f0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#f8fafc;flex-shrink:0;cursor:pointer;" title="Clique para alterar a logo">
             ${tenant.logo_url
-              ? `<img src="${escapeHTML(tenant.logo_url)}" style="width:100%;height:100%;object-fit:cover;" id="et-logo-img">`
+              ? `<img src="${escapeHTML(tenant.logo_url)}" style="width:100%;height:100%;object-fit:cover;">`
               : `<span style="font-size:28px;">🏢</span>`}
           </div>
           <div>
             <div style="font-weight:600;font-size:14px;color:#0f172a;margin-bottom:4px;">Logo da Imobiliária</div>
             <label for="et-logo-input" class="btn-secondary-sm" style="cursor:pointer;display:inline-block;">📷 Alterar logo</label>
             <input type="file" id="et-logo-input" accept="image/*" style="display:none;">
-            <div style="font-size:12px;color:#94a3b8;margin-top:4px;">PNG ou JPG · recomendado 256×256px</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:4px;">PNG ou JPG · 256×256px</div>
           </div>
         </div>
-
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:10px;">Dados da Imobiliária</div>
         <div class="form-group"><label>Nome *</label><input id="et-name" class="form-input" type="text" value="${escapeHTML(tenant.name || '')}"></div>
         <div class="form-group"><label>Slug</label><input id="et-slug" class="form-input" type="text" value="${escapeHTML(tenant.slug || '')}"></div>
         <div class="form-group"><label>Domínio personalizado</label><input id="et-domain" class="form-input" type="text" value="${escapeHTML(tenant.domain || '')}" placeholder="abc.imobipro.com.br"></div>
         <div class="form-group"><label>Plano</label>
-          <select id="et-plan" class="form-input">
-            <option value="">Sem plano</option>
-          </select>
+          <select id="et-plan" class="form-input"><option value="">Sem plano</option></select>
         </div>
-
-        <div style="height:1px;background:#e2e8f0;margin:16px 0;"></div>
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:10px;">Criar Novo Admin</div>
-        <p style="font-size:12px;color:#64748b;margin-bottom:12px;">Opcional: crie um acesso de administrador para esta imobiliária.</p>
-        <div class="form-group"><label>E-mail do novo Admin</label><input id="et-admin-email" class="form-input" type="email" placeholder="admin@imobiliaria.com.br"></div>
+        <div style="height:1px;background:#e2e8f0;"></div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;">Criar / Trocar Admin</div>
+        <p style="font-size:12px;color:#64748b;margin:0;">Opcional: cria um novo acesso de administrador.</p>
+        <div class="form-group"><label>E-mail do Admin</label><input id="et-admin-email" class="form-input" type="email" placeholder="admin@imobiliaria.com.br"></div>
         <div class="form-group"><label>Senha</label>
           <div style="position:relative;">
             <input id="et-admin-password" class="form-input" type="password" placeholder="Mínimo 6 caracteres" style="padding-right:38px;">
             <button type="button" id="et-pwd-toggle" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;">👁</button>
           </div>
         </div>
-
-        <div id="et-msg" style="font-size:13px;margin-top:4px;"></div>
+        <div id="et-msg" style="font-size:13px;"></div>
       </div>
+
+      <!-- Aba: Contato -->
+      <div id="et-pane-config" class="sa-modal-body" style="display:none;">
+        <div id="et-cfg-loading" style="text-align:center;padding:32px;color:#64748b;">⏳ Carregando…</div>
+      </div>
+
+      <!-- Aba: API -->
+      <div id="et-pane-api" class="sa-modal-body" style="display:none;">
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:6px;">🔑 Chave de API desta Imobiliária</div>
+          <p style="font-size:12px;color:#1e40af;margin:0 0 10px;">Use esta chave para conectar qualquer site ao CRM.</p>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="et-api-key" class="form-input" type="text" value="${escapeHTML(tenant.id || '')}" readonly
+              style="font-family:monospace;font-size:11px;background:#fff;color:#1e3a5f;flex:1;letter-spacing:.02em;">
+            <button id="et-copy-key" class="btn-secondary-sm" style="white-space:nowrap;flex-shrink:0;">📋 Copiar</button>
+          </div>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:4px;">Endpoints disponíveis</div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${[
+            ['GET', 'properties', 'Lista imóveis publicados'],
+            ['GET', 'properties/ID', 'Detalhe de um imóvel'],
+            ['POST', 'leads', 'Registra lead / formulário de contato'],
+            ['GET', 'settings', 'Dados da empresa (nome, WhatsApp, logo…)'],
+          ].map(([method, path, desc]) => `
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${method==='GET'?'#dcfce7':'#fef9c3'};color:${method==='GET'?'#15803d':'#854d0e'};">${method}</span>
+                <code style="font-size:11px;color:#0f172a;">/public-api/${path}?key=CHAVE</code>
+              </div>
+              <div style="font-size:11px;color:#64748b;">${desc}</div>
+            </div>`).join('')}
+        </div>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:4px;">Exemplo rápido (JavaScript)</div>
+        <pre style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:12px;font-size:11px;overflow-x:auto;margin:0;line-height:1.6;"><code>const KEY = '${escapeHTML(tenant.id)}'
+const API = '${BASE_API}'
+
+// Listar imóveis
+const res = await fetch(\`\${API}/properties?key=\${KEY}&limit=12\`)
+const { data } = await res.json()
+
+// Enviar lead
+await fetch(\`\${API}/leads?key=\${KEY}\`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name: 'João', phone: '47999001234' })
+})</code></pre>
+      </div>
+
       <div class="sa-modal-footer">
         <button id="et-delete" class="btn-danger-sm">🗑️ Excluir</button>
         <button id="et-cancel" class="btn-secondary-sm">Cancelar</button>
@@ -4099,6 +5400,92 @@ function openEditTenantModal(tenant) {
     const inp = document.getElementById('et-admin-password')
     inp.type = inp.type === 'password' ? 'text' : 'password'
   })
+
+  // API key: copiar
+  document.getElementById('et-copy-key')?.addEventListener('click', () => {
+    const val = document.getElementById('et-api-key')?.value
+    if (!val) return
+    navigator.clipboard?.writeText(val)
+    const btn = document.getElementById('et-copy-key')
+    const orig = btn.textContent
+    btn.textContent = '✅ Copiada!'
+    setTimeout(() => { btn.textContent = orig }, 2000)
+  })
+
+  // Tab switching (3 abas)
+  const etTabNames = ['dados', 'config', 'api']
+  function etActivateTab(active) {
+    etTabNames.forEach(t => {
+      document.getElementById(`et-pane-${t}`).style.display = t === active ? '' : 'none'
+      const btn = document.getElementById(`et-tab-${t}`)
+      btn.style.borderBottomColor = t === active ? '#2563eb' : 'transparent'
+      btn.style.color             = t === active ? '#2563eb' : '#64748b'
+      btn.style.fontWeight        = t === active ? '600' : '500'
+    })
+    if (active === 'config') etLoadConfigTab()
+  }
+  etTabNames.forEach(t => document.getElementById(`et-tab-${t}`)?.addEventListener('click', () => etActivateTab(t)))
+
+  // Config tab — carrega settings do tenant ao abrir pela primeira vez
+  let etConfigLoaded = false
+  async function etLoadConfigTab() {
+    if (etConfigLoaded) return
+    etConfigLoaded = true
+    const { data: rows } = await supabase.from('settings').select('key,value').eq('tenant_id', tenant.id)
+    const s = {}; rows?.forEach(r => { s[r.key] = r.value })
+    document.getElementById('et-pane-config').innerHTML = `
+      <div class="form-group">
+        <label>WhatsApp <span style="font-size:11px;color:#94a3b8;">(DDI+DDD+número, sem espaços ou símbolos)</span></label>
+        <input id="et-cfg-wa"     class="form-input" type="text"  value="${escapeHTML(s['company.whatsapp']||'')}" placeholder="5547999701743">
+      </div>
+      <div class="form-group">
+        <label>Telefone</label>
+        <input id="et-cfg-phone"  class="form-input" type="text"  value="${escapeHTML(s['company.phone']||'')}"    placeholder="(47) 9 9970-1743">
+      </div>
+      <div class="form-group">
+        <label>E-mail de contato</label>
+        <input id="et-cfg-email"  class="form-input" type="email" value="${escapeHTML(s['company.email']||'')}"    placeholder="contato@nicimobiliaria.com.br">
+      </div>
+      <div class="form-group">
+        <label>Cidade</label>
+        <input id="et-cfg-city"   class="form-input" type="text"  value="${escapeHTML(s['company.city']||s['company.address']||'')}" placeholder="Blumenau, SC">
+      </div>
+      <div class="form-group">
+        <label>Slogan</label>
+        <input id="et-cfg-slogan" class="form-input" type="text"  value="${escapeHTML(s['company.slogan']||'')}"   placeholder="Os melhores imóveis da região">
+      </div>
+      <div id="et-cfg-msg" style="font-size:13px;min-height:20px;"></div>
+      <button id="et-cfg-save" class="btn-primary-sm" style="width:100%;padding:10px 0;">💾 Salvar configurações</button>
+    `
+    document.getElementById('et-cfg-save')?.addEventListener('click', async () => {
+      const btn   = document.getElementById('et-cfg-save')
+      const msgEl = document.getElementById('et-cfg-msg')
+      btn.disabled = true; btn.textContent = 'Salvando…'
+      msgEl.textContent = ''; msgEl.style.color = '#64748b'
+
+      const wa     = document.getElementById('et-cfg-wa').value.trim().replace(/\D/g,'')
+      const phone  = document.getElementById('et-cfg-phone').value.trim()
+      const email  = document.getElementById('et-cfg-email').value.trim()
+      const city   = document.getElementById('et-cfg-city').value.trim()
+      const slogan = document.getElementById('et-cfg-slogan').value.trim()
+
+      const { error } = await supabase.from('settings').upsert(
+        [
+          { key: 'company.whatsapp', value: wa,     tenant_id: tenant.id },
+          { key: 'company.phone',    value: phone,  tenant_id: tenant.id },
+          { key: 'company.email',    value: email,  tenant_id: tenant.id },
+          { key: 'company.city',     value: city,   tenant_id: tenant.id },
+          { key: 'company.address',  value: city,   tenant_id: tenant.id },
+          { key: 'company.slogan',   value: slogan, tenant_id: tenant.id },
+        ],
+        { onConflict: 'tenant_id,key' }
+      )
+
+      btn.disabled = false; btn.textContent = '💾 Salvar configurações'
+      if (error) { msgEl.textContent = '❌ ' + error.message; msgEl.style.color = '#ef4444' }
+      else        { msgEl.textContent = '✅ Configurações salvas!'; msgEl.style.color = '#22c55e' }
+    })
+  }
 
   const close = () => modal.remove()
   document.getElementById('et-close')?.addEventListener('click', close)
@@ -4163,8 +5550,9 @@ function openEditTenantModal(tenant) {
       msgEl.textContent = '⏳ Criando usuário admin…'
       const result = await callEdgeFunction({ email: adminEmail, password: adminPwd, role: 'admin', tenant_id: tenant.id })
       if (result?.success) {
-        if (result?.user_id) {
-          await supabase.from('profiles').update({ role: 'admin', tenant_id: tenant.id }).eq('id', result.user_id)
+        // Edge function handles role; only update tenant_id for truly new users
+        if (result?.user_id && !result?.linked) {
+          await supabase.from('profiles').update({ tenant_id: tenant.id }).eq('id', result.user_id)
         }
         msgEl.textContent = '✅ Salvo e admin criado!'; msgEl.style.color = '#22c55e'
       } else {

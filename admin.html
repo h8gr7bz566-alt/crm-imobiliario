@@ -312,12 +312,14 @@
           <div class="topnav-dropdown admin-only" style="display:none">
             <button class="topnav-link topnav-dropdown-btn">Configurações <i data-lucide="chevron-down"></i></button>
             <div class="topnav-dropdown-menu">
-              <button class="topnav-dropdown-item" data-section="empresa">Empresa</button>
-              <button class="topnav-dropdown-item" data-section="visual">Visual</button>
-              <button class="topnav-dropdown-item" data-section="site-config">Site &amp; SEO</button>
-              <button class="topnav-dropdown-item" data-section="crm-config">CRM Config</button>
-              <button class="topnav-dropdown-item" data-section="integracoes">Integrações</button>
-              <button class="topnav-dropdown-item" data-section="midia">Mídia</button>
+              <div class="topnav-dropdown-menu-inner">
+                <button class="topnav-dropdown-item" data-section="empresa">Empresa</button>
+                <button class="topnav-dropdown-item" data-section="visual">Visual</button>
+                <button class="topnav-dropdown-item" data-section="site-config">Site &amp; SEO</button>
+                <button class="topnav-dropdown-item" data-section="crm-config">CRM Config</button>
+                <button class="topnav-dropdown-item" data-section="integracoes">Integrações</button>
+                <button class="topnav-dropdown-item" data-section="midia">Mídia</button>
+              </div>
             </div>
           </div>
           <button class="topnav-link super-admin-only" data-section="super-admin" style="display:none">Super Admin</button>
@@ -367,10 +369,12 @@
               </div>
             </div>
             <div class="avatar-dropdown-divider"></div>
-            <button class="avatar-dropdown-item" id="avatar-dd-profile"><i data-lucide="user"></i> Meu Perfil</button>
-            <button class="avatar-dropdown-item" id="avatar-dd-settings"><i data-lucide="settings"></i> Configurações</button>
+            <button class="avatar-dropdown-item" id="avatar-dd-change-photo"><i data-lucide="camera"></i> Alterar Foto</button>
+            <button class="avatar-dropdown-item" id="avatar-dd-change-pass"><i data-lucide="key-round"></i> Alterar Senha</button>
+            <button class="avatar-dropdown-item admin-only" id="avatar-dd-add-corretor" style="display:none"><i data-lucide="user-plus"></i> Adicionar Corretor</button>
+            <button class="avatar-dropdown-item admin-only" id="avatar-dd-settings" style="display:none"><i data-lucide="users"></i> Gerenciar Corretores</button>
             <div class="avatar-dropdown-divider"></div>
-            <a href="index.html" class="avatar-dropdown-item"><i data-lucide="external-link"></i> Ver site</a>
+            <a href="#" id="avatar-dd-ver-site" target="_blank" rel="noopener" class="avatar-dropdown-item"><i data-lucide="external-link"></i> Ver site</a>
             <button class="avatar-dropdown-item avatar-dd-danger" id="avatar-dd-logout"><i data-lucide="log-out"></i> Sair</button>
           </div>
         </div>
@@ -583,6 +587,22 @@
             <button id="btn-funil-add-lead" class="btn-primary">+ Novo Lead</button>
           </div>
         </div>
+        <!-- Filtros do kanban -->
+        <div id="kanban-filters" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="position:relative;flex:1;min-width:180px;">
+              <input id="kf-search" type="text" placeholder="Buscar por nome, telefone, email…"
+                style="width:100%;padding:8px 12px 8px 34px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
+              <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#94a3b8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+            <select id="kf-status" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;background:#fff;min-width:140px;">
+              <option value="">Todos os status</option>
+            </select>
+            <button id="kf-clear" style="padding:8px 14px;background:#f1f5f9;border:none;border-radius:8px;font-size:13px;color:#64748b;cursor:pointer;white-space:nowrap;">✕ Limpar</button>
+          </div>
+          <div id="kf-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+        </div>
+
         <div id="kanban-board" class="kanban-board">
           <div class="kanban-loading">Carregando funil…</div>
         </div>

@@ -912,7 +912,8 @@ select option { background: #0c1830; color: var(--text); }
   z-index: 100;
 }
 .nav-dropdown:hover .nav-dropdown-menu,
-.nav-dropdown:focus-within .nav-dropdown-menu {
+.nav-dropdown:focus-within .nav-dropdown-menu,
+.nav-dropdown-menu.js-open {
   display: block;
 }
 .nav-dropdown-item {
@@ -1052,6 +1053,54 @@ select option { background: #0c1830; color: var(--text); }
 .selecao-card-actions a { flex: 1; text-align: center; font-size: 12px; padding: 8px; border-radius: 7px; font-weight: 600; text-decoration: none; }
 .selecao-card-actions .btn-det { background: #f0f2f5; color: #0f1c2e; }
 .selecao-card-actions .btn-wa { background: #25d366; color: #fff; }
+
+/* ── Marca d'água (watermark) nas fotos de imóveis ──────────────────────── */
+/* Wrapper para o img do selecao-card */
+.img-wm-wrap {
+  position: relative;
+  display: block;
+  line-height: 0;
+}
+/* Watermark: selecao-card (homepage carousel) */
+.img-wm-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 72px;
+  height: 72px;
+  background: url('logo-watermark.png') center / contain no-repeat;
+  opacity: 0.38;
+  pointer-events: none;
+  z-index: 2;
+}
+/* Watermark: property-card (grid imoveis.html) */
+.carousel-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 60px;
+  height: 60px;
+  background: url('logo-watermark.png') center / contain no-repeat;
+  opacity: 0.38;
+  pointer-events: none;
+  z-index: 2;
+}
+/* Watermark: galeria de detalhes (property.html) */
+.gallery-watermark {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  opacity: 0.38;
+  pointer-events: none;
+  user-select: none;
+  z-index: 3;
+}
+
 .selecao-nav {
   position: absolute;
   top: 50%;

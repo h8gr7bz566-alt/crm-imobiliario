@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imobiliária — Imóveis</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #c9a84c;
+      --dark:   #0a1628;
+      --dark2:  #1a2f4a;
+      --text:   #1e293b;
+      --muted:  #64748b;
+      --bg:     #f8fafc;
+      --card:   #ffffff;
+      --border: #e2e8f0;
+      --radius: 12px;
+    }
+
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--dark);
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px; position: sticky; top: 0; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 32px; height: 32px; }
+    .logo-name { font-size: 20px; font-weight: 800; color: #fff; }
+    .logo-sub  { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+    nav a {
+      color: #94a3b8; text-decoration: none; font-size: 14px; margin-left: 24px;
+      transition: color .2s;
+    }
+    nav a:hover { color: var(--accent); }
+    .header-cta {
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+      text-decoration: none; margin-left: 24px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
+      padding: 72px 24px 80px; text-align: center;
+    }
+    .hero h1 { font-size: clamp(28px,5vw,48px); font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .hero p  { font-size: 17px; color: #94a3b8; margin-bottom: 40px; }
+    .hero-badge {
+      display: inline-block; background: rgba(201,168,76,.15);
+      border: 1px solid rgba(201,168,76,.3); color: var(--accent);
+      font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 16px;
+    }
+
+    /* Search bar */
+    .search-bar {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+      max-width: 900px; margin: 0 auto;
+    }
+    .search-bar select, .search-bar input {
+      padding: 12px 16px; border-radius: 10px; border: none;
+      font-size: 14px; background: #fff; color: var(--text);
+      min-width: 160px; flex: 1;
+    }
+    .search-bar button {
+      background: var(--accent); color: #fff; border: none; border-radius: 10px;
+      padding: 12px 28px; font-size: 14px; font-weight: 700; cursor: pointer;
+      white-space: nowrap;
+    }
+    .search-bar button:hover { opacity: .9; }
+
+    /* ── STATS ── */
+    .stats {
+      display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;
+      padding: 32px 24px; background: #fff; border-bottom: 1px solid var(--border);
+    }
+    .stat { text-align: center; }
+    .stat-num { font-size: 28px; font-weight: 800; color: var(--dark); }
+    .stat-lbl { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* ── SECTION ── */
+    .section { padding: 56px 24px; max-width: 1200px; margin: 0 auto; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+    .section-title  { font-size: 24px; font-weight: 800; color: var(--dark); }
+    .section-link   { font-size: 14px; color: var(--accent); text-decoration: none; font-weight: 600; }
+
+    /* ── GRID ── */
+    .properties-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    /* ── CARD ── */
+    .prop-card {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: 0 2px 12px rgba(0,0,0,.06); overflow: hidden;
+      cursor: pointer; transition: transform .2s, box-shadow .2s;
+      display: flex; flex-direction: column;
+    }
+    .prop-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(0,0,0,.12); }
+    .prop-img {
+      width: 100%; height: 200px; object-fit: cover; background: #e2e8f0;
+      display: flex; align-items: center; justify-content: center; color: #94a3b8;
+      font-size: 13px;
+    }
+    .prop-img img { width: 100%; height: 100%; object-fit: cover; }
+    .prop-badge {
+      position: absolute; top: 12px; left: 12px;
+      background: var(--accent); color: #fff;
+      font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+    }
+    .prop-img-wrap { position: relative; }
+    .prop-body { padding: 16px 18px 20px; flex: 1; display: flex; flex-direction: column; }
+    .prop-title { font-size: 15px; font-weight: 700; color: var(--dark); margin-bottom: 4px; line-height: 1.3; }
+    .prop-location { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .prop-features {
+      display: flex; gap: 14px; flex-wrap: wrap;
+      font-size: 12px; color: var(--muted); margin-bottom: 14px;
+    }
+    .prop-feature { display: flex; align-items: center; gap: 4px; }
+    .prop-price { font-size: 20px; font-weight: 800; color: var(--dark); margin-top: auto; }
+    .prop-price span { font-size: 13px; font-weight: 400; color: var(--muted); }
+    .prop-cta {
+      display: block; text-align: center; background: var(--dark);
+      color: #fff; padding: 10px; font-size: 13px; font-weight: 600;
+      text-decoration: none; transition: background .2s;
+    }
+    .prop-cta:hover { background: var(--dark2); }
+
+    /* Loading / empty */
+    .loading-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 24px;
+    }
+    .skeleton {
+      background: #e2e8f0; border-radius: var(--radius); height: 340px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .empty-state { text-align: center; padding: 64px 24px; color: var(--muted); grid-column: 1/-1; }
+    .empty-icon  { font-size: 48px; margin-bottom: 12px; }
+
+    /* Pagination */
+    .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 40px; flex-wrap: wrap; }
+    .page-btn {
+      padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: #fff; cursor: pointer; font-size: 14px; color: var(--text);
+      transition: all .2s;
+    }
+    .page-btn:hover, .page-btn.active {
+      background: var(--dark); color: #fff; border-color: var(--dark);
+    }
+    .page-btn:disabled { opacity: .4; cursor: default; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
+      z-index: 1000; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px; max-width: 680px; width: 100%;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-close {
+      float: right; background: none; border: none; font-size: 24px;
+      cursor: pointer; color: var(--muted); line-height: 1;
+    }
+    .modal-header { padding: 24px 24px 16px; border-bottom: 1px solid var(--border); }
+    .modal-header h2 { font-size: 20px; font-weight: 700; }
+    .modal-body { padding: 24px; }
+
+    /* Detail modal */
+    .detail-images { position: relative; }
+    .detail-img { width: 100%; height: 280px; object-fit: cover; border-radius: 12px; margin-bottom: 20px; }
+    .detail-price { font-size: 28px; font-weight: 800; color: var(--dark); margin-bottom: 8px; }
+    .detail-location { font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+    .detail-features {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      background: var(--bg); border-radius: 10px; padding: 16px; margin-bottom: 20px;
+    }
+    .detail-feature { text-align: center; min-width: 70px; }
+    .detail-feature-val { font-size: 20px; font-weight: 700; }
+    .detail-feature-lbl { font-size: 11px; color: var(--muted); }
+    .detail-desc { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 24px; }
+    .detail-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-primary {
+      flex: 1; background: var(--accent); color: #fff; border: none; border-radius: 10px;
+      padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; text-align: center;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-secondary {
+      flex: 1; background: #25d366; color: #fff; border: none; border-radius: 10px;
+      padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; text-align: center;
+      text-decoration: none; display: inline-block;
+    }
+
+    /* Lead form */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: 11px 14px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 14px; color: var(--text);
+      transition: border-color .2s;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .form-group textarea { resize: vertical; min-height: 90px; }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
+    #lead-msg { font-size: 13px; margin-top: 8px; min-height: 20px; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--dark); color: #94a3b8; padding: 40px 24px 24px;
+      margin-top: 64px;
+    }
+    .footer-grid {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 32px;
+      margin-bottom: 32px;
+    }
+    .footer-brand .logo-name { color: #fff; font-size: 18px; }
+    .footer-brand p { font-size: 13px; line-height: 1.6; margin-top: 8px; }
+    .footer-col h4 { color: #fff; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+    .footer-col a { display: block; color: #94a3b8; text-decoration: none; font-size: 13px; margin-bottom: 8px; }
+    .footer-col a:hover { color: var(--accent); }
+    .footer-bottom { border-top: 1px solid #1e3a5f; padding-top: 20px; text-align: center; font-size: 12px; }
+
+    /* WhatsApp fab */
+    .whatsapp-fab {
+      position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      background: #25d366; color: #fff; width: 56px; height: 56px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(37,211,102,.4); text-decoration: none;
+      font-size: 24px; transition: transform .2s;
+    }
+    .whatsapp-fab:hover { transform: scale(1.1); }
+
+    /* Tags */
+    .type-tag {
+      display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px;
+      border-radius: 20px; margin-right: 6px;
+    }
+    .tag-venda    { background: #dbeafe; color: #1d4ed8; }
+    .tag-aluguel  { background: #dcfce7; color: #15803d; }
+    .tag-temporada{ background: #fef3c7; color: #92400e; }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      nav { display: none; }
+      .hero { padding: 48px 16px 56px; }
+      .search-bar { flex-direction: column; }
+      .form-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ──────── HEADER ──────── -->
+<header>
+  <a class="logo" href="#">
+    <svg class="logo-icon" viewBox="0 0 28 28" fill="none">
+      <rect x="2"  y="8"  width="7" height="18" rx="1.5" fill="#c9a84c"/>
+      <rect x="11" y="4"  width="7" height="22" rx="1.5" fill="#c9a84c"/>
+      <rect x="20" y="11" width="6" height="15" rx="1.5" fill="#c9a84c"/>
+    </svg>
+    <div>
+      <div class="logo-name" id="company-name">Imobiliária</div>
+      <div class="logo-sub"  id="company-slogan">Encontre o imóvel ideal</div>
+    </div>
+  </a>
+  <nav>
+    <a href="#imoveis">Imóveis</a>
+    <a href="#contato">Contato</a>
+  </nav>
+  <a class="header-cta" href="#contato">Fale conosco</a>
+</header>
+
+<!-- ──────── HERO ──────── -->
+<section class="hero">
+  <div class="hero-badge">✦ Integrado ao CRM IOS imobi</div>
+  <h1 id="hero-title">Encontre seu imóvel ideal</h1>
+  <p id="hero-sub">Venda, aluguel e temporada — os melhores imóveis da região</p>
+
+  <div class="search-bar">
+    <select id="filter-type">
+      <option value="">Tipo de transação</option>
+      <option value="Venda">Venda</option>
+      <option value="Aluguel">Aluguel</option>
+      <option value="Temporada">Temporada</option>
+    </select>
+    <input type="text" id="filter-city" placeholder="Cidade ou bairro">
+    <input type="number" id="filter-beds" placeholder="Quartos" min="1" max="9">
+    <button onclick="applyFilters()">🔍 Buscar</button>
+  </div>
+</section>
+
+<!-- ──────── STATS ──────── -->
+<div class="stats">
+  <div class="stat"><div class="stat-num" id="stat-total">—</div><div class="stat-lbl">Imóveis disponíveis</div></div>
+  <div class="stat"><div class="stat-num" id="stat-cities">—</div><div class="stat-lbl">Cidades atendidas</div></div>
+  <div class="stat"><div class="stat-num" id="stat-types">—</div><div class="stat-lbl">Tipos de negócio</div></div>
+</div>
+
+<!-- ──────── PROPERTIES ──────── -->
+<div class="section" id="imoveis">
+  <div class="section-header">
+    <h2 class="section-title">Imóveis disponíveis</h2>
+    <span id="results-count" style="font-size:13px;color:#64748b;"></span>
+  </div>
+  <div id="properties-container">
+    <div class="loading-grid">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+  </div>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- ──────── CONTACT ──────── -->
+<div class="section" id="contato" style="max-width:600px;">
+  <div class="section-header">
+    <h2 class="section-title">Entre em contato</h2>
+  </div>
+  <div style="background:#fff;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+    <div class="form-row">
+      <div class="form-group"><label>Nome *</label><input id="c-name" type="text" placeholder="Seu nome completo"></div>
+      <div class="form-group"><label>Telefone *</label><input id="c-phone" type="tel" placeholder="(00) 00000-0000"></div>
+    </div>
+    <div class="form-group"><label>E-mail</label><input id="c-email" type="email" placeholder="seu@email.com"></div>
+    <div class="form-group">
+      <label>Mensagem</label>
+      <textarea id="c-message" placeholder="Descreva o que você procura…"></textarea>
+    </div>
+    <button class="btn-primary" style="width:100%" onclick="submitLead()">Enviar mensagem →</button>
+    <div id="lead-msg"></div>
+  </div>
+</div>
+
+<!-- ──────── FOOTER ──────── -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="logo-name" id="footer-name">Imobiliária</div>
+      <p id="footer-desc">Especialistas em imóveis residenciais e comerciais na região.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navegação</h4>
+      <a href="#">Início</a>
+      <a href="#imoveis">Imóveis</a>
+      <a href="#contato">Contato</a>
+    </div>
+    <div class="footer-col">
+      <h4>Contato</h4>
+      <a id="footer-phone" href="#">—</a>
+      <a id="footer-email" href="#">—</a>
+      <a id="footer-city"  href="#">—</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© <span id="footer-year"></span> <span id="footer-company">Imobiliária</span>. Todos os direitos reservados.</p>
+    <p style="margin-top:6px;font-size:11px;opacity:.6;">Powered by <strong>IOS imobi CRM</strong></p>
+  </div>
+</footer>
+
+<!-- WhatsApp FAB -->
+<a class="whatsapp-fab" id="whatsapp-fab" href="#" target="_blank" rel="noopener" title="Fale pelo WhatsApp">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.116 1.527 5.845L.057 23.882l6.199-1.625A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.793 9.793 0 01-4.992-1.368l-.358-.213-3.685.967.983-3.596-.234-.369A9.79 9.79 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
+  </svg>
+</a>
+
+<!-- ──────── DETAIL MODAL ──────── -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeModal('detail-modal')">×</button>
+      <h2 id="dm-title">—</h2>
+    </div>
+    <div class="modal-body" id="dm-body"></div>
+  </div>
+</div>
+
+<!-- ──────── LEAD MODAL (from card) ──────── -->
+<div class="modal-overlay" id="lead-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeModal('lead-modal')">×</button>
+      <h2>Tenho interesse</h2>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#64748b;margin-bottom:20px;" id="lm-prop-title"></p>
+      <div class="form-row">
+        <div class="form-group"><label>Nome *</label><input id="lm-name" type="text" placeholder="Seu nome"></div>
+        <div class="form-group"><label>Telefone *</label><input id="lm-phone" type="tel" placeholder="(00) 00000-0000"></div>
+      </div>
+      <div class="form-group"><label>E-mail</label><input id="lm-email" type="email" placeholder="seu@email.com"></div>
+      <button class="btn-primary" style="width:100%;margin-top:4px" onclick="submitLeadModal()">Enviar interesse →</button>
+      <div id="lm-msg" style="font-size:13px;margin-top:8px;min-height:20px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────
+     CONFIGURAÇÃO — troque a chave pelo UUID da
+     imobiliária obtido na aba 🔑 API do CRM
+──────────────────────────────────────────────── -->
+<script>
+const API_KEY  = '4d114356-f5b1-4f9f-a49f-e8727253a0b3'
+const API_BASE = 'https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/public-api'
+const WHATSAPP = '' // Ex: 5511999999999 — deixe vazio para ocultar
+
+// ── state ──
+let currentPage = 1
+let totalPages  = 1
+let activeFilters = {}
+let currentPropertyId = null
+
+// ── utils ──
+const fmtPrice = v => {
+  if (!v) return '—'
+  // Remove pontos de milhar e troca vírgula por ponto para parse correto
+  const n = parseFloat(String(v).replace(/\./g,'').replace(',','.'))
+  if (isNaN(n)) return 'R$ ' + v
+  return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 0 })
+}
+const fmtArea  = v => v ? v + ' m²' : ''
+
+function typeTag(type) {
+  const map = { 'Venda': 'tag-venda', 'Aluguel': 'tag-aluguel', 'Temporada': 'tag-temporada' }
+  return `<span class="type-tag ${map[type] || 'tag-venda'}">${type || ''}</span>`
+}
+
+async function apiFetch(path) {
+  const sep = path.includes('?') ? '&' : '?'
+  const res = await fetch(`${API_BASE}/${path}${sep}key=${API_KEY}`)
+  return res.json()
+}
+
+// ── Load settings ──
+async function loadSettings() {
+  try {
+    const s = await apiFetch('settings')
+    const name    = s['company.name']    || 'Imobiliária'
+    const slogan  = s['company.slogan']  || 'Encontre o imóvel ideal'
+    const phone   = s['company.phone']   || ''
+    const email   = s['company.email']   || ''
+    const city    = s['company.city']    || ''
+    const wa      = WHATSAPP || (s['company.whatsapp'] || '').replace(/\D/g,'')
+
+    document.title = name + ' — Imóveis'
+    document.getElementById('company-name').textContent  = name
+    document.getElementById('company-slogan').textContent = slogan
+    document.getElementById('hero-title').textContent    = 'Encontre o imóvel ideal em ' + (city || 'nossa cidade')
+    document.getElementById('footer-name').textContent   = name
+    document.getElementById('footer-company').textContent = name
+    if (phone) document.getElementById('footer-phone').textContent = '📞 ' + phone
+    if (email) { const el = document.getElementById('footer-email'); el.textContent = '✉ ' + email; el.href = 'mailto:' + email }
+    if (city)  document.getElementById('footer-city').textContent  = '📍 ' + city
+
+    if (wa) {
+      const fab = document.getElementById('whatsapp-fab')
+      fab.href = 'https://wa.me/' + wa
+      fab.style.display = 'flex'
+    } else {
+      document.getElementById('whatsapp-fab').style.display = 'none'
+    }
+  } catch(e) { console.warn('settings:', e) }
+}
+
+// ── Load properties ──
+async function loadProperties(page = 1) {
+  currentPage = page
+  const container = document.getElementById('properties-container')
+  container.innerHTML = '<div class="loading-grid"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>'
+
+  const params = new URLSearchParams({ limit: 9, page })
+  if (activeFilters.type)  params.set('type',      activeFilters.type)
+  if (activeFilters.city)  params.set('city',      activeFilters.city)
+  if (activeFilters.beds)  params.set('bedrooms',  activeFilters.beds)
+
+  try {
+    const res = await apiFetch('properties?' + params.toString())
+    const { data = [], pagination = {} } = res
+    totalPages = pagination.pages || 1
+
+    document.getElementById('results-count').textContent =
+      pagination.total ? `${pagination.total} imóvel(s) encontrado(s)` : ''
+
+    if (!data.length) {
+      container.innerHTML = '<div class="properties-grid"><div class="empty-state"><div class="empty-icon">🏠</div><p>Nenhum imóvel encontrado.</p><p style="font-size:13px;margin-top:8px">Tente outros filtros.</p></div></div>'
+      renderPagination()
+      return
+    }
+
+    container.innerHTML = `<div class="properties-grid">${data.map(renderCard).join('')}</div>`
+    renderPagination()
+    updateStats(data, pagination.total)
+  } catch(e) {
+    container.innerHTML = '<div style="text-align:center;padding:64px;color:#ef4444">Erro ao carregar imóveis. Verifique a chave de API.</div>'
+  }
+}
+
+function renderCard(p) {
+  const img = p.images?.[0]
+    ? `<img src="${p.images[0]}" alt="${p.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`
+    : `<div style="width:100%;height:100%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:40px">🏠</div>`
+
+  return `
+  <div class="prop-card" onclick="openDetail('${p.id}')">
+    <div class="prop-img-wrap">
+      <div class="prop-img">${img}</div>
+      ${p.type ? `<span class="prop-badge">${p.type}</span>` : ''}
+    </div>
+    <div class="prop-body">
+      <div class="prop-title">${p.title}</div>
+      <div class="prop-location">📍 ${[p.neighborhood, p.city].filter(Boolean).join(', ')}</div>
+      <div class="prop-features">
+        ${p.bedrooms  ? `<span class="prop-feature">🛏 ${p.bedrooms} quarto${p.bedrooms>1?'s':''}</span>` : ''}
+        ${p.bathrooms ? `<span class="prop-feature">🚿 ${p.bathrooms} banheiro${p.bathrooms>1?'s':''}</span>` : ''}
+        ${p.parking   ? `<span class="prop-feature">🚗 ${p.parking} vaga${p.parking>1?'s':''}</span>` : ''}
+        ${p.area_m2   ? `<span class="prop-feature">📐 ${p.area_m2} m²</span>` : ''}
+      </div>
+      <div class="prop-price">${fmtPrice(p.price)}${p.type==='Aluguel'||p.type==='Temporada' ? '<span>/mês</span>' : ''}</div>
+    </div>
+    <a class="prop-cta" onclick="event.stopPropagation();openLeadModal('${p.id}','${p.title.replace(/'/g,"\\'")}')">Tenho interesse →</a>
+  </div>`
+}
+
+// ── Stats (first load only) ──
+let statsSet = false
+function updateStats(data, total) {
+  if (statsSet) return; statsSet = true
+  document.getElementById('stat-total').textContent  = total || data.length
+  const cities = [...new Set(data.map(p => p.city).filter(Boolean))]
+  document.getElementById('stat-cities').textContent = cities.length || '—'
+  const types  = [...new Set(data.map(p => p.type).filter(Boolean))]
+  document.getElementById('stat-types').textContent  = types.length  || '—'
+}
+
+// ── Pagination ──
+function renderPagination() {
+  const pg = document.getElementById('pagination')
+  if (totalPages <= 1) { pg.innerHTML = ''; return }
+  let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="loadProperties(${currentPage-1})">← Ant</button>`
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="loadProperties(${i})">${i}</button>`
+  }
+  html += `<button class="page-btn" ${currentPage===totalPages?'disabled':''} onclick="loadProperties(${currentPage+1})">Prox →</button>`
+  pg.innerHTML = html
+}
+
+// ── Filters ──
+function applyFilters() {
+  activeFilters = {
+    type: document.getElementById('filter-type').value,
+    city: document.getElementById('filter-city').value.trim(),
+    beds: document.getElementById('filter-beds').value,
+  }
+  loadProperties(1)
+}
+
+// ── Detail modal ──
+async function openDetail(id) {
+  document.getElementById('detail-modal').classList.add('open')
+  document.getElementById('dm-title').textContent = 'Carregando…'
+  document.getElementById('dm-body').innerHTML    = '<div style="text-align:center;padding:32px">⏳</div>'
+  currentPropertyId = id
+
+  const p = await apiFetch(`properties/${id}`)
+  if (p.error) { document.getElementById('dm-body').innerHTML = '<p>Erro ao carregar.</p>'; return }
+
+  document.getElementById('dm-title').textContent = p.title
+
+  const imgs = p.images?.length
+    ? p.images.map(u => `<img src="${u}" class="detail-img" style="margin-right:8px;display:inline-block;width:${p.images.length>1?'48%':'100%'}">`).join('')
+    : `<div style="height:200px;background:#e2e8f0;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:20px">🏠</div>`
+
+  document.getElementById('dm-body').innerHTML = `
+    <div style="overflow-x:auto;white-space:nowrap;margin-bottom:20px">${imgs}</div>
+    <div class="detail-price">${fmtPrice(p.price)}${p.type==='Aluguel'||p.type==='Temporada'?'<span style="font-size:15px;font-weight:400;color:#64748b">/mês</span>':''}</div>
+    <div class="detail-location">📍 ${[p.neighborhood,p.city].filter(Boolean).join(', ')}  ${typeTag(p.type)}</div>
+    <div class="detail-features">
+      ${p.bedrooms  ?`<div class="detail-feature"><div class="detail-feature-val">🛏 ${p.bedrooms}</div><div class="detail-feature-lbl">Quarto${p.bedrooms>1?'s':''}</div></div>`:''}
+      ${p.suites    ?`<div class="detail-feature"><div class="detail-feature-val">🛁 ${p.suites}</div><div class="detail-feature-lbl">Suíte${p.suites>1?'s':''}</div></div>`:''}
+      ${p.bathrooms ?`<div class="detail-feature"><div class="detail-feature-val">🚿 ${p.bathrooms}</div><div class="detail-feature-lbl">Banheiro${p.bathrooms>1?'s':''}</div></div>`:''}
+      ${p.parking   ?`<div class="detail-feature"><div class="detail-feature-val">🚗 ${p.parking}</div><div class="detail-feature-lbl">Vaga${p.parking>1?'s':''}</div></div>`:''}
+      ${p.area_m2   ?`<div class="detail-feature"><div class="detail-feature-val">📐 ${p.area_m2}</div><div class="detail-feature-lbl">m²</div></div>`:''}
+    </div>
+    ${p.description ? `<div class="detail-desc">${p.description.replace(/\n/g,'<br>')}</div>` : ''}
+    <div class="detail-actions">
+      <button class="btn-primary" onclick="closeModal('detail-modal');openLeadModal('${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">Tenho interesse</button>
+      ${WHATSAPP ? `<a class="btn-secondary" href="https://wa.me/${WHATSAPP.replace(/\D,'')}?text=Olá! Tenho interesse no imóvel: ${encodeURIComponent(p.title)}" target="_blank">WhatsApp</a>` : ''}
+    </div>
+  `
+}
+
+// ── Lead modals ──
+function openLeadModal(propId, propTitle) {
+  currentPropertyId = propId
+  document.getElementById('lm-prop-title').textContent = 'Imóvel: ' + propTitle
+  document.getElementById('lm-name').value  = ''
+  document.getElementById('lm-phone').value = ''
+  document.getElementById('lm-email').value = ''
+  document.getElementById('lm-msg').textContent = ''
+  document.getElementById('lead-modal').classList.add('open')
+}
+
+async function submitLeadModal() {
+  const name  = document.getElementById('lm-name').value.trim()
+  const phone = document.getElementById('lm-phone').value.trim()
+  const email = document.getElementById('lm-email').value.trim()
+  const msgEl = document.getElementById('lm-msg')
+  if (!name || !phone) { msgEl.style.color='#ef4444'; msgEl.textContent='Nome e telefone são obrigatórios.'; return }
+  msgEl.style.color='#64748b'; msgEl.textContent='Enviando…'
+  const res = await fetch(`${API_BASE}/leads?key=${API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, phone, email, property_id: currentPropertyId, source: 'site' })
+  }).then(r => r.json())
+  if (res.success) { msgEl.style.color='#16a34a'; msgEl.textContent='✅ Enviado! Entraremos em contato em breve.' }
+  else             { msgEl.style.color='#ef4444'; msgEl.textContent='Erro: ' + (res.error||'tente novamente') }
+}
+
+async function submitLead() {
+  const name    = document.getElementById('c-name').value.trim()
+  const phone   = document.getElementById('c-phone').value.trim()
+  const email   = document.getElementById('c-email').value.trim()
+  const message = document.getElementById('c-message').value.trim()
+  const msgEl   = document.getElementById('lead-msg')
+  if (!name || !phone) { msgEl.style.color='#ef4444'; msgEl.textContent='Nome e telefone são obrigatórios.'; return }
+  msgEl.style.color='#64748b'; msgEl.textContent='Enviando…'
+  const res = await fetch(`${API_BASE}/leads?key=${API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, phone, email, message, source: 'site-contato' })
+  }).then(r => r.json())
+  if (res.success) { msgEl.style.color='#16a34a'; msgEl.textContent='✅ Mensagem enviada! Retornaremos em breve.' }
+  else             { msgEl.style.color='#ef4444'; msgEl.textContent='Erro: ' + (res.error||'tente novamente') }
+}
+
+// ── Modal close ──
+function closeModal(id) { document.getElementById(id).classList.remove('open') }
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open') })
+})
+
+// ── Footer year ──
+document.getElementById('footer-year').textContent = new Date().getFullYear()
+
+// ── Init ──
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open')) })
+loadSettings()
+loadProperties()
+</script>
+</body>
+</html>

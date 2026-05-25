@@ -160,10 +160,15 @@ body {
 .topnav-dropdown { position: relative; }
 .topnav-dropdown-btn { display: flex; align-items: center; gap: 4px; }
 .topnav-dropdown-menu {
-  display: none; position: absolute; top: calc(100% + 10px); left: 0;
-  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1); min-width: 200px; padding: 6px;
+  display: none; position: absolute; top: 100%; left: 0;
+  padding-top: 8px;
+  background: transparent;
+  min-width: 200px;
   z-index: 200;
+}
+.topnav-dropdown-menu-inner {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1); padding: 6px;
 }
 .topnav-dropdown:hover .topnav-dropdown-menu,
 .topnav-dropdown:focus-within .topnav-dropdown-menu { display: block; }
@@ -428,6 +433,13 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   cursor: pointer; transition: background 0.15s; font-family: inherit;
 }
 .btn-cancel:hover { background: #e2e8f0; }
+.btn-danger {
+  padding: 9px 16px; background: #fee2e2;
+  border: none; border-radius: 8px;
+  font-size: 14px; font-weight: 500; color: #dc2626;
+  cursor: pointer; transition: background 0.15s; font-family: inherit;
+}
+.btn-danger:hover { background: #fecaca; }
 
 .btn-save {
   padding: 9px 22px;
@@ -462,8 +474,10 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   .topnav-link.active::after { display: none; }
   .topnav-user-info { display: none; }
   .topnav-dropdown-menu {
-    position: static; box-shadow: none; border: none;
-    padding: 0 0 0 14px; border-radius: 0;
+    position: static; padding: 0 0 0 14px;
+  }
+  .topnav-dropdown-menu-inner {
+    box-shadow: none; border: none; border-radius: 0; padding: 0;
   }
   .topnav-dropdown:hover .topnav-dropdown-menu { display: none; }
   .topnav-dropdown.open .topnav-dropdown-menu { display: block; }
