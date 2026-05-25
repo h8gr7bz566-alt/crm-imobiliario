@@ -1088,6 +1088,18 @@ select option { background: #0c1830; color: var(--text); }
   z-index: 2;
 }
 /* Watermark: galeria de detalhes (property.html) */
+.gallery-main-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  width: 96px;
+  height: 96px;
+  background: url('/logo-watermark.png') center / contain no-repeat;
+  opacity: 0.40;
+  pointer-events: none;
+  z-index: 3;
+}
 .gallery-watermark {
   position: absolute;
   bottom: 16px;
