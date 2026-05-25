@@ -1061,53 +1061,57 @@ select option { background: #0c1830; color: var(--text); }
   display: block;
   line-height: 0;
 }
-/* Watermark: selecao-card (homepage carousel) */
+/* Watermark centralizado: selecao-card (homepage carousel) */
 .img-wm-wrap::after {
   content: '';
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 72px;
-  height: 72px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90px;
+  height: 90px;
   background: url('/logo-watermark.png') center / contain no-repeat;
-  opacity: 0.38;
+  opacity: 0.35;
   pointer-events: none;
   z-index: 2;
 }
-/* Watermark: property-card (grid imoveis.html) */
+/* Watermark centralizado: property-card (grid imoveis.html) */
 .carousel-wrap::after {
   content: '';
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 60px;
-  height: 60px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
   background: url('/logo-watermark.png') center / contain no-repeat;
-  opacity: 0.38;
+  opacity: 0.35;
   pointer-events: none;
   z-index: 2;
 }
-/* Watermark: galeria de detalhes (property.html) */
+/* Watermark centralizado: galeria de detalhes (property.html) */
 .gallery-main-wrap::after {
   content: '';
   position: absolute;
-  bottom: 14px;
-  right: 14px;
-  width: 96px;
-  height: 96px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 130px;
+  height: 130px;
   background: url('/logo-watermark.png') center / contain no-repeat;
-  opacity: 0.40;
+  opacity: 0.35;
   pointer-events: none;
   z-index: 3;
 }
 .gallery-watermark {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
-  width: 96px;
-  height: 96px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 130px;
+  height: 130px;
   object-fit: contain;
-  opacity: 0.38;
+  opacity: 0.35;
   pointer-events: none;
   user-select: none;
   z-index: 3;
