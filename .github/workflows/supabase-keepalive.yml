@@ -1,0 +1,25 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    - cron: "0 12 * * *"   # Todo dia ao meio-dia UTC (9h horário de Brasília)
+  workflow_dispatch:          # Permite rodar manualmente pelo GitHub
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        env:
+          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://onknpbzdcrhbfozzvxtz.supabase.co/rest/v1/imoveis?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY")
+          echo "Supabase status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::warning::Supabase retornou status $STATUS — verifique se o projeto está ativo."
+          else
+            echo "Supabase ativo!"
+          fi
