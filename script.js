@@ -1293,6 +1293,7 @@ async function initFunilSection() {
   await reloadFunilData()
 
   document.getElementById('btn-funil-add-lead')?.addEventListener('click', () => openLeadModal())
+  initImportLeads()
 
   const sel = document.getElementById('funil-pipe-sel')
   sel?.addEventListener('change', async () => {
@@ -5565,4 +5566,325 @@ await fetch(\`\${API}/leads?key=\${KEY}\`, {
     saveBtn.disabled = false; saveBtn.textContent = 'Salvar'
     setTimeout(() => { close(); loadSATenants() }, 1200)
   })
+}
+
+// ══════════════════════════════════════════════════════════
+//  IMPORTAR CONTATOS  —  CSV / Excel  →  Leads no Supabase
+// ══════════════════════════════════════════════════════════
+
+const IMPORT_FIELDS = [
+  { key: 'name',   label: 'Nome',     required: true  },
+  { key: 'phone',  label: 'Telefone', required: false },
+  { key: 'email',  label: 'E-mail',   required: false },
+  { key: 'notes',  label: 'Notas',    required: false },
+]
+
+let importRows     = []   // raw rows from file
+let importHeaders  = []   // column headers
+let importMapping  = {}   // { fieldKey: colIndex }
+let importStageId  = null
+
+function initImportLeads() {
+  document.getElementById('btn-import-leads')?.addEventListener('click', openImportLeadsModal)
+}
+
+function openImportLeadsModal() {
+  // reset state
+  importRows    = []
+  importHeaders = []
+  importMapping = {}
+  importStageId = null
+
+  const overlay = document.createElement('div')
+  overlay.id = 'import-leads-overlay'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9000;display:flex;align-items:center;justify-content:center;'
+  overlay.innerHTML = `
+    <div id="import-leads-modal" style="background:#fff;border-radius:12px;width:min(680px,96vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.22);padding:32px 28px 24px;position:relative;">
+      <button onclick="document.getElementById('import-leads-overlay').remove()" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
+      <h2 style="margin:0 0 6px;font-size:1.2rem;color:#1e293b;">📥 Importar Contatos</h2>
+      <p style="margin:0 0 20px;color:#64748b;font-size:.9rem;">Envie um arquivo CSV ou Excel (.xlsx) com sua lista de contatos.</p>
+
+      <!-- Step 1: Upload -->
+      <div id="import-step-upload">
+        <div id="import-drop-zone" style="border:2px dashed #c7d2e0;border-radius:10px;padding:36px 24px;text-align:center;cursor:pointer;transition:border-color .2s;"
+             onclick="document.getElementById('import-file-input').click()"
+             ondragover="event.preventDefault();this.style.borderColor='#3b82f6'"
+             ondragleave="this.style.borderColor='#c7d2e0'"
+             ondrop="handleImportDrop(event)">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:10px;"><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4M12 3v11M8 7l4-4 4 4"/></svg>
+          <p style="margin:0 0 6px;color:#475569;font-weight:600;">Arraste o arquivo aqui</p>
+          <p style="margin:0;color:#94a3b8;font-size:.82rem;">ou clique para selecionar &nbsp;·&nbsp; CSV ou XLSX</p>
+        </div>
+        <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImportFile(this.files[0])">
+        <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <button onclick="downloadImportTemplate()" style="background:none;border:none;color:#3b82f6;cursor:pointer;font-size:.85rem;padding:0;text-decoration:underline;">⬇ Baixar modelo CSV</button>
+          <span id="import-file-status" style="color:#64748b;font-size:.85rem;"></span>
+        </div>
+        <p id="import-upload-error" style="color:#ef4444;font-size:.83rem;margin:10px 0 0;display:none;"></p>
+      </div>
+
+      <!-- Step 2: Mapping -->
+      <div id="import-step-map" style="display:none;">
+        <div style="margin-bottom:14px;">
+          <label style="font-size:.85rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Etapa (estágio) dos leads importados</label>
+          <select id="import-stage-sel" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.9rem;color:#1e293b;">
+            <option value="">Carregando etapas…</option>
+          </select>
+        </div>
+        <p style="font-size:.85rem;font-weight:600;color:#374151;margin:0 0 10px;">Mapeie as colunas do arquivo:</p>
+        <div id="import-field-rows" style="display:grid;gap:10px;"></div>
+        <div style="margin-top:18px;border:1px solid #e2e8f0;border-radius:8px;overflow:auto;">
+          <p style="font-size:.78rem;color:#94a3b8;margin:8px 12px 4px;">Pré-visualização (5 primeiras linhas)</p>
+          <div id="import-preview-wrap" style="overflow-x:auto;"></div>
+        </div>
+        <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
+          <button onclick="resetImportStep()" style="padding:9px 20px;border:1px solid #d1d5db;border-radius:7px;background:#fff;cursor:pointer;font-size:.9rem;color:#374151;">← Voltar</button>
+          <button onclick="confirmImportLeads()" id="btn-confirm-import" style="padding:9px 22px;background:#22c55e;color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:600;font-size:.9rem;">Importar leads</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Result -->
+      <div id="import-step-result" style="display:none;text-align:center;padding:20px 0;">
+        <div id="import-result-icon" style="font-size:3rem;margin-bottom:12px;">✅</div>
+        <p id="import-result-msg" style="font-size:1rem;font-weight:600;color:#1e293b;margin:0 0 18px;"></p>
+        <button onclick="document.getElementById('import-leads-overlay').remove();reloadFunilData()" style="padding:10px 26px;background:#3b82f6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Ver leads no funil</button>
+      </div>
+    </div>`
+
+  document.body.appendChild(overlay)
+  loadImportStages()
+}
+
+async function loadImportStages() {
+  const sel = document.getElementById('import-stage-sel')
+  if (!sel) return
+  const tid = await getTenantId()
+  const { data } = await supabase.from('crm_lead_statuses').select('*').eq('tenant_id', tid).order('position')
+  if (data && data.length) {
+    sel.innerHTML = data.map(s => `<option value="${s.id}">${escapeHTML(s.name)}</option>`).join('')
+    importStageId = data[0].id
+    sel.onchange = () => { importStageId = sel.value }
+  } else {
+    sel.innerHTML = '<option value="">— sem etapas cadastradas —</option>'
+  }
+}
+
+function handleImportDrop(event) {
+  event.preventDefault()
+  document.getElementById('import-drop-zone').style.borderColor = '#c7d2e0'
+  const file = event.dataTransfer.files[0]
+  if (file) handleImportFile(file)
+}
+
+function handleImportFile(file) {
+  if (!file) return
+  const statusEl = document.getElementById('import-file-status')
+  const errEl    = document.getElementById('import-upload-error')
+  errEl.style.display = 'none'
+
+  const name = file.name.toLowerCase()
+  statusEl.textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`
+
+  if (name.endsWith('.csv')) {
+    const reader = new FileReader()
+    reader.onload = e => {
+      const result = parseImportCSV(e.target.result)
+      if (result.error) { errEl.textContent = result.error; errEl.style.display = ''; return }
+      importHeaders = result.headers
+      importRows    = result.rows
+      showImportMapStep()
+    }
+    reader.readAsText(file, 'UTF-8')
+  } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    const reader = new FileReader()
+    reader.onload = e => parseImportExcel(e.target.result)
+    reader.readAsArrayBuffer(file)
+  } else {
+    errEl.textContent = 'Formato não suportado. Use CSV ou XLSX.'
+    errEl.style.display = ''
+  }
+}
+
+function parseImportCSV(text) {
+  // detect separator
+  const firstLine = text.split('\n')[0] || ''
+  const sep = firstLine.split(';').length > firstLine.split(',').length ? ';' : ','
+
+  const lines = text.split('\n').map(l => l.trimEnd()).filter(l => l.length)
+  if (lines.length < 2) return { error: 'Arquivo vazio ou sem dados.' }
+
+  function parseLine(line) {
+    const cells = []
+    let cur = '', inQuote = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') {
+        if (inQuote && line[i+1] === '"') { cur += '"'; i++ }
+        else inQuote = !inQuote
+      } else if (ch === sep && !inQuote) {
+        cells.push(cur.trim()); cur = ''
+      } else cur += ch
+    }
+    cells.push(cur.trim())
+    return cells
+  }
+
+  const headers = parseLine(lines[0]).map(h => h.replace(/^["']+|["']+$/g, ''))
+  const rows = lines.slice(1).map(parseLine)
+  return { headers, rows }
+}
+
+async function parseImportExcel(buffer) {
+  const errEl = document.getElementById('import-upload-error')
+  try {
+    if (!window.XLSX) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script')
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+        s.onload = res; s.onerror = rej
+        document.head.appendChild(s)
+      })
+    }
+    const wb = window.XLSX.read(buffer, { type: 'array' })
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const data = window.XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+    if (!data || data.length < 2) { errEl.textContent = 'Planilha vazia.'; errEl.style.display = ''; return }
+    importHeaders = data[0].map(String)
+    importRows    = data.slice(1)
+    showImportMapStep()
+  } catch(e) {
+    errEl.textContent = 'Erro ao ler o arquivo Excel: ' + e.message
+    errEl.style.display = ''
+  }
+}
+
+function autoDetectColumn(headers, keywords) {
+  for (let i = 0; i < headers.length; i++) {
+    const h = headers[i].toLowerCase()
+    if (keywords.some(k => h.includes(k))) return i
+  }
+  return ''
+}
+
+function showImportMapStep() {
+  document.getElementById('import-step-upload').style.display = 'none'
+  document.getElementById('import-step-map').style.display = ''
+
+  const container = document.getElementById('import-field-rows')
+  const AUTO_DETECT = {
+    name:  ['nome','name','contact','cliente','contato'],
+    phone: ['tel','fone','celular','whatsapp','phone','mobile'],
+    email: ['email','e-mail','mail'],
+    notes: ['obs','nota','note','comment','coment','descri'],
+  }
+  const colOptions = `<option value="">— ignorar —</option>` +
+    importHeaders.map((h, i) => `<option value="${i}">${escapeHTML(h)}</option>`).join('')
+
+  container.innerHTML = IMPORT_FIELDS.map(f => {
+    const detected = autoDetectColumn(importHeaders, AUTO_DETECT[f.key] || [])
+    importMapping[f.key] = detected !== '' ? parseInt(detected) : ''
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;">
+        <label style="font-size:.87rem;color:#374151;font-weight:500;">${f.label}${f.required ? ' <span style="color:#ef4444">*</span>' : ''}</label>
+        <select id="import-map-${f.key}" onchange="importMapping['${f.key}']=this.value===''?'':parseInt(this.value)"
+                style="padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.87rem;">
+          ${colOptions}
+        </select>
+      </div>`
+  }).join('')
+
+  // Set detected values
+  IMPORT_FIELDS.forEach(f => {
+    const sel = document.getElementById(`import-map-${f.key}`)
+    if (sel && importMapping[f.key] !== '') sel.value = importMapping[f.key]
+  })
+
+  renderImportPreview()
+  loadImportStages()
+}
+
+function renderImportPreview() {
+  const wrap = document.getElementById('import-preview-wrap')
+  if (!wrap) return
+  const preview = importRows.slice(0, 5)
+  if (!preview.length) { wrap.innerHTML = '<p style="padding:10px;color:#94a3b8;font-size:.8rem;">Sem dados</p>'; return }
+  const thead = `<tr>${importHeaders.map(h => `<th style="padding:6px 10px;background:#f1f5f9;font-size:.78rem;white-space:nowrap;border:1px solid #e2e8f0;">${escapeHTML(h)}</th>`).join('')}</tr>`
+  const tbody = preview.map(row =>
+    `<tr>${importHeaders.map((_, i) => `<td style="padding:5px 10px;font-size:.78rem;border:1px solid #e2e8f0;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">${escapeHTML(String(row[i] ?? ''))}</td>`).join('')}</tr>`
+  ).join('')
+  wrap.innerHTML = `<table style="border-collapse:collapse;min-width:100%;">${thead}${tbody}</table>`
+}
+
+function resetImportStep() {
+  document.getElementById('import-step-map').style.display    = 'none'
+  document.getElementById('import-step-upload').style.display = ''
+  document.getElementById('import-file-status').textContent   = ''
+  document.getElementById('import-file-input').value          = ''
+}
+
+async function confirmImportLeads() {
+  const btn   = document.getElementById('btn-confirm-import')
+  const errEl = document.getElementById('import-upload-error')
+  errEl.style.display = 'none'
+
+  // Validate name mapping
+  if (importMapping['name'] === '' || importMapping['name'] === undefined) {
+    errEl.textContent = 'Mapeie ao menos a coluna de Nome antes de importar.'
+    errEl.style.display = ''; return
+  }
+
+  btn.disabled = true; btn.textContent = 'Importando…'
+
+  const tid    = await getTenantId()
+  const stageId = importStageId || document.getElementById('import-stage-sel')?.value || null
+
+  const toInsert = importRows
+    .map(row => {
+      const name = String(row[importMapping['name']] ?? '').trim()
+      if (!name) return null
+      return {
+        tenant_id: tid,
+        name,
+        phone:  importMapping['phone'] !== '' ? String(row[importMapping['phone']] ?? '').trim() : null,
+        email:  importMapping['email'] !== '' ? String(row[importMapping['email']] ?? '').trim() : null,
+        notes:  importMapping['notes'] !== '' ? String(row[importMapping['notes']] ?? '').trim() : null,
+        source: 'importação',
+        stage:  stageId || null,
+        status: 'novo',
+      }
+    })
+    .filter(Boolean)
+
+  if (!toInsert.length) {
+    errEl.textContent = 'Nenhum registro válido encontrado (coluna Nome vazia em todas as linhas).'
+    errEl.style.display = ''; btn.disabled = false; btn.textContent = 'Importar leads'; return
+  }
+
+  // Batch insert in groups of 50
+  const BATCH = 50
+  let inserted = 0, errors = 0
+  for (let i = 0; i < toInsert.length; i += BATCH) {
+    const batch = toInsert.slice(i, i + BATCH)
+    const { error } = await supabase.from('leads').insert(batch)
+    if (error) { console.error('Import batch error:', error); errors += batch.length }
+    else inserted += batch.length
+  }
+
+  // Show result
+  document.getElementById('import-step-map').style.display    = 'none'
+  document.getElementById('import-step-result').style.display = ''
+  document.getElementById('import-result-icon').textContent   = errors === 0 ? '✅' : '⚠️'
+  document.getElementById('import-result-msg').textContent    =
+    errors === 0
+      ? `${inserted} lead${inserted !== 1 ? 's' : ''} importado${inserted !== 1 ? 's' : ''} com sucesso!`
+      : `${inserted} importados, ${errors} com erro. Verifique o console para detalhes.`
+}
+
+function downloadImportTemplate() {
+  const csv = 'Nome,Telefone,Email,Notas\nJoão Silva,(11) 99999-0001,joao@email.com,Lead do Instagram\nMaria Souza,(11) 99999-0002,maria@email.com,Interesse em 3 quartos\n'
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url; a.download = 'modelo-contatos.csv'; a.click()
+  URL.revokeObjectURL(url)
 }
