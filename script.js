@@ -438,9 +438,10 @@ function carouselHandler(e) {
   const dir = e.currentTarget.classList.contains('carousel-next') ? 1 : -1
   idx = (idx + dir + total) % total
   wrap.dataset.idx = idx
-  const pid = parseInt(wrap.dataset.pid, 10)
-  const prop = cachedProperties.find(x => x.id === pid)
-  // Use same fallback as card template: real images → SAMPLE_URLS
+  // IDs podem ser UUID (string) — comparar como string
+  const pid = wrap.dataset.pid
+  const prop = cachedProperties.find(x => String(x.id) === pid)
+  // Usar mesmo fallback do template: imagens reais → SAMPLE_URLS
   const images = prop?.images?.length ? prop.images : (prop ? SAMPLE_URLS : [])
   if (!images.length) return
   wrap.querySelector('.carousel-img').src = images[idx]
