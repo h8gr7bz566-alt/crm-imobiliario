@@ -374,14 +374,11 @@ async function renderPublic() {
     `
   }).join('')
 
-  // Event delegation — delegado no container, não nos botões individualmente
+  // Event delegation no container — funciona mesmo após re-render
   const grid = document.getElementById('properties')
   if (grid && !grid._carouselDelegated) {
     grid._carouselDelegated = true
     grid.addEventListener('click', carouselHandler)
-    grid.addEventListener('touchstart', function(e) {
-      if (e.target.closest('.carousel-btn')) carouselHandler(e)
-    }, { passive: false })
   }
 }
 
@@ -434,10 +431,12 @@ window.filterByStatus = function(status) {
 }
 
 function carouselHandler(e) {
-  e.preventDefault()
-  e.stopPropagation()
+  // Só age se o clique/toque foi num botão de carousel
   const btn = e.target.closest('.carousel-btn')
   if (!btn) return
+  // Agora sim: impede navegação e bubbling
+  e.preventDefault()
+  e.stopPropagation()
   const wrap = btn.closest('.carousel-wrap')
   if (!wrap) return
   const total = parseInt(wrap.dataset.total, 10)
@@ -446,12 +445,15 @@ function carouselHandler(e) {
   const dir = btn.classList.contains('carousel-next') ? 1 : -1
   idx = (idx + dir + total) % total
   wrap.dataset.idx = idx
+  // Lê imagens do atributo data-images (gravado no render)
   try {
     const images = JSON.parse(decodeURIComponent(wrap.dataset.images || '[]'))
-    if (images[idx]) wrap.querySelector('.carousel-img').src = images[idx]
+    if (images.length && images[idx]) {
+      wrap.querySelector('.carousel-img').src = images[idx]
+    }
   } catch(err) {
-    // fallback: busca em cachedProperties por string ID
-    const prop = cachedProperties.find(x => String(x.id) === wrap.dataset.pid)
+    // fallback: busca em cachedProperties
+    const prop = cachedProperties.find(x => String(x.id) === String(wrap.dataset.pid))
     const imgs = prop?.images?.length ? prop.images : SAMPLE_URLS
     if (imgs[idx]) wrap.querySelector('.carousel-img').src = imgs[idx]
   }
