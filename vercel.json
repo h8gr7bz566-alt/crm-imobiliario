@@ -40,6 +40,10 @@
       "destination": "/api/og/:id"
     },
     {
+      "source": "/og/:id.html",
+      "destination": "/api/og/:id"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },

@@ -1,8 +1,5 @@
-// api/og/[id].js — Vercel Serverless Function
-// Gera HTML com Open Graph tags dinâmicas para cada imóvel
-// WhatsApp, Telegram, iMessage leem essas tags para mostrar o preview
-
-import { createClient } from '@supabase/supabase-js'
+// api/og/[id].js — Vercel Serverless Function (CommonJS)
+const { createClient } = require('@supabase/supabase-js')
 
 function esc(str) {
   return String(str ?? '')
@@ -25,11 +22,12 @@ function formatPrice(raw) {
   return 'R$ ' + num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
-export default async function handler(req, res) {
-  const { id } = req.query
-  const target  = `https://omarcorretor.com.br/property.html?id=${id}`
+module.exports = async function handler(req, res) {
+  // Aceita /og/13 e /og/13.html
+  const rawId = (req.query.id || '').replace(/\.html$/, '')
+  const target = `https://omarcorretor.com.br/property.html?id=${rawId}`
 
-  if (!id) return res.redirect(302, 'https://omarcorretor.com.br/')
+  if (!rawId) return res.redirect(302, 'https://omarcorretor.com.br/')
 
   try {
     const supabase = createClient(
@@ -39,8 +37,8 @@ export default async function handler(req, res) {
 
     const { data: p, error } = await supabase
       .from('properties')
-      .select('id, title, description, price, images, cover_image, bedrooms, suites, parking, city, neighborhood, reference')
-      .eq('id', id)
+      .select('id, title, description, price, images, cover_image, bedrooms, parking, city, neighborhood, reference')
+      .eq('id', rawId)
       .maybeSingle()
 
     if (error || !p) return res.redirect(302, target)
@@ -58,10 +56,10 @@ export default async function handler(req, res) {
     const ogDesc  = esc(
       parts.length
         ? parts.join(' · ')
-        : (p.description?.slice(0, 155) || 'Imóvel disponível — Isaac Omar Corretor de Imóveis')
+        : (p.description || '').slice(0, 155) || 'Imóvel disponível — Isaac Omar Corretor de Imóveis'
     )
-    const ogImage = p.cover_image || p.images?.[0] || 'https://omarcorretor.com.br/logo.png'
-    const ogUrl   = `https://omarcorretor.com.br/og/${id}`
+    const ogImage = p.cover_image || (p.images && p.images[0]) || 'https://omarcorretor.com.br/logo.png'
+    const ogUrl   = `https://omarcorretor.com.br/og/${rawId}`
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -85,7 +83,7 @@ export default async function handler(req, res) {
 <link rel="canonical" href="${esc(target)}">
 </head>
 <body style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#0d2144;background:#f5f7fa">
-  <p style="font-size:16px">Abrindo imóvel... <a href="${esc(target)}" style="color:#c9a84c">Clique aqui</a> se não redirecionar.</p>
+  <p>Abrindo imóvel... <a href="${esc(target)}" style="color:#c9a84c">Clique aqui</a> se não redirecionar.</p>
   <script>window.location.replace(${JSON.stringify(target)})</script>
 </body>
 </html>`
