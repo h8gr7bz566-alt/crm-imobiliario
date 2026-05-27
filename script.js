@@ -352,7 +352,7 @@ async function renderPublic() {
     const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?`)
     return `
       <div class="card property-card">
-        <div class="carousel-wrap" style="position:relative" data-total="${total}" data-idx="0" data-pid="${p.id}">
+        <div class="carousel-wrap" style="position:relative" data-total="${total}" data-idx="0" data-pid="${p.id}" data-images="${encodeURIComponent(JSON.stringify(images))}">
           <img src="${p.cover_image || images[0]}" alt="${escapeHTML(p.title)}" class="carousel-img" style="width:100%;height:180px;object-fit:cover;border-radius:10px;display:block">
           ${total > 1 ? `
             <button class="carousel-btn carousel-prev" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;line-height:1">&lt;</button>
@@ -374,10 +374,15 @@ async function renderPublic() {
     `
   }).join('')
 
-  document.querySelectorAll('.carousel-btn').forEach(btn => {
-    btn.removeEventListener('click', carouselHandler)
-    btn.addEventListener('click', carouselHandler)
-  })
+  // Event delegation — delegado no container, não nos botões individualmente
+  const grid = document.getElementById('properties')
+  if (grid && !grid._carouselDelegated) {
+    grid._carouselDelegated = true
+    grid.addEventListener('click', carouselHandler)
+    grid.addEventListener('touchstart', function(e) {
+      if (e.target.closest('.carousel-btn')) carouselHandler(e)
+    }, { passive: false })
+  }
 }
 
 // ─── Seleção Isaac Omar — carousel curado ────────────────────────────────
@@ -429,22 +434,27 @@ window.filterByStatus = function(status) {
 }
 
 function carouselHandler(e) {
+  e.preventDefault()
   e.stopPropagation()
-  const wrap = e.currentTarget.closest('.carousel-wrap')
+  const btn = e.target.closest('.carousel-btn')
+  if (!btn) return
+  const wrap = btn.closest('.carousel-wrap')
   if (!wrap) return
   const total = parseInt(wrap.dataset.total, 10)
-  if (!total) return
+  if (!total || total < 2) return
   let idx = parseInt(wrap.dataset.idx, 10) || 0
-  const dir = e.currentTarget.classList.contains('carousel-next') ? 1 : -1
+  const dir = btn.classList.contains('carousel-next') ? 1 : -1
   idx = (idx + dir + total) % total
   wrap.dataset.idx = idx
-  // IDs podem ser UUID (string) — comparar como string
-  const pid = wrap.dataset.pid
-  const prop = cachedProperties.find(x => String(x.id) === pid)
-  // Usar mesmo fallback do template: imagens reais → SAMPLE_URLS
-  const images = prop?.images?.length ? prop.images : (prop ? SAMPLE_URLS : [])
-  if (!images.length) return
-  wrap.querySelector('.carousel-img').src = images[idx]
+  try {
+    const images = JSON.parse(decodeURIComponent(wrap.dataset.images || '[]'))
+    if (images[idx]) wrap.querySelector('.carousel-img').src = images[idx]
+  } catch(err) {
+    // fallback: busca em cachedProperties por string ID
+    const prop = cachedProperties.find(x => String(x.id) === wrap.dataset.pid)
+    const imgs = prop?.images?.length ? prop.images : SAMPLE_URLS
+    if (imgs[idx]) wrap.querySelector('.carousel-img').src = imgs[idx]
+  }
 }
 
 // ─── Faixa de Preço (select) ──────────────────────────────────────────────
