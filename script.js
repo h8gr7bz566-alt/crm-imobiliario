@@ -440,8 +440,10 @@ function carouselHandler(e) {
   wrap.dataset.idx = idx
   const pid = parseInt(wrap.dataset.pid, 10)
   const prop = cachedProperties.find(x => x.id === pid)
-  if (!prop?.images?.length) return
-  wrap.querySelector('.carousel-img').src = prop.images[idx]
+  // Use same fallback as card template: real images → SAMPLE_URLS
+  const images = prop?.images?.length ? prop.images : (prop ? SAMPLE_URLS : [])
+  if (!images.length) return
+  wrap.querySelector('.carousel-img').src = images[idx]
 }
 
 // ─── Faixa de Preço (select) ──────────────────────────────────────────────
