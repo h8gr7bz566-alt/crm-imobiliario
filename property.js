@@ -134,6 +134,26 @@ function showError() {
   document.getElementById('prop-error').classList.remove('hidden')
 }
 
+// ─── Compartilhar com preview OG ─────────────────────────────────────────
+window.shareProperty = function() {
+  const id  = new URLSearchParams(window.location.search).get('id')
+  const url = id
+    ? `https://omarcorretor.com.br/og/${id}`
+    : window.location.href
+  if (navigator.share) {
+    navigator.share({ url }).catch(() => {})
+  } else {
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('prop-share')
+      const orig = btn.textContent
+      btn.textContent = '✅ Link copiado!'
+      setTimeout(() => { btn.textContent = orig }, 2500)
+    }).catch(() => {
+      prompt('Copie o link abaixo:', url)
+    })
+  }
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadProperty()

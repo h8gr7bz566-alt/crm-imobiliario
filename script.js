@@ -321,7 +321,8 @@ async function renderPublic() {
     vendasCarousel.innerHTML = filtered.map(p => {
       const img = p.cover_image || p.images?.[0] || SAMPLE_URLS[0]
       const loc = [p.neighborhood, p.city].filter(Boolean).join(', ')
-      const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?`)
+      const ogLink = `https://omarcorretor.com.br/og/${p.id}`
+      const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?\n${ogLink}`)
       return `
         <div class="selecao-card">
           <div class="img-wm-wrap"><img src="${img}" alt="${escapeHTML(p.title)}" class="selecao-card-img"></div>
@@ -349,7 +350,8 @@ async function renderPublic() {
   gridContainer.innerHTML = filtered.map(p => {
     const images = p.images?.length ? p.images : SAMPLE_URLS
     const total = images.length
-    const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?`)
+    const ogLink = `https://omarcorretor.com.br/og/${p.id}`
+    const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?\n${ogLink}`)
     return `
       <div class="card property-card">
         <div class="carousel-wrap" style="position:relative" data-total="${total}" data-idx="0" data-pid="${p.id}" data-images="${encodeURIComponent(JSON.stringify(images))}">
@@ -395,7 +397,8 @@ function renderSelecao(props) {
   carousel.innerHTML = featured.map(p => {
     const img = p.cover_image || p.images?.[0] || SAMPLE_URLS[0]
     const loc = [p.neighborhood, p.city].filter(Boolean).join(', ')
-    const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?`)
+    const ogLink = `https://omarcorretor.com.br/og/${p.id}`
+    const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?\n${ogLink}`)
     return `
       <div class="selecao-card">
         <div class="img-wm-wrap"><img src="${img}" alt="${escapeHTML(p.title)}" class="selecao-card-img"></div>
