@@ -24,9 +24,9 @@ function formatPrice(raw) {
 
 module.exports = async function handler(req, res) {
   const rawId = String(req.query.id || '').replace(/\.html$/, '').trim()
-  const target = `https://omarcorretor.com.br/property.html?id=${rawId}`
+  const target = `https://www.omarcorretor.com.br/property.html?id=${rawId}`
 
-  if (!rawId) return res.redirect(302, 'https://omarcorretor.com.br/')
+  if (!rawId) return res.redirect(302, 'https://www.omarcorretor.com.br/')
 
   try {
     const SUPABASE_URL = process.env.VITE_SUPABASE_URL
@@ -61,7 +61,7 @@ module.exports = async function handler(req, res) {
     const ogTitle = esc(`${p.title} — Isaac Omar Corretor`)
     const ogDesc  = esc(parts.length ? parts.join(' · ') : (p.description || '').slice(0, 155) || 'Imóvel disponível')
     const ogImage = p.cover_image || (p.images && p.images[0]) || 'https://omarcorretor.com.br/logo.png'
-    const ogUrl   = `https://omarcorretor.com.br/og/${rawId}`
+    const ogUrl   = `https://www.omarcorretor.com.br/og/${rawId}`
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
