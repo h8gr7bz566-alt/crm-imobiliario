@@ -48,7 +48,9 @@ for (const p of properties ?? []) {
 
   const ogTitle = esc(`${p.title} - Isaac Omar Corretor`)
   const ogDesc  = esc(parts.length ? parts.join(' | ') : (p.description?.slice(0, 160) || 'Imovel em Isaac Omar Corretor'))
-  const ogImage = p.images?.[0] ?? ''
+  // Filtra base64 data URIs — WhatsApp só aceita https://
+  const rawImg = p.cover_image || (p.images && p.images.find(i => i && i.startsWith('http'))) || ''
+  const ogImage = rawImg
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">

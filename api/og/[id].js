@@ -60,8 +60,15 @@ module.exports = async function handler(req, res) {
 
     const ogTitle = esc(`${p.title} — Isaac Omar Corretor`)
     const ogDesc  = esc(parts.length ? parts.join(' · ') : (p.description || '').slice(0, 155) || 'Imóvel disponível')
-    const ogImage = p.cover_image || (p.images && p.images[0]) || 'https://omarcorretor.com.br/logo.png'
-    const ogUrl   = `https://www.omarcorretor.com.br/og/${rawId}`
+    // Filtra base64 — WhatsApp só aceita https://
+    function pickImage(candidates) {
+      for (const c of candidates) {
+        if (c && typeof c === 'string' && c.startsWith('http')) return c
+      }
+      return 'https://omarcorretor.com.br/logo.png'
+    }
+    const ogImage = pickImage([p.cover_image, ...(p.images || [])])
+    const ogUrl   = `https://omarcorretor.com.br/og/${rawId}`
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
