@@ -1,5 +1,5 @@
-// api/og/[id].js — Vercel Serverless Function (CommonJS)
-const { createClient } = require('@supabase/supabase-js')
+// api/og/[id].js — Vercel Serverless Function
+// Usa fetch nativo (Node 18+) — sem dependência do supabase-js
 
 function esc(str) {
   return String(str ?? '')
@@ -23,25 +23,31 @@ function formatPrice(raw) {
 }
 
 module.exports = async function handler(req, res) {
-  // Aceita /og/13 e /og/13.html
-  const rawId = (req.query.id || '').replace(/\.html$/, '')
+  const rawId = String(req.query.id || '').replace(/\.html$/, '').trim()
   const target = `https://omarcorretor.com.br/property.html?id=${rawId}`
 
   if (!rawId) return res.redirect(302, 'https://omarcorretor.com.br/')
 
   try {
-    const supabase = createClient(
-      process.env.VITE_SUPABASE_URL,
-      process.env.VITE_SUPABASE_ANON_KEY
-    )
+    const SUPABASE_URL = process.env.VITE_SUPABASE_URL
+    const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY
 
-    const { data: p, error } = await supabase
-      .from('properties')
-      .select('id, title, description, price, images, cover_image, bedrooms, parking, city, neighborhood, reference')
-      .eq('id', rawId)
-      .maybeSingle()
+    const apiUrl = `${SUPABASE_URL}/rest/v1/properties?id=eq.${encodeURIComponent(rawId)}&select=id,title,description,price,images,cover_image,bedrooms,parking,city,neighborhood&limit=1`
 
-    if (error || !p) return res.redirect(302, target)
+    const resp = await fetch(apiUrl, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!resp.ok) return res.redirect(302, target)
+
+    const rows = await resp.json()
+    const p = rows && rows[0]
+
+    if (!p) return res.redirect(302, target)
 
     const price = formatPrice(p.price)
     const parts = [
@@ -53,11 +59,7 @@ module.exports = async function handler(req, res) {
     ].filter(Boolean)
 
     const ogTitle = esc(`${p.title} — Isaac Omar Corretor`)
-    const ogDesc  = esc(
-      parts.length
-        ? parts.join(' · ')
-        : (p.description || '').slice(0, 155) || 'Imóvel disponível — Isaac Omar Corretor de Imóveis'
-    )
+    const ogDesc  = esc(parts.length ? parts.join(' · ') : (p.description || '').slice(0, 155) || 'Imóvel disponível')
     const ogImage = p.cover_image || (p.images && p.images[0]) || 'https://omarcorretor.com.br/logo.png'
     const ogUrl   = `https://omarcorretor.com.br/og/${rawId}`
 
@@ -74,16 +76,14 @@ module.exports = async function handler(req, res) {
 <meta property="og:image:width"  content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:site_name"    content="Isaac Omar Corretor">
-<meta property="og:locale"       content="pt_BR">
 <meta name="twitter:card"        content="summary_large_image">
 <meta name="twitter:title"       content="${ogTitle}">
 <meta name="twitter:description" content="${ogDesc}">
 <meta name="twitter:image"       content="${esc(ogImage)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="canonical" href="${esc(target)}">
 </head>
-<body style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#0d2144;background:#f5f7fa">
-  <p>Abrindo imóvel... <a href="${esc(target)}" style="color:#c9a84c">Clique aqui</a> se não redirecionar.</p>
+<body style="font-family:sans-serif;text-align:center;padding:60px 20px">
+  <p>Abrindo imóvel... <a href="${esc(target)}">Clique aqui</a> se não redirecionar.</p>
   <script>window.location.replace(${JSON.stringify(target)})</script>
 </body>
 </html>`
@@ -93,7 +93,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).send(html)
 
   } catch (err) {
-    console.error('OG handler error:', err)
+    console.error('OG error:', err)
     return res.redirect(302, target)
   }
 }
