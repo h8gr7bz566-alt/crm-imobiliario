@@ -447,7 +447,7 @@ function carouselHandler(e) {
   // Agora sim: impede navegação e bubbling
   e.preventDefault()
   e.stopPropagation()
-  const wrap = btn.closest('.carousel-wrap')
+  const wrap = btn.closest('.icard-img-wrap')
   if (!wrap) return
   const total = parseInt(wrap.dataset.total, 10)
   if (!total || total < 2) return
@@ -466,6 +466,12 @@ function carouselHandler(e) {
     const prop = cachedProperties.find(x => String(x.id) === String(wrap.dataset.pid))
     const imgs = prop?.images?.length ? prop.images : SAMPLE_URLS
     if (imgs[idx]) wrap.querySelector('.carousel-img').src = imgs[idx]
+  }
+  // Atualiza dots indicadores
+  const dots = wrap.querySelectorAll('.icard-dot')
+  if (dots.length) {
+    const activeIdx = idx % dots.length
+    dots.forEach((d, i) => d.classList.toggle('active', i === activeIdx))
   }
 }
 
@@ -853,16 +859,16 @@ function buildPropertyCard(p) {
 
   return `
     <div class="imovel-card" data-pid="${p.id}">
-      <a href="property.html?id=${p.id}" class="icard-img-link">
-        <div class="icard-img-wrap" data-total="${total}" data-idx="0" data-pid="${p.id}" data-images="${encodeURIComponent(JSON.stringify(images))}">
+      <div class="icard-img-wrap" data-total="${total}" data-idx="0" data-pid="${p.id}" data-images="${encodeURIComponent(JSON.stringify(images))}">
+        <a href="property.html?id=${p.id}" class="icard-img-link">
           <img src="${escapeHTML(img0)}" alt="${escapeHTML(p.title)}" class="icard-img carousel-img">
-          ${total > 1 ? `
-            <button class="carousel-btn carousel-prev icard-prev" aria-label="Anterior">&#8249;</button>
-            <button class="carousel-btn carousel-next icard-next" aria-label="Próximo">&#8250;</button>
-          ` : ''}
-          ${dots}
-        </div>
-      </a>
+        </a>
+        ${total > 1 ? `
+          <button type="button" class="carousel-btn carousel-prev icard-prev" aria-label="Anterior">&#8249;</button>
+          <button type="button" class="carousel-btn carousel-next icard-next" aria-label="Próximo">&#8250;</button>
+        ` : ''}
+        ${dots}
+      </div>
       <div class="icard-body">
         ${p.construction_status === 'mobiliado' || p.title?.toLowerCase().includes('mobiliado') ? '<span class="icard-badge">🛋️ Mobiliado</span>' : ''}
         <div class="icard-type">${escapeHTML(p.condominium || 'Imóvel')}</div>
