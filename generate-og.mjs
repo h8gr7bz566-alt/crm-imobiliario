@@ -12,6 +12,8 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(0)
 }
 
+try {
+
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const { data: properties, error } = await supabase
@@ -80,4 +82,7 @@ ${ogImage ? `<meta name="twitter:image" content="${esc(ogImage)}">` : ''}
   fs.writeFileSync(path.join(ogDir, `${p.id}.html`), html, 'utf8')
 }
 
-console.log(`✅  OG pages geradas: ${properties?.length ?? 0} imoveis`)
+  console.log(`✅  OG pages geradas: ${properties?.length ?? 0} imoveis`)
+} catch (e) {
+  console.warn('⚠️  generate-og.mjs erro (pulando):', e.message)
+}
