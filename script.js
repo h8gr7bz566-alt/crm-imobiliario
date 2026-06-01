@@ -1011,6 +1011,7 @@ function applyRolePermissions(role) {
       'crm-config':   initCRMConfigSection,
       'integracoes':  initIntegracoesSection,
       'midia':        initMidiaSection,
+      'depoimentos':   initDepoimentosSection,
     }
     Object.entries(adminSections).forEach(([name, fn]) => {
       // Support both old .nav-item and new .topnav-dropdown-item selectors
@@ -3092,6 +3093,155 @@ function attachAdminUI() {
     const p = cachedProperties.find(x => x.id === id)
     if (p) openViewModal(p)
   })
+}
+
+
+// ─── DEPOIMENTOS ─────────────────────────────────────────────────────────────
+async function initDepoimentosSection() {
+  const section = document.getElementById('section-depoimentos')
+  if (!section || section.dataset.loaded) return
+  section.dataset.loaded = '1'
+
+  // Load saved testimonials
+  const { data: rows } = await supabase
+    .from('site_content')
+    .select('value_pt')
+    .eq('key', 'testimonials')
+    .eq('tenant_id', getSettingsTenantId())
+    .maybeSingle()
+
+  let deps = []
+  try { deps = JSON.parse(rows?.value_pt || '[]') } catch(e) { deps = [] }
+
+  function avatarColor(name) {
+    const colors = ['#0d2144','#1a3a5c','#0a1628','#164a3c','#2d1b3d','#3d1a1a','#1a2f4a']
+    let h = 0; for (const c of (name||'?')) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff
+    return colors[Math.abs(h) % colors.length]
+  }
+
+  function renderList() {
+    const msgEl = section.querySelector('#dep-save-msg')
+    section.innerHTML = `
+      <div class="section-topbar">
+        <div>
+          <div class="section-title">Depoimentos</div>
+          <div class="section-sub">Gerencie os depoimentos exibidos no site público</div>
+        </div>
+        <button class="btn-primary" id="dep-add-btn">+ Novo Depoimento</button>
+      </div>
+
+      <div id="dep-list" style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;max-width:800px">
+        ${deps.length === 0 ? '<p style="color:#94a3b8;font-size:14px">Nenhum depoimento cadastrado ainda.</p>' :
+          deps.map((d, i) => `
+            <div class="dep-admin-card" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px">
+              <div style="width:40px;height:40px;border-radius:50%;background:${avatarColor(d.name)};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">${(d.name||'?')[0].toUpperCase()}</div>
+              <div style="flex:1;min-width:0">
+                <div style="color:#f59e0b;font-size:14px;margin-bottom:4px">${'★'.repeat(d.stars||5)}</div>
+                <p style="color:#374151;font-size:14px;line-height:1.5;margin:0 0 6px;font-style:italic">"${escapeHTML(d.text||'')}"</p>
+                <div style="font-weight:600;font-size:13px;color:#0f172a">${escapeHTML(d.name||'')}</div>
+                <div style="font-size:12px;color:#64748b">${escapeHTML(d.role||'')}</div>
+              </div>
+              <div style="display:flex;gap:8px;flex-shrink:0">
+                <button class="btn-cancel" data-edit="${i}" style="padding:6px 12px;font-size:12px">Editar</button>
+                <button class="icon-btn del-btn" data-del="${i}" style="background:#fee2e2;color:#dc2626;border:none" title="Remover"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+              </div>
+            </div>`).join('')
+        }
+      </div>
+
+      <div id="dep-form-wrap" style="display:none;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:24px;max-width:600px;margin-bottom:24px">
+        <h3 id="dep-form-title" style="margin:0 0 16px;font-size:16px;color:#0f172a">Novo Depoimento</h3>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div>
+            <label class="form-label">Avaliação</label>
+            <select id="dep-stars" class="form-control" style="max-width:180px">
+              <option value="5">★★★★★ (5 estrelas)</option>
+              <option value="4">★★★★☆ (4 estrelas)</option>
+              <option value="3">★★★☆☆ (3 estrelas)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Depoimento <span style="color:#94a3b8;font-size:11px">(sem aspas)</span></label>
+            <textarea id="dep-text" class="form-control" rows="3" placeholder="O Isaac foi muito além do esperado..."></textarea>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label class="form-label">Nome</label>
+              <input id="dep-name" class="form-control" placeholder="Fernando Almeida">
+            </div>
+            <div>
+              <label class="form-label">Cargo / Cidade</label>
+              <input id="dep-role" class="form-control" placeholder="Investidor — São Paulo, SP">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px">
+            <button class="btn-primary" id="dep-form-save">Salvar</button>
+            <button class="btn-cancel" id="dep-form-cancel">Cancelar</button>
+            <span id="dep-save-msg" class="cfg-save-msg" style="display:none;align-self:center"></span>
+          </div>
+        </div>
+      </div>
+    `
+    section.dataset.loaded = '1'
+
+    let editIdx = -1
+
+    function openForm(idx = -1) {
+      editIdx = idx
+      const formWrap = section.querySelector('#dep-form-wrap')
+      formWrap.style.display = ''
+      section.querySelector('#dep-form-title').textContent = idx >= 0 ? 'Editar Depoimento' : 'Novo Depoimento'
+      const d = idx >= 0 ? deps[idx] : {}
+      section.querySelector('#dep-stars').value = String(d.stars || 5)
+      section.querySelector('#dep-text').value  = d.text || ''
+      section.querySelector('#dep-name').value  = d.name || ''
+      section.querySelector('#dep-role').value  = d.role || ''
+      section.querySelector('#dep-text').focus()
+    }
+
+    section.querySelector('#dep-add-btn').addEventListener('click', () => openForm(-1))
+    section.querySelector('#dep-form-cancel').addEventListener('click', () => {
+      section.querySelector('#dep-form-wrap').style.display = 'none'
+      editIdx = -1
+    })
+
+    section.addEventListener('click', e => {
+      const editBtn = e.target.closest('[data-edit]')
+      const delBtn  = e.target.closest('[data-del]')
+      if (editBtn) openForm(parseInt(editBtn.dataset.edit))
+      if (delBtn) {
+        const i = parseInt(delBtn.dataset.del)
+        if (confirm('Remover este depoimento?')) {
+          deps.splice(i, 1)
+          saveDeps().then(() => renderList())
+        }
+      }
+    })
+
+    section.querySelector('#dep-form-save').addEventListener('click', async () => {
+      const btn  = section.querySelector('#dep-form-save')
+      const msgEl = section.querySelector('#dep-save-msg')
+      const text = section.querySelector('#dep-text').value.trim()
+      const name = section.querySelector('#dep-name').value.trim()
+      const role = section.querySelector('#dep-role').value.trim()
+      const stars = parseInt(section.querySelector('#dep-stars').value)
+      if (!text || !name) { alert('Preencha o depoimento e o nome.'); return }
+      btn.disabled = true; btn.textContent = 'Salvando…'
+      const dep = { stars, text, name, role }
+      if (editIdx >= 0) { deps[editIdx] = dep } else { deps.push(dep) }
+      const ok = await saveDeps()
+      btn.disabled = false; btn.textContent = 'Salvar'
+      showSaveMsg(msgEl, ok)
+      if (ok) { section.querySelector('#dep-form-wrap').style.display = 'none'; editIdx = -1; renderList() }
+    })
+  }
+
+  async function saveDeps() {
+    const json = JSON.stringify(deps)
+    return await saveContent('testimonials', { pt: json, en: json, es: json })
+  }
+
+  renderList()
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────────────────
