@@ -2,7 +2,7 @@
   "name": "IOS Imobi — Gerenciamento Imobiliário",
   "short_name": "IOS Imobi",
   "description": "Painel de gerenciamento imobiliário de Isaac Omar",
-  "start_url": "/admin.html",
+  "start_url": "/ios.imobi.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
