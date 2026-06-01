@@ -3884,7 +3884,25 @@ async function initSiteConfigSection() {
   if (!section || section.dataset.loaded) return
   section.dataset.loaded = '1'
 
-  const { data: rows } = await supabase.from('site_content').select('*').eq('tenant_id', getSettingsTenantId())
+  // Descobre o tenant do domínio atual (o site público usa esse tenant para ler)
+  let _domainTenantId = null
+  try {
+    const _dHost = window.location.hostname.replace(/^www\./, '')
+    if (_dHost && _dHost !== 'localhost') {
+      for (const d of [_dHost, 'www.' + _dHost]) {
+        const { data: td } = await supabase.from('tenants').select('id').eq('domain', d).maybeSingle()
+        if (td?.id) { _domainTenantId = td.id; break }
+      }
+    }
+  } catch(e) {}
+  section.dataset.domainTenant = _domainTenantId || ''
+
+  // Carrega conteúdo — se o tenant do usuário não tem dados, tenta o tenant do domínio
+  let { data: rows } = await supabase.from('site_content').select('*').eq('tenant_id', getSettingsTenantId())
+  if ((!rows || rows.length === 0) && _domainTenantId && _domainTenantId !== getSettingsTenantId()) {
+    const { data: fbRows } = await supabase.from('site_content').select('*').eq('tenant_id', _domainTenantId)
+    if (fbRows?.length) rows = fbRows
+  }
   const v = {}
   rows?.forEach(r => { v[r.key] = r })
   const g = (key, lang) => escapeHTML(v[key]?.[`value_${lang}`] || '')
@@ -4003,6 +4021,7 @@ async function initSiteConfigSection() {
   // Save conteúdo: agrupa campos por key + lang
   document.getElementById('sc-save-btn').addEventListener('click', async () => {
     const btn = document.getElementById('sc-save-btn')
+    const _domainTid = section.dataset.domainTenant || null
     btn.disabled = true; btn.textContent = 'Salvando…'
     const byKey = {}
     document.querySelectorAll('.sc-field').forEach(el => {
@@ -4014,6 +4033,15 @@ async function initSiteConfigSection() {
     let ok = true
     for (const [key, vals] of Object.entries(byKey)) {
       const res = await saveContent(key, { pt: vals.pt, en: vals.en, es: vals.es })
+      // Se o tenant do domínio for diferente, salva lá também (garante que o site público lê)
+      if (_domainTid && _domainTid !== getSettingsTenantId()) {
+        try {
+          await supabase.from('site_content').upsert(
+            { key, value_pt: vals.pt, value_en: vals.en, value_es: vals.es, tenant_id: _domainTid, updated_at: new Date().toISOString() },
+            { onConflict: 'key,tenant_id' }
+          )
+        } catch(e) {}
+      }
       if (!res) ok = false
     }
     btn.disabled = false; btn.textContent = 'Salvar Conteúdo'
@@ -4026,8 +4054,18 @@ async function initSiteConfigSection() {
     btn.disabled = true; btn.textContent = 'Salvando…'
     const title = document.getElementById('seo-title').value.trim()
     const desc  = document.getElementById('seo-desc').value.trim()
+    const _seoTid = section.dataset.domainTenant || null
     const ok    = await saveContent('seo.title_pt', { pt: title, en: title, es: title })
                   && await saveContent('seo.description_pt', { pt: desc, en: desc, es: desc })
+    if (_seoTid && _seoTid !== getSettingsTenantId()) {
+      try {
+        const now = new Date().toISOString()
+        await supabase.from('site_content').upsert([
+          { key: 'seo.title_pt', value_pt: title, value_en: title, value_es: title, tenant_id: _seoTid, updated_at: now },
+          { key: 'seo.description_pt', value_pt: desc, value_en: desc, value_es: desc, tenant_id: _seoTid, updated_at: now }
+        ], { onConflict: 'key,tenant_id' })
+      } catch(e) {}
+    }
     btn.disabled = false; btn.textContent = 'Salvar SEO'
     showSaveMsg(document.getElementById('seo-save-msg'), ok)
   })
