@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IOS imobi">
   <script type="module" crossorigin src="/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/assets/script-CuDQcmdu.js"></script>
+  <script type="module" crossorigin src="/assets/script-DtT9tMXs.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/admin-CZMTiP5p.css">
 </head>
 <body>
@@ -863,15 +863,29 @@
 
           <div class="form-row single">
             <div class="form-group">
-              <label class="form-label">Coleção <span style="color:#94a3b8;font-size:11px">(aparece em seção especial no site)</span></label>
-              <select name="collection" class="form-control">
-                <option value="">— Sem coleção —</option>
-                <option value="frente-mar">Coleção Frente Mar</option>
-                <option value="decorados">Coleção Decorados</option>
-                <option value="casas-condominio">Coleção Casas em Condomínio</option>
-                <option value="lancamentos">Lançamentos em Destaque</option>
-                <option value="alto-padrao">Alto Padrão</option>
-              </select>
+              <label class="form-label">Coleções em Destaque <span style="color:#94a3b8;font-size:11px">(exibidas em seções especiais na Home)</span></label>
+              <div id="colecoes-checkboxes" style="display:flex;flex-direction:column;gap:10px;margin-top:6px;padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
+                  <input type="checkbox" name="col_frente_mar" value="frente-mar" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
+                  <span>🌊 Coleção Frente Mar</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
+                  <input type="checkbox" name="col_decorados" value="decorados" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
+                  <span>🛋️ Coleção Decorados</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
+                  <input type="checkbox" name="col_casas" value="casas-condominio" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
+                  <span>🏡 Coleção Casas em Condomínio</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
+                  <input type="checkbox" name="col_alto_padrao" value="alto-padrao" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
+                  <span>⭐ Alto Padrão</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
+                  <input type="checkbox" name="col_lancamentos" value="lancamentos" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
+                  <span>🚀 Lançamentos em Destaque</span>
+                </label>
+              </div>
             </div>
           </div>
 
