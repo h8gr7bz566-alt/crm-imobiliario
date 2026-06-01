@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Redirecionando...</title>
+  <script>
+    // GitHub Pages 404 redirect — mapeia URLs sem .html para os arquivos corretos
+    var path = window.location.pathname;
+    var routes = {
+      '/ios.imobi': '/ios.imobi.html',
+      '/admin':     '/admin.html',
+      '/imoveis':   '/imoveis.html',
+      '/servicos':  '/servicos.html',
+      '/property':  '/property.html'
+    };
+    var redirect = routes[path] || routes[path.replace(/\/$/, '')];
+    if (redirect) {
+      window.location.replace(redirect + window.location.search + window.location.hash);
+    } else {
+      document.title = '404 — Página não encontrada';
+      document.open(); document.write('<h2 style="font-family:sans-serif;text-align:center;margin-top:80px">Página não encontrada</h2><p style="text-align:center"><a href="/">← Voltar ao início</a></p>'); document.close();
+    }
+  </script>
+</head>
+<body></body>
+</html>
