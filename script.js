@@ -283,12 +283,20 @@ function renderCollections(all) {
 
   // Filtros de coleção — usa campo `collection` se existir, ou heurísticas
   const byCollection = (key) => all.filter(p => {
-    if (p.collection) return p.collection === key
-    // Fallback heurístico
+    // Tenta JSON array primeiro (campo collection como ["frente-mar","decorados"])
+    if (p.collection) {
+      try {
+        const cols = JSON.parse(p.collection)
+        if (Array.isArray(cols)) return cols.includes(key)
+      } catch(e) {}
+      // Fallback: string simples
+      if (p.collection === key) return true
+    }
+    // Fallback heurístico para imóveis sem collection preenchido
     const t = ((p.title || '') + ' ' + (p.description || '')).toLowerCase()
-    if (key === 'frente-mar')        return t.includes('frente mar') || t.includes('frente ao mar') || t.includes('beira mar')
-    if (key === 'decorados')         return t.includes('decorad') || t.includes('mobiliado') || p.construction_status === 'mobiliado'
-    if (key === 'casas-condominio')  return (p.condominium || '').length > 0 || t.includes('casa') || t.includes('condom')
+    if (key === 'frente-mar')       return t.includes('frente mar') || t.includes('frente ao mar')
+    if (key === 'decorados')        return t.includes('decorad') || t.includes('mobiliado')
+    if (key === 'casas-condominio') return (p.condominium || '').length > 2
     return false
   })
 
@@ -708,7 +716,11 @@ function attachAdminForm() {
       cover_image:  selectedCover || '',
       construction_status: fd.get('construction_status') || '',
       condominium:  fd.get('condominium') || '',
-      collection:   fd.get('collection') || '',
+      collection:   JSON.stringify(
+        ['col_frente_mar','col_decorados','col_casas','col_alto_padrao','col_lancamentos']
+          .filter(n => fd.get(n))
+          .map(n => fd.get(n))
+      ),
       tenant_id:    editingId
                       ? (cachedProperties.find(x => x.id === editingId)?.tenant_id ?? currentProfile?.tenant_id ?? null)
                       : (currentProfile?.tenant_id ?? null),
@@ -774,7 +786,14 @@ function attachAdminForm() {
       form.querySelector('[name="owner_email"]').value  = p.owner_email || ''
       form.querySelector('[name="owner_notes"]').value  = p.owner_notes || ''
       form.querySelector('[name="condominium"]').value     = p.condominium || ''
-      const collSel = form.querySelector('[name="collection"]'); if (collSel) collSel.value = p.collection || ''
+      // Restore collection checkboxes
+      try {
+        const cols = JSON.parse(p.collection || '[]')
+        ;['col_frente_mar','col_decorados','col_casas','col_alto_padrao','col_lancamentos'].forEach(n => {
+          const cb = form.querySelector('[name="' + n + '"]')
+          if (cb) cb.checked = cols.includes(cb.value)
+        })
+      } catch(e) {}
       const pubSel = document.getElementById('adminPublished')
       if (pubSel) pubSel.value = p.published === true ? 'true' : 'false'
       const citySel = document.getElementById('adminCitySelect')
