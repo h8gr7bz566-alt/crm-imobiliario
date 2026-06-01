@@ -44,8 +44,8 @@
       "destination": "/api/og/:id"
     },
     {
-      "source": "/admin",
-      "destination": "/admin.html"
+      "source": "/ios.imobi",
+      "destination": "/ios.imobi.html"
     },
     {
       "source": "/imoveis",

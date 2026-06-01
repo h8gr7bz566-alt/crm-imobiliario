@@ -3270,7 +3270,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const emailVal = lf.querySelector('input[name="email"]')?.value?.trim()
           if (!emailVal) { alert('Digite seu e-mail no campo acima primeiro.'); return }
           const { error } = await supabase.auth.resetPasswordForEmail(emailVal, {
-            redirectTo: 'https://omarcorretor.com.br/admin.html'
+            redirectTo: 'https://omarcorretor.com.br/ios.imobi.html'
           })
           if (error) {
             alert('Erro: ' + error.message)
