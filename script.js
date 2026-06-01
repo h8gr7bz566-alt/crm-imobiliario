@@ -275,6 +275,54 @@ async function uploadMultiple(files, onProgress) {
 }
 
 // ─── Render listagem pública ──────────────────────────────────────────────
+
+// ─── Renderiza seções de coleção na homepage ─────────────────────────────────
+function renderCollections(all) {
+  const wrap = document.getElementById('collections-wrap')
+  if (!wrap) return
+
+  // Filtros de coleção — usa campo `collection` se existir, ou heurísticas
+  const byCollection = (key) => all.filter(p => {
+    if (p.collection) return p.collection === key
+    // Fallback heurístico
+    const t = ((p.title || '') + ' ' + (p.description || '')).toLowerCase()
+    if (key === 'frente-mar')        return t.includes('frente mar') || t.includes('frente ao mar') || t.includes('beira mar')
+    if (key === 'decorados')         return t.includes('decorad') || t.includes('mobiliado') || p.construction_status === 'mobiliado'
+    if (key === 'casas-condominio')  return (p.condominium || '').length > 0 || t.includes('casa') || t.includes('condom')
+    return false
+  })
+
+  function buildSection(sectionTitle, color, props, verTodosUrl) {
+    if (!props.length) return ''
+    const cards = props.slice(0, 8).map(p => buildPropertyCard(p)).join('')
+    return `
+      <div class="colecao-section">
+        <div class="colecao-header">
+          <h2 class="colecao-title" style="color:${color}">${escapeHTML(sectionTitle)}</h2>
+          <a href="${escapeHTML(verTodosUrl)}" class="colecao-ver-todos">Ver todos</a>
+        </div>
+        <div class="imoveis-grid colecao-grid" data-collection="${sectionTitle}">${cards}</div>
+      </div>`
+  }
+
+  const frenteMar   = byCollection('frente-mar')
+  const decorados   = byCollection('decorados')
+  const casas       = byCollection('casas-condominio')
+
+  wrap.innerHTML = [
+    buildSection('Imóveis ' + (document.title.split('|')[0].trim() || 'Isaac Omar').split(' ').pop(), '#8B4513', all, 'imoveis.html'),
+    frenteMar.length  ? buildSection('Coleção FRENTE MAR',          '#8B4513', frenteMar,  'imoveis.html?collection=frente-mar') : '',
+    decorados.length  ? buildSection('Coleção DECORADOS',            '#8B4513', decorados,  'imoveis.html?collection=decorados')  : '',
+    casas.length      ? buildSection('Coleção CASAS EM CONDOMÍNIO',  '#8B4513', casas,       'imoveis.html?collection=casas-condominio') : '',
+  ].join('')
+
+  // Delegação de eventos para os novos cards (carousel + links)
+  if (!wrap._carouselDelegated) {
+    wrap._carouselDelegated = true
+    wrap.addEventListener('click', carouselHandler)
+  }
+}
+
 async function renderPublic() {
   const vendasCarousel = document.getElementById('vendas-carousel')   // homepage
   const gridContainer  = document.getElementById('properties')         // imoveis.html
@@ -312,32 +360,10 @@ async function renderPublic() {
     return true
   })
 
-  // ── Modo carrossel (homepage) ─────────────────────────────────────────
+  // ── Homepage: seções de coleção ──────────────────────────────────────
   if (vendasCarousel) {
-    if (!filtered.length) {
-      vendasCarousel.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280">Nenhum imóvel encontrado.</div>'
-      return
-    }
-    vendasCarousel.innerHTML = filtered.map(p => {
-      const img = p.cover_image || p.images?.[0] || SAMPLE_URLS[0]
-      const loc = [p.neighborhood, p.city].filter(Boolean).join(', ')
-      const ogLink = `https://omarcorretor.com.br/og/${p.id}`
-      const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?\n${ogLink}`)
-      return `
-        <div class="selecao-card">
-          <div class="img-wm-wrap"><img src="${img}" alt="${escapeHTML(p.title)}" class="selecao-card-img"></div>
-          <div class="selecao-card-body">
-            <div class="selecao-card-title">${escapeHTML(p.title)}</div>
-            <div class="selecao-card-loc">${escapeHTML(loc)}</div>
-            <div class="selecao-card-price">${escapeHTML(formatPrice(p.price, window.currentLang || 'pt'))}</div>
-            <div class="selecao-card-actions">
-              <a href="property.html?id=${p.id}" class="btn-det">Ver Detalhes</a>
-              <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}" target="_blank" rel="noopener" class="btn-wa">WhatsApp</a>
-            </div>
-          </div>
-        </div>
-      `
-    }).join('')
+    // Renderiza coleções curadas + seção geral
+    renderCollections(all)
     return
   }
 
@@ -347,34 +373,7 @@ async function renderPublic() {
     return
   }
 
-  gridContainer.innerHTML = filtered.map(p => {
-    const images = p.images?.length ? p.images : SAMPLE_URLS
-    const total = images.length
-    const ogLink = `https://omarcorretor.com.br/og/${p.id}`
-    const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?\n${ogLink}`)
-    return `
-      <div class="card property-card">
-        <div class="carousel-wrap" style="position:relative" data-total="${total}" data-idx="0" data-pid="${p.id}" data-images="${encodeURIComponent(JSON.stringify(images))}">
-          <img src="${p.cover_image || images[0]}" alt="${escapeHTML(p.title)}" class="carousel-img" style="width:100%;height:180px;object-fit:cover;border-radius:10px;display:block">
-          ${total > 1 ? `
-            <button class="carousel-btn carousel-prev" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;line-height:1">&lt;</button>
-            <button class="carousel-btn carousel-next" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;line-height:1">&gt;</button>
-          ` : ''}
-        </div>
-        <div class="property-info">
-          <strong>${escapeHTML(p.title)}</strong>
-          <div class="muted">${escapeHTML(p.neighborhood || '')}, ${escapeHTML(p.city || '')}</div>
-          <div><strong>${escapeHTML(formatPrice(p.price, window.currentLang || 'pt'))}</strong></div>
-          <div class="muted">🛏️ ${p.bedrooms || '--'} | 🚗 ${p.parking || '--'} ${total > 1 ? '| 📸 ' + total : ''}</div>
-          <p class="muted">${escapeHTML((p.description || '').slice(0, 110))}</p>
-          <div style="display:flex;gap:8px;margin-top:6px">
-            <a class="btn btn-outline" href="property.html?id=${p.id}" style="flex:1;justify-content:center">Ver Detalhes</a>
-            <a class="btn hero-whatsapp-btn" href="https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}" target="_blank" rel="noopener" style="flex:1;justify-content:center">WhatsApp</a>
-          </div>
-        </div>
-      </div>
-    `
-  }).join('')
+  gridContainer.innerHTML = filtered.map(p => buildPropertyCard(p)).join('')
 
   // Event delegation no container — funciona mesmo após re-render
   const grid = document.getElementById('properties')
@@ -709,6 +708,7 @@ function attachAdminForm() {
       cover_image:  selectedCover || '',
       construction_status: fd.get('construction_status') || '',
       condominium:  fd.get('condominium') || '',
+      collection:   fd.get('collection') || '',
       tenant_id:    editingId
                       ? (cachedProperties.find(x => x.id === editingId)?.tenant_id ?? currentProfile?.tenant_id ?? null)
                       : (currentProfile?.tenant_id ?? null),
@@ -774,6 +774,7 @@ function attachAdminForm() {
       form.querySelector('[name="owner_email"]').value  = p.owner_email || ''
       form.querySelector('[name="owner_notes"]').value  = p.owner_notes || ''
       form.querySelector('[name="condominium"]').value     = p.condominium || ''
+      const collSel = form.querySelector('[name="collection"]'); if (collSel) collSel.value = p.collection || ''
       const pubSel = document.getElementById('adminPublished')
       if (pubSel) pubSel.value = p.published === true ? 'true' : 'false'
       const citySel = document.getElementById('adminCitySelect')
@@ -801,6 +802,74 @@ function escapeHTML(s) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 }
+
+// ─── Formata endereço sem número ─────────────────────────────────────────────
+function formatAddress(rua, numero, neighborhood, city, state) {
+  // Monta endereço omitindo o número (rua, bairro, cidade - SC)
+  const parts = []
+  if (rua)          parts.push(rua)           // só rua, sem número
+  if (neighborhood) parts.push(neighborhood)
+  if (city)         parts.push(city + (state ? ' - ' + state : ''))
+  return parts.join(', ')
+}
+
+// ─── Constrói card de imóvel no estilo moderno ────────────────────────────────
+function buildPropertyCard(p) {
+  const images = p.images?.length ? p.images : SAMPLE_URLS
+  const total  = images.length
+  const img0   = p.cover_image || images[0]
+  const addr   = formatAddress(p.rua, p.numero, p.neighborhood, p.city, 'SC')
+  const price  = formatPrice(p.price, window.currentLang || 'pt')
+  const ogLink = `https://omarcorretor.com.br/og/${p.id}`
+  const waMsg  = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?\n${ogLink}`)
+
+  // Indicadores
+  const area    = p.area     ? `<span class="icard-spec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>${p.area}m²</span>` : ''
+  const beds    = p.bedrooms ? `<span class="icard-spec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20v-6a2 2 0 012-2h16a2 2 0 012 2v6"/><path d="M2 14V8a2 2 0 012-2h4l2 3h8a2 2 0 012 2v3"/></svg>${p.bedrooms} quarto${p.bedrooms != 1 ? 's' : ''}</span>` : ''
+  const baths   = p.bathrooms ? `<span class="icard-spec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6 6.5 3.5a1.5 1.5 0 000-2.12L6 1.5a1.5 1.5 0 00-2.12 0L2 3.38a1.5 1.5 0 000 2.12L5.5 9"/><path d="M2 20h20M20 12H4a2 2 0 00-2 2v4a2 2 0 002 2h16a2 2 0 002-2v-4a2 2 0 00-2-2z"/></svg>${p.bathrooms} banheiro${p.bathrooms != 1 ? 's' : ''}</span>` : ''
+  const park    = p.parking  ? `<span class="icard-spec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>${p.parking} vaga${p.parking != 1 ? 's' : ''}</span>` : ''
+
+  // Dots de paginação
+  const dots = total > 1 ? `<div class="icard-dots">${Array.from({length:Math.min(total,6)},(_,i)=>`<span class="icard-dot${i===0?' active':''}"></span>`).join('')}</div>` : ''
+
+  return `
+    <div class="imovel-card" data-pid="${p.id}">
+      <a href="property.html?id=${p.id}" class="icard-img-link">
+        <div class="icard-img-wrap" data-total="${total}" data-idx="0" data-pid="${p.id}" data-images="${encodeURIComponent(JSON.stringify(images))}">
+          <img src="${escapeHTML(img0)}" alt="${escapeHTML(p.title)}" class="icard-img carousel-img">
+          ${total > 1 ? `
+            <button class="carousel-btn carousel-prev icard-prev" aria-label="Anterior">&#8249;</button>
+            <button class="carousel-btn carousel-next icard-next" aria-label="Próximo">&#8250;</button>
+          ` : ''}
+          ${dots}
+        </div>
+      </a>
+      <div class="icard-body">
+        ${p.construction_status === 'mobiliado' || p.title?.toLowerCase().includes('mobiliado') ? '<span class="icard-badge">🛋️ Mobiliado</span>' : ''}
+        <div class="icard-type">${escapeHTML(p.condominium || 'Imóvel')}</div>
+        <div class="icard-neighborhood">${escapeHTML(p.neighborhood || p.title)}</div>
+        <div class="icard-address">${escapeHTML(addr)}</div>
+        ${(area||beds||baths||park) ? `<div class="icard-specs">${area}${beds}${baths}${park}</div>` : ''}
+        <div class="icard-price-row">
+          <div>
+            <div class="icard-price-label">Comprar</div>
+            <div class="icard-price">${escapeHTML(price)}</div>
+          </div>
+        </div>
+        <div class="icard-footer">
+          <span class="icard-code">Cód. ${escapeHTML(String(p.reference || p.id))}</span>
+          <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}" target="_blank" rel="noopener" class="icard-wa" title="WhatsApp">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.116 1.527 5.845L.057 24l6.199-1.625A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.793 9.793 0 01-4.992-1.368l-.358-.213-3.685.967.983-3.596-.234-.369A9.79 9.79 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
+          </a>
+          <a href="property.html?id=${p.id}" class="icard-heart" title="Ver detalhes">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  `
+}
+
 
 let viewImages = []
 let viewIdx    = 0

@@ -719,3 +719,174 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
 .selecao-card-title { color: var(--navy, #0d2144) !important; }
 .selecao-card-loc   { color: #64748b !important; }
 .selecao-card-price { color: var(--gold-dark, #a8893c) !important; }
+
+
+/* ═══════════════════════════════════════════════════════════
+   IMOVEL CARD — estilo moderno (referência CITALLI)
+═══════════════════════════════════════════════════════════ */
+.imovel-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.05);
+  transition: transform .2s, box-shadow .2s;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+.imovel-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+}
+
+/* Imagem */
+.icard-img-link { display: block; text-decoration: none; }
+.icard-img-wrap {
+  position: relative;
+  overflow: hidden;
+  height: 220px;
+  background: #f1f5f9;
+}
+.icard-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .4s;
+}
+.imovel-card:hover .icard-img { transform: scale(1.03); }
+
+/* Carousel buttons */
+.icard-prev, .icard-next {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.85); color: #333;
+  border: none; border-radius: 50%;
+  width: 32px; height: 32px; font-size: 18px;
+  cursor: pointer; opacity: 0; transition: opacity .2s;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 5;
+}
+.icard-prev { left: 8px; }
+.icard-next { right: 8px; }
+.imovel-card:hover .icard-prev,
+.imovel-card:hover .icard-next { opacity: 1; }
+
+/* Dots */
+.icard-dots {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 5px;
+}
+.icard-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  transition: background .2s;
+}
+.icard-dot.active { background: #fff; }
+
+/* Body */
+.icard-body {
+  padding: 14px 16px 12px;
+  display: flex; flex-direction: column; gap: 4px; flex: 1;
+}
+.icard-badge {
+  display: inline-block;
+  background: #eff6ff; color: #2563eb;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 8px; border-radius: 20px;
+  margin-bottom: 2px; align-self: flex-start;
+}
+.icard-type { font-size: 12px; color: #64748b; margin-top: 2px; }
+.icard-neighborhood {
+  font-size: 16px; font-weight: 700;
+  color: #0f172a; line-height: 1.2;
+}
+.icard-address { font-size: 12px; color: #64748b; line-height: 1.4; }
+
+/* Specs */
+.icard-specs {
+  display: flex; flex-wrap: wrap; gap: 6px 10px;
+  margin: 4px 0;
+}
+.icard-spec {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: #475569;
+}
+.icard-spec svg { color: #94a3b8; flex-shrink: 0; }
+
+/* Price */
+.icard-price-row { margin-top: auto; padding-top: 8px; }
+.icard-price-label { font-size: 11px; color: #64748b; }
+.icard-price { font-size: 17px; font-weight: 800; color: #0f172a; }
+
+/* Footer */
+.icard-footer {
+  display: flex; align-items: center; gap: 8px;
+  padding-top: 10px; border-top: 1px solid #f1f5f9;
+  margin-top: 8px;
+}
+.icard-code { font-size: 11px; color: #94a3b8; flex: 1; }
+.icard-wa {
+  color: #25d366; opacity: .7; transition: opacity .2s;
+  display: flex; align-items: center;
+}
+.icard-wa:hover { opacity: 1; }
+.icard-heart {
+  color: #cbd5e1; transition: color .2s;
+  display: flex; align-items: center; text-decoration: none;
+}
+.icard-heart:hover { color: #e11d48; }
+
+/* ═══════════════════════════════════════════════════════════
+   GRID DE IMÓVEIS
+═══════════════════════════════════════════════════════════ */
+.imoveis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COLEÇÕES (homepage)
+═══════════════════════════════════════════════════════════ */
+#collections-wrap {
+  padding: 0 0 40px;
+}
+.colecao-section {
+  max-width: 1280px;
+  margin: 0 auto 48px;
+  padding: 0 24px;
+}
+.colecao-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.colecao-title {
+  font-size: clamp(18px, 2.5vw, 26px);
+  font-weight: 800;
+  letter-spacing: .5px;
+  margin: 0;
+}
+.colecao-ver-todos {
+  font-size: 13px; font-weight: 600;
+  color: #64748b; text-decoration: none;
+  border: 1px solid #e2e8f0; border-radius: 20px;
+  padding: 4px 14px; white-space: nowrap;
+  transition: border-color .2s, color .2s;
+}
+.colecao-ver-todos:hover { border-color: #8B4513; color: #8B4513; }
+
+/* Coleção grid — scroll horizontal em mobile */
+@media (max-width: 768px) {
+  .colecao-grid {
+    display: flex !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 14px;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .colecao-grid .imovel-card {
+    flex: 0 0 270px;
+    scroll-snap-align: start;
+  }
+}

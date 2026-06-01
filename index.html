@@ -259,11 +259,9 @@
     <button class="prop-tab" onclick="filterCarousel('em-obra')" data-filter="em-obra">Em obra</button>
   </div>
 
-  <div class="selecao-carousel-wrap">
-    <button class="selecao-nav vendas-prev" onclick="document.getElementById('vendas-carousel').scrollBy({left:-340,behavior:'smooth'})" aria-label="Anterior">&#8249;</button>
-    <div class="selecao-carousel" id="vendas-carousel"></div>
-    <button class="selecao-nav vendas-next" onclick="document.getElementById('vendas-carousel').scrollBy({left:340,behavior:'smooth'})" aria-label="Próximo">&#8250;</button>
-  </div>
+  <div id="collections-wrap"></div>
+  <!-- Mantém vendas-carousel como referência para renderPublic detectar homepage -->
+  <div id="vendas-carousel" style="display:none"></div>
 </section>
 <script>
   function filterCarousel(status){
