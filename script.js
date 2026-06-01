@@ -983,12 +983,29 @@ async function updateVerSiteLink(profile) {
 }
 
 // Helper: navigate to a section by name
+// Mapa de inicializadores de seção — lazy init na primeira navegação
+const _sectionInitMap = {
+  'empresa':     () => initEmpresaSection(),
+  'visual':      () => initVisualSection(),
+  'site-config': () => initSiteConfigSection(),
+  'crm-config':  () => initCRMConfigSection(),
+  'integracoes': () => initIntegracoesSection(),
+  'midia':       () => initMidiaSection(),
+  'depoimentos': () => initDepoimentosSection(),
+}
+
 function navigateToSection(sectionName) {
   document.querySelectorAll('.topnav-link, .topnav-dropdown-item').forEach(b => b.classList.remove('active'))
   const btn = document.querySelector(`.topnav-link[data-section="${sectionName}"], .topnav-dropdown-item[data-section="${sectionName}"]`)
   if (btn) btn.classList.add('active')
   document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'))
   document.getElementById(`section-${sectionName}`)?.classList.remove('hidden')
+  // Inicializa seção se houver função registrada (lazy init)
+  if (typeof _sectionInitMap !== 'undefined' && _sectionInitMap[sectionName]) {
+    const fn = _sectionInitMap[sectionName]
+    _sectionInitMap[sectionName] = null
+    setTimeout(fn, 0)
+  }
   // Close menus
   document.getElementById('topnav-links')?.classList.remove('open')
   closeAllDropdowns()
