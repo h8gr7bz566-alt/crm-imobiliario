@@ -152,7 +152,7 @@
   <div class="hero-v2-content">
     <p class="hero-v2-eyebrow">Litoral Catarinense · Alto Padrão</p>
     <h1 class="hero-v2-title" data-i18n="hero.title">Descubra o Endereço<br>do Seu Próximo Legado</h1>
-    <p class="hero-v2-sub">Curadoria exclusiva de imóveis de alto padrão nas regiões mais valorizadas do sul do Brasil.</p>
+    <p class="hero-v2-sub" data-i18n="hero.subtitle">Curadoria exclusiva de imóveis de alto padrão nas regiões mais valorizadas do sul do Brasil.</p>
   </div>
 
   <!-- Search box -->
@@ -303,18 +303,18 @@
       <!-- Stats -->
       <div class="sobre-stats">
         <div class="sobre-stat">
-          <span class="sobre-stat-num">8+</span>
-          <span class="sobre-stat-label">Anos de experiência</span>
+          <span class="sobre-stat-num" data-i18n="inst.stat1_num">8+</span>
+          <span class="sobre-stat-label" data-i18n="inst.stat1_label">Anos de experiência</span>
         </div>
         <div class="sobre-stat-divider"></div>
         <div class="sobre-stat">
-          <span class="sobre-stat-num">1.000+</span>
-          <span class="sobre-stat-label">Clientes atendidos</span>
+          <span class="sobre-stat-num" data-i18n="inst.stat2_num">1.000+</span>
+          <span class="sobre-stat-label" data-i18n="inst.stat2_label">Clientes atendidos</span>
         </div>
         <div class="sobre-stat-divider"></div>
         <div class="sobre-stat">
-          <span class="sobre-stat-num">5 ★</span>
-          <span class="sobre-stat-label">Avaliação média</span>
+          <span class="sobre-stat-num" data-i18n="inst.stat3_num">5 ★</span>
+          <span class="sobre-stat-label" data-i18n="inst.stat3_label">Avaliação média</span>
         </div>
       </div>
 
@@ -471,6 +471,7 @@ function setLang(lang){
   document.querySelectorAll('[data-i18n]').forEach(function(el){const k=el.getAttribute('data-i18n');if(t[k]!==undefined)el.innerHTML=t[k]})
   try{localStorage.setItem('lang',lang)}catch(e){}
   if(typeof renderPublic==='function')renderPublic()
+  if(typeof window._applyDynamicContent==='function')window._applyDynamicContent(lang)
 }
 ;(function(){let s='pt';try{s=localStorage.getItem('lang')||'pt'}catch(e){}setLang(s)})()
 </script>

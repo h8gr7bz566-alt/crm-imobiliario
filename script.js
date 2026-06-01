@@ -3344,6 +3344,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyDynamicContent(lang)
   applyWhatsAppLinks(WHATSAPP_NUMBER)
 
+  // Expõe para setLang() no HTML (que é inline, fora do módulo)
+  window._applyDynamicContent = applyDynamicContent
+  window._applyWhatsAppLinks  = applyWhatsAppLinks
+
   // ── Dropdown de navegação pública (JS toggle — confiável em touch e desktop) ──
   document.querySelectorAll('.nav-dropdown-btn').forEach(btn => {
     const menu = btn.closest('.nav-dropdown')?.querySelector('.nav-dropdown-menu')
