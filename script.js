@@ -443,28 +443,16 @@ function renderSelecao(props) {
     carousel.closest('.selecao-section')?.classList.add('hidden')
     return
   }
-  carousel.innerHTML = featured.map(p => {
-    const img = p.cover_image || p.images?.[0] || SAMPLE_URLS[0]
-    const loc = [p.neighborhood, p.city].filter(Boolean).join(', ')
-    const ogLink = `https://omarcorretor.com.br/og/${p.id}`
-    const waMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?\n${ogLink}`)
-    return `
-      <div class="selecao-card">
-        <div class="img-wm-wrap"><img src="${img}" alt="${escapeHTML(p.title)}" class="selecao-card-img"></div>
-        <div class="selecao-card-body">
-          <div class="selecao-card-title">${escapeHTML(p.title)}</div>
-          <div class="selecao-card-loc">${escapeHTML(loc)}</div>
-          <div class="selecao-card-price">${escapeHTML(formatPrice(p.price, window.currentLang || 'pt'))}</div>
-          <div class="selecao-card-actions">
-            <a href="property.html?id=${p.id}" class="btn-det">Ver Detalhes</a>
-            <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}" target="_blank" rel="noopener" class="btn-wa">WhatsApp</a>
-          </div>
-        </div>
-      </div>
-    `
-  }).join('')
+  // Usa o mesmo card padrão (buildPropertyCard) para consistência visual
+  carousel.innerHTML = featured.map(p => buildPropertyCard(p)).join('')
 
-  // Navegação do carousel
+  // Delegação de eventos para os carrosséis dos cards (setas + estado)
+  if (!carousel._carouselDelegated) {
+    carousel._carouselDelegated = true
+    carousel.addEventListener('click', carouselHandler)
+  }
+
+  // Navegação horizontal do container
   const wrap = carousel.closest('.selecao-carousel-wrap')
   wrap?.querySelector('.selecao-prev')?.addEventListener('click', () => {
     carousel.scrollBy({ left: -340, behavior: 'smooth' })
