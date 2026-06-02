@@ -300,8 +300,10 @@ function restoreCarouselState(container, state) {
     try {
       const images = JSON.parse(decodeURIComponent(w.dataset.images || '[]'))
       if (images[i]) {
-        const img = w.querySelector('.carousel-img')
-        if (img) img.src = images[i]
+        const fg = w.querySelector('.carousel-img')
+        const bg = w.querySelector('.carousel-img-bg')
+        if (fg) fg.src = images[i]
+        if (bg) bg.src = images[i]
       }
     } catch(e) {}
     const dots = w.querySelectorAll('.icard-dot')
@@ -499,13 +501,22 @@ function carouselHandler(e) {
   try {
     const images = JSON.parse(decodeURIComponent(wrap.dataset.images || '[]'))
     if (images.length && images[idx]) {
-      wrap.querySelector('.carousel-img').src = images[idx]
+      const newSrc = images[idx]
+      const fg = wrap.querySelector('.carousel-img')
+      const bg = wrap.querySelector('.carousel-img-bg')
+      if (fg) fg.src = newSrc
+      if (bg) bg.src = newSrc
     }
   } catch(err) {
     // fallback: busca em cachedProperties
     const prop = cachedProperties.find(x => String(x.id) === String(wrap.dataset.pid))
     const imgs = prop?.images?.length ? prop.images : SAMPLE_URLS
-    if (imgs[idx]) wrap.querySelector('.carousel-img').src = imgs[idx]
+    if (imgs[idx]) {
+      const fg = wrap.querySelector('.carousel-img')
+      const bg = wrap.querySelector('.carousel-img-bg')
+      if (fg) fg.src = imgs[idx]
+      if (bg) bg.src = imgs[idx]
+    }
   }
   // Atualiza dots indicadores
   const dots = wrap.querySelectorAll('.icard-dot')
@@ -900,6 +911,7 @@ function buildPropertyCard(p) {
   return `
     <div class="imovel-card" data-pid="${p.id}">
       <div class="icard-img-wrap" data-total="${total}" data-idx="0" data-pid="${p.id}" data-images="${encodeURIComponent(JSON.stringify(images))}">
+        <img src="${escapeHTML(img0)}" alt="" class="icard-img-bg carousel-img-bg" aria-hidden="true">
         <a href="property.html?id=${p.id}" class="icard-img-link">
           <img src="${escapeHTML(img0)}" alt="${escapeHTML(p.title)}" class="icard-img carousel-img">
         </a>

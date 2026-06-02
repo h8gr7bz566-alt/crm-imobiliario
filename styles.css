@@ -746,7 +746,26 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
   position: relative;
   overflow: hidden;
   aspect-ratio: 4 / 3;
-  background: #f1f5f9;
+  background: #1f2937;
+}
+/* Backdrop borrado: preenche bordas com versão blur da própria foto */
+.icard-img-bg {
+  position: absolute;
+  inset: -20px;
+  width: calc(100% + 40px);
+  height: calc(100% + 40px);
+  object-fit: cover;
+  filter: blur(28px) brightness(0.65) saturate(1.1);
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+.icard-img-link {
+  display: block;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
 }
 .icard-img {
   width: 100%; height: 100%;
@@ -754,7 +773,8 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
   object-position: center;
   display: block;
   transition: transform .4s;
-  background: #f1f5f9;
+  position: relative;
+  z-index: 1;
 }
 .imovel-card:hover .icard-img { transform: scale(1.02); }
 
