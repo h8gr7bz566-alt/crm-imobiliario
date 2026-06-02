@@ -745,16 +745,18 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
 .icard-img-wrap {
   position: relative;
   overflow: hidden;
-  height: 220px;
+  aspect-ratio: 4 / 3;
   background: #f1f5f9;
 }
 .icard-img {
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
   transition: transform .4s;
+  background: #f1f5f9;
 }
-.imovel-card:hover .icard-img { transform: scale(1.03); }
+.imovel-card:hover .icard-img { transform: scale(1.02); }
 
 /* Carousel buttons */
 .icard-prev, .icard-next {
