@@ -276,6 +276,42 @@ async function uploadMultiple(files, onProgress) {
 
 // ─── Render listagem pública ──────────────────────────────────────────────
 
+
+// ─── Preserva estado dos carrosséis através de re-renders ──────────────────
+function snapshotCarouselState(container) {
+  if (!container) return {}
+  const state = {}
+  container.querySelectorAll('.icard-img-wrap').forEach(w => {
+    const pid = w.dataset.pid
+    const idx = w.dataset.idx
+    if (pid && idx && idx !== '0') state[pid] = parseInt(idx, 10)
+  })
+  return state
+}
+function restoreCarouselState(container, state) {
+  if (!container || !state) return
+  Object.entries(state).forEach(([pid, idx]) => {
+    const w = container.querySelector('.icard-img-wrap[data-pid="' + pid + '"]')
+    if (!w) return
+    const total = parseInt(w.dataset.total, 10)
+    if (!total || total < 2) return
+    const i = idx % total
+    w.dataset.idx = i
+    try {
+      const images = JSON.parse(decodeURIComponent(w.dataset.images || '[]'))
+      if (images[i]) {
+        const img = w.querySelector('.carousel-img')
+        if (img) img.src = images[i]
+      }
+    } catch(e) {}
+    const dots = w.querySelectorAll('.icard-dot')
+    if (dots.length) {
+      const activeIdx = i % dots.length
+      dots.forEach((d, j) => d.classList.toggle('active', j === activeIdx))
+    }
+  })
+}
+
 // ─── Renderiza seções de coleção na homepage ─────────────────────────────────
 function renderCollections(all) {
   const wrap = document.getElementById('collections-wrap')
@@ -317,12 +353,14 @@ function renderCollections(all) {
   const decorados   = byCollection('decorados')
   const casas       = byCollection('casas-condominio')
 
+  const _carouselState = snapshotCarouselState(wrap)
   wrap.innerHTML = [
     buildSection('Imóveis ' + (document.title.split('|')[0].trim() || 'Isaac Omar').split(' ').pop(), '#8B4513', all, 'imoveis.html'),
     frenteMar.length  ? buildSection('Coleção FRENTE MAR',          '#8B4513', frenteMar,  'imoveis.html?collection=frente-mar') : '',
     decorados.length  ? buildSection('Coleção DECORADOS',            '#8B4513', decorados,  'imoveis.html?collection=decorados')  : '',
     casas.length      ? buildSection('Coleção CASAS EM CONDOMÍNIO',  '#8B4513', casas,       'imoveis.html?collection=casas-condominio') : '',
   ].join('')
+  restoreCarouselState(wrap, _carouselState)
 
   // Delegação de eventos para os novos cards (carousel + links)
   if (!wrap._carouselDelegated) {
@@ -381,7 +419,9 @@ async function renderPublic() {
     return
   }
 
+  const _gridCarouselState = snapshotCarouselState(gridContainer)
   gridContainer.innerHTML = filtered.map(p => buildPropertyCard(p)).join('')
+  restoreCarouselState(gridContainer, _gridCarouselState)
 
   // Event delegation no container — funciona mesmo após re-render
   const grid = document.getElementById('properties')
