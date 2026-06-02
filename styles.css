@@ -796,14 +796,20 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
 /* Dots */
 .icard-dots {
   position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 5px;
+  display: flex; gap: 6px;
+  z-index: 3;
+  padding: 5px 10px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 12px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 .icard-dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(255,255,255,0.5);
-  transition: background .2s;
+  background: rgba(255,255,255,0.55);
+  transition: background .2s, transform .2s;
 }
-.icard-dot.active { background: #fff; }
+.icard-dot.active { background: #fff; transform: scale(1.2); }
 
 /* Body */
 .icard-body {

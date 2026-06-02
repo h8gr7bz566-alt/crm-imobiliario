@@ -906,7 +906,9 @@ function buildPropertyCard(p) {
   const park    = p.parking  ? `<span class="icard-spec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>${p.parking} vaga${p.parking != 1 ? 's' : ''}</span>` : ''
 
   // Dots de paginação
-  const dots = total > 1 ? `<div class="icard-dots">${Array.from({length:Math.min(total,6)},(_,i)=>`<span class="icard-dot${i===0?' active':''}"></span>`).join('')}</div>` : ''
+  // Mostra dots em todos os cards (mínimo 1, máximo 6)
+  const dotCount = Math.max(1, Math.min(total, 6))
+  const dots = `<div class="icard-dots">${Array.from({length:dotCount},(_,i)=>`<span class="icard-dot${i===0?' active':''}"></span>`).join('')}</div>`
 
   return `
     <div class="imovel-card" data-pid="${p.id}">
