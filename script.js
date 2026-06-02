@@ -761,6 +761,7 @@ function attachAdminForm() {
       cover_image:  selectedCover || '',
       construction_status: fd.get('construction_status') || '',
       condominium:  fd.get('condominium') || '',
+      furnished:    fd.get('furnished') === 'true',
       collection:   JSON.stringify(
         ['col_frente_mar','col_decorados','col_casas','col_alto_padrao','col_lancamentos']
           .filter(n => fd.get(n))
@@ -831,6 +832,9 @@ function attachAdminForm() {
       form.querySelector('[name="owner_email"]').value  = p.owner_email || ''
       form.querySelector('[name="owner_notes"]').value  = p.owner_notes || ''
       form.querySelector('[name="condominium"]').value     = p.condominium || ''
+      // Restore furnished checkbox
+      const furnishedCb = form.querySelector('[name="furnished"]')
+      if (furnishedCb) furnishedCb.checked = p.furnished === true
       // Restore collection checkboxes
       try {
         const cols = JSON.parse(p.collection || '[]')
@@ -912,7 +916,7 @@ function buildPropertyCard(p) {
         ${dots}
       </div>
       <div class="icard-body">
-        ${p.construction_status === 'mobiliado' || p.title?.toLowerCase().includes('mobiliado') ? '<span class="icard-badge">🛋️ Mobiliado</span>' : ''}
+        ${p.furnished === true ? '<span class="icard-badge">🛋️ Mobiliado</span>' : ''}
         <div class="icard-type">${escapeHTML(p.condominium || 'Imóvel')}</div>
         <div class="icard-neighborhood">${escapeHTML(p.neighborhood || p.title)}</div>
         <div class="icard-address">${escapeHTML(addr)}</div>
