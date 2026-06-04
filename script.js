@@ -917,7 +917,6 @@ function buildPropertyCard(p) {
       </div>
       <div class="icard-body">
         ${p.furnished === true ? '<span class="icard-badge">🛋️ Mobiliado</span>' : ''}
-        <div class="icard-type">${escapeHTML(p.condominium || 'Imóvel')}</div>
         <div class="icard-neighborhood">${escapeHTML(p.neighborhood || p.title)}</div>
         <div class="icard-address">${escapeHTML(addr)}</div>
         ${(area||beds||baths||park) ? `<div class="icard-specs">${area}${beds}${baths}${park}</div>` : ''}
