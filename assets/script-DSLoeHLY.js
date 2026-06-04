@@ -58,7 +58,6 @@ ${d}`),s=e.area?`<span class="icard-spec"><svg width="13" height="13" viewBox="0
       </div>
       <div class="icard-body">
         ${e.furnished===!0?'<span class="icard-badge">🛋️ Mobiliado</span>':""}
-        <div class="icard-type">${g(e.condominium||"Imóvel")}</div>
         <div class="icard-neighborhood">${g(e.neighborhood||e.title)}</div>
         <div class="icard-address">${g(o)}</div>
         ${s||c||l||r?`<div class="icard-specs">${s}${c}${l}${r}</div>`:""}
