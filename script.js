@@ -6031,16 +6031,12 @@ function openImportLeadsModal() {
 
       <!-- Step 1: Upload -->
       <div id="import-step-upload">
-        <div id="import-drop-zone" style="border:2px dashed #c7d2e0;border-radius:10px;padding:36px 24px;text-align:center;cursor:pointer;transition:border-color .2s;"
-             onclick="document.getElementById('import-file-input').click()"
-             ondragover="event.preventDefault();this.style.borderColor='#3b82f6'"
-             ondragleave="this.style.borderColor='#c7d2e0'"
-             ondrop="handleImportDrop(event)">
+        <div id="import-drop-zone" style="border:2px dashed #c7d2e0;border-radius:10px;padding:36px 24px;text-align:center;cursor:pointer;transition:border-color .2s;">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:10px;"><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4M12 3v11M8 7l4-4 4 4"/></svg>
           <p style="margin:0 0 6px;color:#475569;font-weight:600;">Arraste o arquivo aqui</p>
           <p style="margin:0;color:#94a3b8;font-size:.82rem;">ou clique para selecionar &nbsp;·&nbsp; CSV ou XLSX</p>
         </div>
-        <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImportFile(this.files[0])">
+        <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display:none">
         <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
           <button onclick="downloadImportTemplate()" style="background:none;border:none;color:#3b82f6;cursor:pointer;font-size:.85rem;padding:0;text-decoration:underline;">⬇ Baixar modelo CSV</button>
           <span id="import-file-status" style="color:#64748b;font-size:.85rem;"></span>
@@ -6078,6 +6074,45 @@ function openImportLeadsModal() {
 
   document.body.appendChild(overlay)
   loadImportStages()
+
+  // Wire up drag/drop and file input via addEventListener (more reliable than inline handlers)
+  const _dz  = document.getElementById('import-drop-zone')
+  const _fi  = document.getElementById('import-file-input')
+
+  // Prevent browser from opening dragged file at document level
+  function _noDefault(e) { e.preventDefault() }
+  document.addEventListener('dragover', _noDefault)
+  document.addEventListener('drop',     _noDefault)
+
+  // Drop zone events
+  _dz.addEventListener('click', () => _fi.click())
+  _dz.addEventListener('dragenter', e => { e.preventDefault(); _dz.style.borderColor = '#3b82f6'; _dz.style.background = '#eff6ff' })
+  _dz.addEventListener('dragover',  e => { e.preventDefault(); _dz.style.borderColor = '#3b82f6'; _dz.style.background = '#eff6ff' })
+  _dz.addEventListener('dragleave', e => { if (!_dz.contains(e.relatedTarget)) { _dz.style.borderColor = '#c7d2e0'; _dz.style.background = '' } })
+  _dz.addEventListener('drop', e => {
+    e.preventDefault()
+    _dz.style.borderColor = '#c7d2e0'
+    _dz.style.background  = ''
+    const file = e.dataTransfer?.files?.[0]
+    if (file) handleImportFile(file)
+  })
+
+  // File input change
+  _fi.addEventListener('change', e => {
+    const file = e.target.files?.[0]
+    if (file) handleImportFile(file)
+    e.target.value = ''
+  })
+
+  // Remove document-level prevention when overlay is removed
+  const _observer = new MutationObserver(() => {
+    if (!document.getElementById('import-leads-overlay')) {
+      document.removeEventListener('dragover', _noDefault)
+      document.removeEventListener('drop',     _noDefault)
+      _observer.disconnect()
+    }
+  })
+  _observer.observe(document.body, { childList: true })
 }
 
 async function loadImportStages() {
