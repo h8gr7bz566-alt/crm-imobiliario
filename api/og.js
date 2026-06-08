@@ -1,5 +1,9 @@
-// api/og/[id].js — Vercel Serverless Function
+// api/og.js — Vercel Serverless Function para Open Graph (WhatsApp preview)
 // Usa fetch nativo (Node 18+) — sem dependência do supabase-js
+
+// Credenciais hardcoded como fallback (anon key é pública — já exposta no bundle)
+const FALLBACK_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co'
+const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua25wYnpkY3JoYmZvenp2eHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY1NjYsImV4cCI6MjA5NDQ0MjU2Nn0.5yX05Y4Nhp8UJlhFblK4z_1TRxBqJKrwOLQ91KxsLMM'
 
 function esc(str) {
   return String(str ?? '')
@@ -30,15 +34,18 @@ module.exports = async function handler(req, res) {
   if (!rawId) return res.redirect(302, 'https://omarcorretor.com.br/')
 
   try {
-    const SUPABASE_URL = process.env.VITE_SUPABASE_URL
-    const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY
-
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-      if (debug) return res.status(500).json({ error: 'env vars missing', SUPABASE_URL: !!SUPABASE_URL, SUPABASE_KEY: !!SUPABASE_KEY })
-      return res.redirect(302, target)
-    }
+    const SUPABASE_URL = process.env.VITE_SUPABASE_URL || FALLBACK_URL
+    const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || FALLBACK_KEY
 
     const apiUrl = `${SUPABASE_URL}/rest/v1/properties?id=eq.${encodeURIComponent(rawId)}&select=id,title,description,price,images,cover_image,bedrooms,parking,city,neighborhood&limit=1`
+
+    if (debug) {
+      return res.status(200).json({
+        rawId,
+        apiUrl: apiUrl.replace(SUPABASE_KEY, 'KEY_HIDDEN'),
+        env: { URL: !!process.env.VITE_SUPABASE_URL, KEY: !!process.env.VITE_SUPABASE_ANON_KEY }
+      })
+    }
 
     const resp = await fetch(apiUrl, {
       headers: {
@@ -50,7 +57,7 @@ module.exports = async function handler(req, res) {
 
     if (!resp.ok) {
       const errBody = await resp.text().catch(() => '')
-      if (debug) return res.status(500).json({ error: 'supabase_error', status: resp.status, body: errBody, url: apiUrl.replace(SUPABASE_KEY, 'KEY_HIDDEN') })
+      console.error('OG supabase error:', resp.status, errBody)
       return res.redirect(302, target)
     }
 
@@ -58,7 +65,7 @@ module.exports = async function handler(req, res) {
     const p = rows && rows[0]
 
     if (!p) {
-      if (debug) return res.status(404).json({ error: 'not_found', rawId, rows, url: apiUrl.replace(SUPABASE_KEY, 'KEY_HIDDEN') })
+      console.error('OG: property not found for id:', rawId)
       return res.redirect(302, target)
     }
 
@@ -73,7 +80,7 @@ module.exports = async function handler(req, res) {
 
     const ogTitle = esc(`${p.title} — Isaac Omar Corretor`)
     const ogDesc  = esc(parts.length ? parts.join(' · ') : (p.description || '').slice(0, 155) || 'Imóvel disponível')
-    // Filtra base64 — WhatsApp só aceita https://
+
     function pickImage(candidates) {
       for (const c of candidates) {
         if (c && typeof c === 'string' && c.startsWith('http')) return c
@@ -113,8 +120,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).send(html)
 
   } catch (err) {
-    console.error('OG error:', err)
-    if (req.query.debug === '1') return res.status(500).json({ error: err.message, stack: err.stack })
+    console.error('OG error:', err.message)
     return res.redirect(302, target)
   }
 }
