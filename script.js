@@ -1497,16 +1497,15 @@ function buildKanbanFilters(tags) {
   if (tagsEl) {
     if (!tags.length) { tagsEl.style.display = 'none'; return }
     tagsEl.style.display = 'flex'
-    tagsEl.innerHTML = tags.map(t => {
-      const active = kanbanFilter.tags.has(t.name)
-      return `<button class="kf-tag-btn" data-tag="${escapeHTML(t.name)}"
-        style="padding:4px 12px;border-radius:20px;border:1.5px solid ${t.color};
-               background:${active ? t.color : t.color + '18'};
-               color:${active ? '#fff' : t.color};
-               font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;">
-        ${escapeHTML(t.name)}
-      </button>`
-    }).join('')
+    tagsEl.innerHTML =
+      '<span class="kf-tags-label">Tags:</span>' +
+      tags.map(t => {
+        const active = kanbanFilter.tags.has(t.name)
+        return `<button class="kf-tag-btn${active ? ' active' : ''}" data-tag="${escapeHTML(t.name)}"
+          style="--kf-tc:${t.color}">
+          ${escapeHTML(t.name)}
+        </button>`
+      }).join('')
     tagsEl.querySelectorAll('.kf-tag-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const tag = btn.dataset.tag
@@ -1767,17 +1766,33 @@ async function openLeadModal(lead = null) {
           ${statuses.map(s => `<option value="${s.name}" ${lead?.status===s.name?'selected':''}>${escapeHTML(s.name)}</option>`).join('')}
         </select>
       </div>` : ''}
-      ${tags?.length ? `
-      <div>
-        <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:6px;">TAGS</label>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${tags.map(t => `
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 10px;border-radius:20px;background:${t.color}18;border:1px solid ${t.color}44;font-size:12px;font-weight:600;color:${t.color};">
-              <input type="checkbox" value="${t.name}" style="margin:0;" ${(lead?.tags||[]).includes(t.name)?'checked':''}>
-              ${escapeHTML(t.name)}
-            </label>`).join('')}
+      <div id="ldp-tags-wrap" class="ldp-tags-section">
+        <label class="ldp-field-label">TAGS</label>
+        <div class="ldp-tag-badge-area" id="ldp-tag-badge-area">
+          ${(lead?.tags||[]).map(name => {
+            const td = kanbanTagMap[name]||{}; const c = td.color||'#6366F1';
+            return `<span class="ldp-tag-badge" data-tag="${escapeHTML(name)}" style="background:${c}18;color:${c};border-color:${c}55;">${escapeHTML(name)}<span class="ldp-tag-rm" data-tag="${escapeHTML(name)}">×</span></span>`;
+          }).join('')||'<span class="ldp-tag-empty">Nenhuma tag — clique em + para adicionar</span>'}
         </div>
-      </div>` : ''}
+        <div class="ldp-tag-add-row">
+          <button id="ldp-tag-add-btn" class="ldp-tag-add-btn" type="button">+ Adicionar Tag</button>
+          <div id="ldp-tag-dropdown" class="ldp-tag-dropdown hidden">
+            <div class="ldp-tag-search-wrap">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input id="ldp-tag-search" class="ldp-tag-search" placeholder="Buscar tag…" autocomplete="off" type="text">
+            </div>
+            <div id="ldp-tag-opt-list" class="ldp-tag-opt-list"></div>
+            <div class="ldp-tag-dd-footer">
+              <button id="ldp-tag-show-create" class="ldp-tag-show-create" type="button">+ Criar nova tag</button>
+            </div>
+            <div id="ldp-tag-create-row" class="ldp-tag-create-row hidden">
+              <input id="ldp-tag-new-name" class="ldp-tag-new-name" placeholder="Nome da nova tag…" autocomplete="off" type="text">
+              <input type="color" id="ldp-tag-new-color" value="#6366F1" class="ldp-tag-new-color" title="Cor da tag">
+              <button id="ldp-tag-create-btn" class="ldp-tag-create-btn" type="button">Criar e adicionar</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div>
         <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">ANOTAÇÕES</label>
         <textarea id="ldp-notes" class="form-input" rows="4" placeholder="Observações, interesses, próximos passos…" style="resize:vertical;">${escapeHTML(lead?.notes||'')}</textarea>
@@ -1799,6 +1814,7 @@ async function openLeadModal(lead = null) {
   `
   document.body.appendChild(panel)
   requestAnimationFrame(() => { panel.style.transform = 'translateX(0)' })
+  _initTagPicker(panel, tags || [], kanbanTagMap)
 
   const close = () => {
     panel.style.transform = 'translateX(100%)'
@@ -1813,7 +1829,7 @@ async function openLeadModal(lead = null) {
     if (!name) { msgEl.style.color='#ef4444'; msgEl.textContent='Nome é obrigatório.'; return }
     btn.disabled = true; btn.textContent = 'Salvando…'
 
-    const selectedTags = [...panel.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value)
+    const selectedTags = [...panel.querySelectorAll('#ldp-tag-badge-area .ldp-tag-badge[data-tag]')].map(b => b.dataset.tag)
     const row = {
       name,
       phone:     document.getElementById('ldp-phone').value.trim() || null,
@@ -4418,12 +4434,30 @@ async function renderCRMConfig() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>🏷️</span> Tags</div>
-      <div class="tags-grid" id="crm-tags-grid">${tagItems}</div>
-      <div class="tag-add-row">
-        <input id="crm-new-tag" type="text" class="form-control" placeholder="Nome da tag…">
-        <input type="color" id="crm-new-tag-color" value="#b8962e">
-        <button class="btn-primary" id="crm-add-tag">Adicionar</button>
+      <div class="cfg-card-title"><span>🏷️</span> Tags de Classificação</div>
+      <p style="font-size:13px;color:#64748b;margin:0 0 16px;">Classifique seus leads com tags coloridas personalizadas. Use emojis no nome para identificar visualmente.</p>
+      <div class="tm-list" id="crm-tags-list">
+        ${!(tags||[]).length ? '<p style="color:#9ca3af;font-size:13px;margin:0;padding:8px 0;">Nenhuma tag criada ainda. Adicione abaixo ou use as sugestões rápidas.</p>' : (tags||[]).map(t => `
+        <div class="tm-row" data-id="${t.id}">
+          <div class="tm-color-swatch" style="background:${t.color}" onclick="this.nextElementSibling.click()" title="Alterar cor"></div>
+          <input type="color" class="tm-color-input" data-id="${t.id}" value="${t.color}" title="Cor da tag">
+          <input class="tm-name-input form-control" type="text" value="${escapeHTML(t.name)}" data-id="${t.id}" data-orig="${escapeHTML(t.name)}" placeholder="Nome da tag">
+          <button class="btn-primary tm-save-btn" data-id="${t.id}">Salvar</button>
+          <button class="icon-btn del-btn tm-del-btn" data-id="${t.id}" title="Excluir tag">🗑️</button>
+        </div>`).join('')}
+      </div>
+      <div class="tm-add-row">
+        <input id="crm-new-tag" type="text" class="form-control" placeholder="Nome da nova tag… (ex: 🔴 Quente)">
+        <input type="color" id="crm-new-tag-color" value="#6366F1" style="width:44px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:2px;flex-shrink:0;">
+        <button class="btn-primary" id="crm-add-tag">+ Adicionar Tag</button>
+      </div>
+      <div class="tm-templates">
+        <div class="tm-templates-label">⚡ Sugestões rápidas — clique para adicionar:</div>
+        <div class="tm-tpl-grid" id="tm-tpl-grid">
+          ${[{name:'🔴 Quente',color:'#EF4444'},{name:'🟡 Morno',color:'#F59E0B'},{name:'🔵 Frio',color:'#3B82F6'},{name:'💰 Investidor',color:'#8B5CF6'},{name:'⭐ Alto Padrão',color:'#C9A227'},{name:'🏦 Financiamento',color:'#0EA5E9'},{name:'🔄 Permuta',color:'#374151'},{name:'🏠 Comprador',color:'#10B981'},{name:'📋 Proprietário',color:'#F97316'}]
+          .filter(tpl => !(tags||[]).some(t => t.name === tpl.name))
+          .map(tpl => `<button class="tm-tpl-btn" data-name="${escapeHTML(tpl.name)}" data-color="${tpl.color}" style="border-color:${tpl.color};color:${tpl.color};background:${tpl.color}15;">${escapeHTML(tpl.name)}</button>`).join('')}
+        </div>
       </div>
     </div>
 
@@ -4470,17 +4504,75 @@ async function renderCRMConfig() {
     })
   })
 
-  // Adicionar tag
-  document.getElementById('crm-add-tag').addEventListener('click', async () => {
-    const name  = document.getElementById('crm-new-tag').value.trim()
-    const color = document.getElementById('crm-new-tag-color').value
-    if (!name) return
+  // ─── Tag Management ──────────────────────────────────────────────────────
+  const _addTagFn = async () => {
+    const nameEl = document.getElementById('crm-new-tag')
+    const colorEl = document.getElementById('crm-new-tag-color')
+    const name = nameEl?.value.trim(); const color = colorEl?.value || '#6366F1'
+    if (!name) { nameEl?.focus(); return }
     await supabase.from('crm_tags').insert({ name, color, tenant_id: getSettingsTenantId() })
-    document.getElementById('crm-new-tag').value = ''
+    if (nameEl) nameEl.value = ''
     await renderCRMConfig()
+  }
+  document.getElementById('crm-add-tag')?.addEventListener('click', _addTagFn)
+  document.getElementById('crm-new-tag')?.addEventListener('keydown', e => { if (e.key === 'Enter') _addTagFn() })
+
+  // Delete tag
+  body.querySelectorAll('.tm-del-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Excluir esta tag? Os leads que a possuem não serão afetados.')) return
+      await supabase.from('crm_tags').delete().eq('id', btn.dataset.id)
+      await renderCRMConfig()
+    })
   })
 
-  // Remover tag
+  // Show save button when name changes
+  body.querySelectorAll('.tm-name-input').forEach(inp => {
+    const row = inp.closest('.tm-row')
+    const saveBtn = row?.querySelector('.tm-save-btn')
+    if (saveBtn) { saveBtn.style.display = 'none' }
+    inp.addEventListener('input', () => {
+      const changed = inp.value.trim() !== inp.dataset.orig
+      if (saveBtn) saveBtn.style.display = changed ? '' : 'none'
+    })
+  })
+
+  // Live color swatch preview
+  body.querySelectorAll('.tm-color-input').forEach(pick => {
+    const row = pick.closest('.tm-row')
+    const swatch = row?.querySelector('.tm-color-swatch')
+    const saveBtn = row?.querySelector('.tm-save-btn')
+    pick.addEventListener('input', e => {
+      if (swatch) swatch.style.background = e.target.value
+      if (saveBtn) saveBtn.style.display = ''
+    })
+  })
+
+  // Save edited tag (name + color)
+  body.querySelectorAll('.tm-save-btn').forEach(btn => {
+    btn.style.display = 'none'
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('.tm-row')
+      const name = row.querySelector('.tm-name-input')?.value.trim()
+      const color = row.querySelector('.tm-color-input')?.value
+      if (!name) return
+      btn.disabled = true; btn.textContent = '✓ Salvando…'
+      await supabase.from('crm_tags').update({ name, color }).eq('id', btn.dataset.id)
+      await renderCRMConfig()
+    })
+  })
+
+  // Template tag quick-add buttons
+  body.querySelectorAll('.tm-tpl-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const name = btn.dataset.name; const color = btn.dataset.color
+      btn.disabled = true; btn.innerHTML = '✓'
+      await supabase.from('crm_tags').insert({ name, color, tenant_id: getSettingsTenantId() })
+      await renderCRMConfig()
+    })
+  })
+
+  // Keep old tag-chip-del selector for compatibility
   body.querySelectorAll('.tag-chip-del').forEach(btn => {
     btn.addEventListener('click', async () => {
       await supabase.from('crm_tags').delete().eq('id', btn.dataset.id)
@@ -6237,6 +6329,182 @@ function _loadChartJS() {
     s.onerror = reject
     document.head.appendChild(s)
   })
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAG PICKER — modern interactive tag picker for lead modal (Task #9)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _initTagPicker(panel, allTags, tagMap) {
+  // allTags: array of {id, name, color} from Supabase
+  // tagMap:  object { name -> {id,name,color} } (kanbanTagMap)
+
+  const badgeArea   = panel.querySelector('#ldp-tag-badge-area')
+  const addBtn      = panel.querySelector('#ldp-tag-add-btn')
+  const dropdown    = panel.querySelector('#ldp-tag-dropdown')
+  const searchInput = panel.querySelector('#ldp-tag-search')
+  const optList     = panel.querySelector('#ldp-tag-opt-list')
+  const showCreate  = panel.querySelector('#ldp-tag-show-create')
+  const createRow   = panel.querySelector('#ldp-tag-create-row')
+  const newNameInp  = panel.querySelector('#ldp-tag-new-name')
+  const newColorInp = panel.querySelector('#ldp-tag-new-color')
+  const createBtn   = panel.querySelector('#ldp-tag-create-btn')
+
+  if (!badgeArea || !addBtn || !dropdown) return
+
+  // Collect currently selected tag names from rendered badges
+  function getSelected() {
+    return [...badgeArea.querySelectorAll('.ldp-tag-badge[data-tag]')].map(b => b.dataset.tag)
+  }
+
+  // Re-render the badge area based on selected array
+  function renderBadges(selected) {
+    if (!selected.length) {
+      badgeArea.innerHTML = '<span class="ldp-tag-empty">Nenhuma tag — clique em + para adicionar</span>'
+      return
+    }
+    badgeArea.innerHTML = selected.map(name => {
+      const td = tagMap[name] || {}
+      const c  = td.color || '#6366F1'
+      return `<span class="ldp-tag-badge" data-tag="${escapeHTML(name)}" style="background:${c}18;color:${c};border-color:${c}55;">
+        ${escapeHTML(name)}<span class="ldp-tag-rm" data-tag="${escapeHTML(name)}">×</span>
+      </span>`
+    }).join('')
+  }
+
+  // Render dropdown option list
+  function renderOpts(filter = '') {
+    const selected = getSelected()
+    const lower = filter.toLowerCase().trim()
+    const visible = allTags.filter(t =>
+      (!lower || t.name.toLowerCase().includes(lower))
+    )
+    if (!visible.length) {
+      optList.innerHTML = `<div class="ldp-tag-opt-empty">Nenhuma tag encontrada</div>`
+      return
+    }
+    optList.innerHTML = visible.map(t => {
+      const active = selected.includes(t.name)
+      return `<div class="ldp-tag-opt${active ? ' active' : ''}" data-tag="${escapeHTML(t.name)}" style="--tc:${t.color}">
+        <span class="ldp-tag-opt-dot" style="background:${t.color}"></span>
+        <span class="ldp-tag-opt-name">${escapeHTML(t.name)}</span>
+        ${active ? '<span class="ldp-tag-opt-check">✓</span>' : ''}
+      </div>`
+    }).join('')
+  }
+
+  // Toggle dropdown
+  function openDropdown() {
+    dropdown.classList.remove('hidden')
+    renderOpts('')
+    searchInput.value = ''
+    createRow.classList.add('hidden')
+    searchInput.focus()
+  }
+  function closeDropdown() {
+    dropdown.classList.add('hidden')
+  }
+
+  // Add tag button opens dropdown
+  addBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    if (dropdown.classList.contains('hidden')) openDropdown()
+    else closeDropdown()
+  })
+
+  // Close on outside click
+  document.addEventListener('mousedown', function onOutside(e) {
+    if (!panel.contains(e.target)) {
+      closeDropdown()
+      document.removeEventListener('mousedown', onOutside)
+    }
+  })
+
+  // Click on dropdown stops propagation
+  dropdown.addEventListener('mousedown', e => e.stopPropagation())
+
+  // Search filter
+  searchInput.addEventListener('input', () => renderOpts(searchInput.value))
+
+  // Click on option toggles tag
+  optList.addEventListener('click', e => {
+    const opt = e.target.closest('.ldp-tag-opt')
+    if (!opt) return
+    const tagName = opt.dataset.tag
+    const selected = getSelected()
+    if (selected.includes(tagName)) {
+      renderBadges(selected.filter(n => n !== tagName))
+    } else {
+      renderBadges([...selected, tagName])
+    }
+    renderOpts(searchInput.value)
+  })
+
+  // Badge removal (×)
+  badgeArea.addEventListener('click', e => {
+    const rm = e.target.closest('.ldp-tag-rm')
+    if (!rm) return
+    const name = rm.dataset.tag
+    renderBadges(getSelected().filter(n => n !== name))
+  })
+
+  // Show/hide create row
+  showCreate.addEventListener('click', () => {
+    createRow.classList.toggle('hidden')
+    if (!createRow.classList.contains('hidden')) newNameInp.focus()
+  })
+
+  // Create new tag and add it
+  async function doCreateTag() {
+    const name = newNameInp.value.trim()
+    if (!name) { newNameInp.focus(); return }
+    const color = newColorInp.value || '#6366F1'
+
+    // Prevent duplicates
+    if (allTags.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+      newNameInp.style.borderColor = '#ef4444'
+      setTimeout(() => { newNameInp.style.borderColor = '' }, 1500)
+      return
+    }
+
+    createBtn.disabled = true
+    createBtn.textContent = 'Criando…'
+
+    try {
+      const { data, error } = await supabase
+        .from('crm_tags')
+        .insert({ name, color, tenant_id: currentProfile?.tenant_id })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Update local structures
+      const newTag = { id: data.id, name: data.name, color: data.color }
+      allTags.push(newTag)
+      tagMap[newTag.name] = newTag
+      if (typeof kanbanTagMap !== 'undefined') kanbanTagMap[newTag.name] = newTag
+
+      // Select it immediately
+      renderBadges([...getSelected(), newTag.name])
+      renderOpts(searchInput.value)
+
+      // Reset create row
+      newNameInp.value = ''
+      newColorInp.value = '#6366F1'
+      createRow.classList.add('hidden')
+    } catch (err) {
+      console.error('Error creating tag:', err)
+      alert('Erro ao criar tag: ' + (err.message || err))
+    } finally {
+      createBtn.disabled = false
+      createBtn.textContent = 'Criar e adicionar'
+    }
+  }
+
+  createBtn.addEventListener('click', doCreateTag)
+  newNameInp.addEventListener('keydown', e => { if (e.key === 'Enter') doCreateTag() })
 }
 
 async function initDashboardSection() {
