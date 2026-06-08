@@ -22,11 +22,6 @@
   ],
   "redirects": [
     {
-      "source": "/og/:id",
-      "destination": "https://omarcorretor.com.br/property.html?id=:id",
-      "permanent": false
-    },
-    {
       "source": "/(.*)",
       "has": [
         {
@@ -42,11 +37,7 @@
   "rewrites": [
     {
       "source": "/og/:id",
-      "destination": "/property.html?id=:id"
-    },
-    {
-      "source": "/og/:id.html",
-      "destination": "/property.html?id=:id"
+      "destination": "/og/:id.html"
     },
     {
       "source": "/property/:id",

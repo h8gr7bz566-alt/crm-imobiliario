@@ -4,13 +4,14 @@ import { createClient } from '@supabase/supabase-js'
 import fs from 'fs'
 import path from 'path'
 
-const supabaseUrl  = process.env.VITE_SUPABASE_URL
-const supabaseKey  = process.env.VITE_SUPABASE_ANON_KEY
+// Fallback hardcoded (anon key é pública) — garante que Vercel build não pula geração
+const FALLBACK_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co'
+const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua25wYnpkY3JoYmZvenp2eHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY1NjYsImV4cCI6MjA5NDQ0MjU2Nn0.5yX05Y4Nhp8UJlhFblK4z_1TRxBqJKrwOLQ91KxsLMM'
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('⚠️  Variáveis VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY não encontradas — pulando geração OG')
-  process.exit(0)
-}
+const supabaseUrl  = process.env.VITE_SUPABASE_URL || FALLBACK_URL
+const supabaseKey  = process.env.VITE_SUPABASE_ANON_KEY || FALLBACK_KEY
+
+console.log('🔑 Supabase URL:', supabaseUrl)
 
 try {
 
