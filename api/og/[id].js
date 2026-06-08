@@ -24,9 +24,9 @@ function formatPrice(raw) {
 
 module.exports = async function handler(req, res) {
   const rawId = String(req.query.id || '').replace(/\.html$/, '').trim()
-  const target = `https://www.omarcorretor.com.br/property.html?id=${rawId}`
+  const target = `https://omarcorretor.com.br/property.html?id=${rawId}`
 
-  if (!rawId) return res.redirect(302, 'https://www.omarcorretor.com.br/')
+  if (!rawId) return res.redirect(302, 'https://omarcorretor.com.br/')
 
   try {
     const SUPABASE_URL = process.env.VITE_SUPABASE_URL

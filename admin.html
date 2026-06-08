@@ -1,0 +1,1171 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IOS imobi — Gerenciamento de Imóveis</title>
+  <link rel="stylesheet" href="admin.css">
+  <script type="module" src="./script.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="shortcut icon" href="/favicon.ico?v=5">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=5">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png?v=5">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=5">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f1c2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IOS imobi">
+</head>
+<body>
+
+  <!-- ── Login ── -->
+  <div id="admin-login">
+    <!-- Left: Illustration -->
+    <div class="login-left">
+<svg viewBox="0 0 800 900" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#1a2f4a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d9b24d"/>
+      <stop offset="100%" stop-color="#b8962e"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#b8962e" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#d9b24d" stop-opacity="0.3"/>
+    </linearGradient>
+    <filter id="blur-sm"><feGaussianBlur stdDeviation="2"/></filter>
+    <filter id="blur-lg"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="glow-gold">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="900" fill="url(#bg)"/>
+
+  <!-- Grid lines (subtle) -->
+  <g opacity="0.04" stroke="#b8962e" stroke-width="1">
+    <line x1="0" y1="150" x2="800" y2="150"/>
+    <line x1="0" y1="300" x2="800" y2="300"/>
+    <line x1="0" y1="450" x2="800" y2="450"/>
+    <line x1="0" y1="600" x2="800" y2="600"/>
+    <line x1="0" y1="750" x2="800" y2="750"/>
+    <line x1="133" y1="0" x2="133" y2="900"/>
+    <line x1="266" y1="0" x2="266" y2="900"/>
+    <line x1="400" y1="0" x2="400" y2="900"/>
+    <line x1="533" y1="0" x2="533" y2="900"/>
+    <line x1="666" y1="0" x2="666" y2="900"/>
+  </g>
+
+  <!-- Circuit lines -->
+  <g stroke="#b8962e" stroke-width="1" fill="none" opacity="0.18">
+    <path d="M80 200 H200 V280 H350"/>
+    <path d="M350 280 H480 V200 H600"/>
+    <path d="M600 200 H700"/>
+    <path d="M80 400 H160 V340 H260"/>
+    <path d="M260 340 H360 V400 H500 V360"/>
+    <path d="M500 360 H620 V400 H720"/>
+    <path d="M120 580 H220 V520 H340 V580 H440"/>
+    <path d="M440 580 H540 V540 H680"/>
+    <!-- nodes -->
+    <circle cx="200" cy="200" r="3" fill="#b8962e" opacity="0.5"/>
+    <circle cx="350" cy="280" r="3" fill="#b8962e" opacity="0.5"/>
+    <circle cx="480" cy="200" r="3" fill="#b8962e" opacity="0.5"/>
+    <circle cx="260" cy="340" r="3" fill="#b8962e" opacity="0.5"/>
+    <circle cx="500" cy="360" r="3" fill="#b8962e" opacity="0.5"/>
+    <circle cx="340" cy="520" r="3" fill="#b8962e" opacity="0.5"/>
+  </g>
+
+  <!-- Glowing orb background -->
+  <circle cx="400" cy="420" r="220" fill="#b8962e" opacity="0.04" filter="url(#blur-lg)"/>
+  <circle cx="400" cy="420" r="120" fill="#1a3a6e" opacity="0.3" filter="url(#blur-sm)"/>
+
+  <!-- City skyline silhouette -->
+  <g opacity="0.15" fill="#4a6fa5">
+    <rect x="30" y="680" width="40" height="220"/>
+    <rect x="80" y="640" width="30" height="260"/>
+    <rect x="120" y="700" width="25" height="200"/>
+    <rect x="155" y="650" width="50" height="250"/>
+    <rect x="215" y="600" width="35" height="300"/>
+    <rect x="260" y="670" width="28" height="230"/>
+    <rect x="298" y="620" width="45" height="280"/>
+    <rect x="353" y="590" width="55" height="310"/>
+    <rect x="418" y="630" width="40" height="270"/>
+    <rect x="468" y="660" width="30" height="240"/>
+    <rect x="508" y="600" width="50" height="300"/>
+    <rect x="568" y="650" width="35" height="250"/>
+    <rect x="613" y="680" width="28" height="220"/>
+    <rect x="651" y="620" width="45" height="280"/>
+    <rect x="706" y="660" width="35" height="240"/>
+    <rect x="751" y="700" width="50" height="200"/>
+  </g>
+
+  <!-- Main building (tall, center) -->
+  <g filter="url(#glow-gold)">
+    <!-- Tower body -->
+    <rect x="330" y="300" width="140" height="420" rx="4" fill="#0d2144" stroke="#b8962e" stroke-width="1" opacity="0.9"/>
+    <!-- Tower top -->
+    <polygon points="400,240 340,300 460,300" fill="#0d2144" stroke="#b8962e" stroke-width="1" opacity="0.9"/>
+    <!-- Spire -->
+    <line x1="400" y1="180" x2="400" y2="240" stroke="#d9b24d" stroke-width="2" opacity="0.8"/>
+    <circle cx="400" cy="178" r="4" fill="#d9b24d" opacity="0.9"/>
+    <!-- Windows grid -->
+    <g fill="#d9b24d" opacity="0.5">
+      <rect x="345" y="320" width="18" height="12" rx="1"/>
+      <rect x="371" y="320" width="18" height="12" rx="1"/>
+      <rect x="397" y="320" width="18" height="12" rx="1"/>
+      <rect x="423" y="320" width="18" height="12" rx="1"/>
+      <rect x="449" y="320" width="18" height="12" rx="1"/>
+
+      <rect x="345" y="344" width="18" height="12" rx="1" opacity="0.3"/>
+      <rect x="371" y="344" width="18" height="12" rx="1"/>
+      <rect x="397" y="344" width="18" height="12" rx="1" opacity="0.3"/>
+      <rect x="423" y="344" width="18" height="12" rx="1"/>
+      <rect x="449" y="344" width="18" height="12" rx="1" opacity="0.3"/>
+
+      <rect x="345" y="368" width="18" height="12" rx="1"/>
+      <rect x="371" y="368" width="18" height="12" rx="1" opacity="0.3"/>
+      <rect x="397" y="368" width="18" height="12" rx="1"/>
+      <rect x="423" y="368" width="18" height="12" rx="1" opacity="0.3"/>
+      <rect x="449" y="368" width="18" height="12" rx="1"/>
+
+      <rect x="345" y="392" width="18" height="12" rx="1" opacity="0.3"/>
+      <rect x="371" y="392" width="18" height="12" rx="1"/>
+      <rect x="397" y="392" width="18" height="12" rx="1" opacity="0.3"/>
+      <rect x="423" y="392" width="18" height="12" rx="1"/>
+      <rect x="449" y="392" width="18" height="12" rx="1" opacity="0.3"/>
+
+      <rect x="345" y="416" width="18" height="12" rx="1"/>
+      <rect x="371" y="416" width="18" height="12" rx="1" opacity="0.3"/>
+      <rect x="397" y="416" width="18" height="12" rx="1"/>
+      <rect x="423" y="416" width="18" height="12" rx="1" opacity="0.3"/>
+      <rect x="449" y="416" width="18" height="12" rx="1"/>
+
+      <rect x="345" y="440" width="18" height="12" rx="1" opacity="0.3"/>
+      <rect x="371" y="440" width="18" height="12" rx="1"/>
+      <rect x="397" y="440" width="18" height="12" rx="1" opacity="0.3"/>
+      <rect x="423" y="440" width="18" height="12" rx="1"/>
+      <rect x="449" y="440" width="18" height="12" rx="1" opacity="0.3"/>
+    </g>
+    <!-- Gold accent stripe -->
+    <rect x="330" y="300" width="140" height="3" fill="url(#gold)" opacity="0.8"/>
+    <rect x="330" y="460" width="140" height="2" fill="url(#gold)" opacity="0.4"/>
+  </g>
+
+  <!-- Floating data cards -->
+  <!-- Card 1: top left -->
+  <g transform="translate(60,180)">
+    <rect width="160" height="80" rx="12" fill="rgba(15,28,46,0.85)" stroke="#b8962e" stroke-width="1"/>
+    <rect width="160" height="3" rx="12" fill="url(#gold)" opacity="0.7"/>
+    <text x="14" y="26" font-family="Inter,sans-serif" font-size="10" fill="#b8962e" font-weight="600" letter-spacing="1">IMÓVEIS ATIVOS</text>
+    <text x="14" y="52" font-family="Inter,sans-serif" font-size="26" fill="#ffffff" font-weight="700">248</text>
+    <text x="100" y="52" font-family="Inter,sans-serif" font-size="11" fill="#4ade80">▲ 12%</text>
+    <text x="14" y="68" font-family="Inter,sans-serif" font-size="9" fill="rgba(255,255,255,0.4)">vs mês anterior</text>
+  </g>
+
+  <!-- Card 2: top right -->
+  <g transform="translate(560,150)">
+    <rect width="180" height="80" rx="12" fill="rgba(15,28,46,0.85)" stroke="#b8962e" stroke-width="1"/>
+    <rect width="180" height="3" rx="12" fill="url(#gold)" opacity="0.7"/>
+    <text x="14" y="26" font-family="Inter,sans-serif" font-size="10" fill="#b8962e" font-weight="600" letter-spacing="1">VALOR TOTAL</text>
+    <text x="14" y="50" font-family="Inter,sans-serif" font-size="18" fill="#ffffff" font-weight="700">R$ 48,2M</text>
+    <text x="14" y="68" font-family="Inter,sans-serif" font-size="9" fill="rgba(255,255,255,0.4)">carteira ativa</text>
+  </g>
+
+  <!-- Card 3: bottom left -->
+  <g transform="translate(50,500)">
+    <rect width="165" height="90" rx="12" fill="rgba(15,28,46,0.85)" stroke="#b8962e" stroke-width="1"/>
+    <rect width="165" height="3" rx="12" fill="url(#gold)" opacity="0.7"/>
+    <text x="14" y="26" font-family="Inter,sans-serif" font-size="10" fill="#b8962e" font-weight="600" letter-spacing="1">NOVOS LEADS</text>
+    <text x="14" y="52" font-family="Inter,sans-serif" font-size="26" fill="#ffffff" font-weight="700">37</text>
+    <text x="65" y="52" font-family="Inter,sans-serif" font-size="11" fill="#4ade80">▲ 8%</text>
+    <text x="14" y="70" font-family="Inter,sans-serif" font-size="9" fill="rgba(255,255,255,0.4)">este mês</text>
+    <!-- mini bar chart -->
+    <g fill="#b8962e" opacity="0.6">
+      <rect x="14" y="76" width="8" height="6"/>
+      <rect x="26" y="72" width="8" height="10"/>
+      <rect x="38" y="68" width="8" height="14"/>
+      <rect x="50" y="74" width="8" height="8"/>
+      <rect x="62" y="65" width="8" height="17"/>
+      <rect x="74" y="60" width="8" height="22"/>
+    </g>
+  </g>
+
+  <!-- Card 4: bottom right -->
+  <g transform="translate(545,480)">
+    <rect width="185" height="90" rx="12" fill="rgba(15,28,46,0.85)" stroke="#b8962e" stroke-width="1"/>
+    <rect width="185" height="3" rx="12" fill="url(#gold)" opacity="0.7"/>
+    <text x="14" y="26" font-family="Inter,sans-serif" font-size="10" fill="#b8962e" font-weight="600" letter-spacing="1">VENDAS NO MÊS</text>
+    <text x="14" y="52" font-family="Inter,sans-serif" font-size="26" fill="#ffffff" font-weight="700">R$ 3,1M</text>
+    <text x="14" y="70" font-family="Inter,sans-serif" font-size="9" fill="rgba(255,255,255,0.4)">5 negócios fechados</text>
+    <!-- progress bar -->
+    <rect x="14" y="78" width="157" height="5" rx="3" fill="rgba(255,255,255,0.1)"/>
+    <rect x="14" y="78" width="95" height="5" rx="3" fill="url(#gold)"/>
+  </g>
+
+  <!-- Connector lines from cards to building -->
+  <g stroke="#b8962e" stroke-width="1" stroke-dasharray="4,4" opacity="0.2">
+    <line x1="220" y1="220" x2="340" y2="360"/>
+    <line x1="560" y1="190" x2="460" y2="320"/>
+    <line x1="215" y1="545" x2="335" y2="500"/>
+    <line x1="545" y1="525" x2="465" y2="480"/>
+  </g>
+
+  <!-- Floating particles -->
+  <g fill="#d9b24d">
+    <circle cx="140" cy="350" r="2" opacity="0.6"/>
+    <circle cx="300" cy="150" r="1.5" opacity="0.4"/>
+    <circle cx="520" cy="380" r="2" opacity="0.5"/>
+    <circle cx="680" cy="290" r="1.5" opacity="0.6"/>
+    <circle cx="90" cy="450" r="1" opacity="0.3"/>
+    <circle cx="710" cy="450" r="2" opacity="0.4"/>
+    <circle cx="440" cy="160" r="1.5" opacity="0.5"/>
+    <circle cx="170" cy="620" r="1.5" opacity="0.4"/>
+    <circle cx="640" cy="380" r="1" opacity="0.5"/>
+  </g>
+
+  <!-- Tagline -->
+  <text x="400" y="835" font-family="Inter,sans-serif" font-size="13" fill="rgba(255,255,255,0.35)" text-anchor="middle" letter-spacing="3" font-weight="300">TECNOLOGIA NO MERCADO IMOBILIÁRIO</text>
+
+  <!-- IO Logo symbol (top left corner) — stylized building with wave -->
+  <g transform="translate(36,32)" opacity="0.85">
+    <!-- Circle backdrop -->
+    <circle cx="28" cy="28" r="26" fill="rgba(184,150,46,0.12)" stroke="#b8962e" stroke-width="1.5"/>
+    <!-- Stylized IO building icon -->
+    <!-- Left column I -->
+    <rect x="16" y="16" width="6" height="24" rx="1" fill="url(#gold)"/>
+    <!-- Right arc O -->
+    <path d="M28 16 A12 12 0 0 1 28 40" stroke="url(#gold)" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <!-- Wave underneath -->
+    <path d="M10 46 Q19 42 28 46 Q37 50 46 46" stroke="#b8962e" stroke-width="1.5" fill="none" opacity="0.7"/>
+  </g>
+</svg>
+    </div>
+
+    <!-- Right: Login form -->
+    <div class="login-right">
+      <div class="login-box">
+      <div class="login-logo-name">IOS imobi - Gerenciamento de Imóveis</div>
+      <h2>Acessar Painel</h2>
+      <p class="login-sub">Entre com suas credenciais</p>
+      <form id="login-form">
+        <label>E-mail
+          <input name="email" type="email" required autocomplete="username" placeholder="seu@email.com">
+        </label>
+        <label>Senha
+          <input name="password" type="password" required autocomplete="current-password" placeholder="••••••••">
+        </label>
+        <button type="submit" class="btn-login">Entrar</button>
+        <button type="button" id="forgot-password-btn" style="background:none;border:none;color:#b8962e;font-size:13px;cursor:pointer;margin-top:10px;text-decoration:underline;width:100%;">Esqueci minha senha</button>
+      </form>
+      </div><!-- /.login-box -->
+    </div><!-- /.login-right -->
+  </div><!-- /#admin-login -->
+
+  <!-- ── Definir Senha (link de convite / recuperação) ── -->
+  <div id="password-reset-overlay" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 55%,#0f3460 100%);align-items:center;justify-content:center;z-index:2000">
+    <div class="login-box">
+      <div class="login-logo-name">IOS imobi - Gerenciamento de Imóveis</div>
+      <h2>Definir Senha</h2>
+      <p class="login-sub">Crie uma senha para acessar o painel</p>
+      <form id="password-reset-form">
+        <label>Nova Senha
+          <input id="new-password" type="password" required minlength="6" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+        </label>
+        <label>Confirmar Senha
+          <input id="confirm-password" type="password" required minlength="6" autocomplete="new-password" placeholder="Repita a senha">
+        </label>
+        <button type="submit" class="btn-login">Definir Senha</button>
+      </form>
+      <p id="password-reset-msg" style="display:none;margin-top:14px;font-size:13px;color:#e11d48;text-align:center"></p>
+    </div>
+  </div>
+
+  <!-- ── App shell ── -->
+  <div id="admin-root" class="hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="admin-topnav" id="admin-topnav">
+      <div class="topnav-left">
+        <button class="topnav-hamburger" id="topnav-hamburger">
+          <i data-lucide="menu"></i>
+        </button>
+        <div class="topnav-logo">
+          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="8" width="7" height="18" rx="1.5" fill="currentColor"/>
+            <rect x="11" y="4" width="7" height="22" rx="1.5" fill="currentColor"/>
+            <rect x="20" y="11" width="6" height="15" rx="1.5" fill="currentColor"/>
+          </svg>
+          <span>IOS imobi</span>
+        </div>
+        <nav class="topnav-links" id="topnav-links">
+          <button class="topnav-link active" data-section="properties">Início</button>
+          <button class="topnav-link" data-section="funil">Negociações</button>
+          <button class="topnav-link" data-section="contatos">Contatos</button>
+          <button class="topnav-link" data-section="tarefas">Tarefas</button>
+          <!-- admin-only items abaixo -->
+          <div class="topnav-dropdown admin-only" style="display:none">
+            <button class="topnav-link topnav-dropdown-btn">Configurações <i data-lucide="chevron-down"></i></button>
+            <div class="topnav-dropdown-menu">
+              <div class="topnav-dropdown-menu-inner">
+                <button class="topnav-dropdown-item" data-section="empresa">Empresa</button>
+                <button class="topnav-dropdown-item" data-section="visual">Visual</button>
+                <button class="topnav-dropdown-item" data-section="site-config">Site &amp; SEO</button>
+                <button class="topnav-dropdown-item" data-section="crm-config">CRM Config</button>
+                <button class="topnav-dropdown-item" data-section="integracoes">Integrações</button>
+                <button class="topnav-dropdown-item" data-section="midia">Mídia</button>
+              </div>
+            </div>
+          </div>
+          <button class="topnav-link super-admin-only" data-section="super-admin" style="display:none">Super Admin</button>
+        </nav>
+      </div>
+      <div class="topnav-right">
+        <button class="topnav-icon-btn" id="btn-search-open" title="Buscar"><i data-lucide="search"></i></button>
+
+        <!-- Notificações dropdown -->
+        <div class="topnav-notif-wrap" id="topnav-notif-wrap">
+          <button class="topnav-icon-btn" id="btn-notif" title="Notificações">
+            <i data-lucide="bell"></i>
+            <span class="notif-badge hidden" id="notif-badge">0</span>
+          </button>
+          <div class="notif-dropdown hidden" id="notif-dropdown">
+            <div class="notif-header">
+              <span>Notificações</span>
+              <button class="notif-mark-all" id="notif-mark-all">Marcar lidas</button>
+            </div>
+            <div class="notif-list" id="notif-list">
+              <div class="notif-empty">Carregando…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Avatar dropdown -->
+        <div class="topnav-avatar-wrap" id="topnav-avatar-wrap">
+          <div class="topnav-user" id="topnav-user">
+            <div class="topnav-avatar-circle" id="topnav-avatar-circle">
+              <img id="topnav-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+              <span id="topnav-avatar-initial">?</span>
+            </div>
+            <div class="topnav-user-info">
+              <div id="topnav-name" class="topnav-user-name">Carregando…</div>
+              <div id="topnav-role" class="topnav-user-role">—</div>
+            </div>
+          </div>
+          <div class="avatar-dropdown hidden" id="avatar-dropdown">
+            <div class="avatar-dropdown-header">
+              <div class="avatar-dd-photo">
+                <img id="avatar-dd-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                <span id="avatar-dd-initial">?</span>
+              </div>
+              <div>
+                <div id="avatar-dd-name" style="font-weight:600;font-size:14px;color:#0f172a;">—</div>
+                <div id="avatar-dd-role" style="font-size:12px;color:#64748b;">—</div>
+              </div>
+            </div>
+            <div class="avatar-dropdown-divider"></div>
+            <button class="avatar-dropdown-item" id="avatar-dd-change-photo"><i data-lucide="camera"></i> Alterar Foto</button>
+            <button class="avatar-dropdown-item" id="avatar-dd-change-pass"><i data-lucide="key-round"></i> Alterar Senha</button>
+            <button class="avatar-dropdown-item admin-only" id="avatar-dd-add-corretor" style="display:none"><i data-lucide="user-plus"></i> Adicionar Corretor</button>
+            <button class="avatar-dropdown-item admin-only" id="avatar-dd-settings" style="display:none"><i data-lucide="users"></i> Gerenciar Corretores</button>
+            <div class="avatar-dropdown-divider"></div>
+            <a href="#" id="avatar-dd-ver-site" target="_blank" rel="noopener" class="avatar-dropdown-item"><i data-lucide="external-link"></i> Ver site</a>
+            <button class="avatar-dropdown-item avatar-dd-danger" id="avatar-dd-logout"><i data-lucide="log-out"></i> Sair</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search overlay -->
+      <div class="search-overlay hidden" id="search-overlay">
+        <div class="search-overlay-inner">
+          <div class="search-overlay-bar">
+            <i data-lucide="search" style="color:#94a3b8;"></i>
+            <input id="search-input" type="text" placeholder="Buscar imóveis, leads, contatos…" autocomplete="off">
+            <button class="search-overlay-close" id="search-overlay-close"><i data-lucide="x"></i></button>
+          </div>
+          <div class="search-results" id="search-results">
+            <div class="search-hint">Digite para pesquisar…</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="admin-main">
+
+      <!-- ── Imóveis ── -->
+      <section id="section-properties" class="admin-section">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Imóveis</div>
+            <div class="section-sub">Gerencie seu portfólio de imóveis</div>
+          </div>
+          <button id="btn-new-property" class="btn-primary">+ Novo Imóvel</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-card-icon">🏠</div>
+            <div class="stat-card-value" id="stat-total">—</div>
+            <div class="stat-card-label">Total de Imóveis</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">✅</div>
+            <div class="stat-card-value" id="stat-published">—</div>
+            <div class="stat-card-label">Publicados</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">💬</div>
+            <div class="stat-card-value" id="stat-leads">—</div>
+            <div class="stat-card-label">Leads Recebidos</div>
+          </div>
+        </div>
+
+        <!-- ── Painel de Filtros ── -->
+        <div class="admin-filter-panel">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label class="filter-label">Referência / Título</label>
+              <div style="display:flex;gap:8px;">
+                <input id="f-ref" type="text" class="form-control" placeholder="IO-0001…" style="flex:0 0 110px;">
+                <input id="f-title" type="text" class="form-control" placeholder="Buscar no título…" style="flex:1;">
+              </div>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Tipo</label>
+              <select id="f-type" class="form-control">
+                <option value="">Todos</option>
+                <option value="Apartamento">Apartamento</option>
+                <option value="Casa">Casa</option>
+                <option value="Terreno">Terreno</option>
+                <option value="Comercial">Comercial</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Cidade</label>
+              <select id="f-city" class="form-control">
+                <option value="">Todas</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Bairro</label>
+              <select id="f-neighborhood" class="form-control">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Condomínio / Edifício</label>
+              <input id="f-condominium" type="text" class="form-control" placeholder="Nome do condomínio…">
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <div class="filter-group filter-group-sm">
+              <label class="filter-label">Preço De</label>
+              <input id="f-price-min" type="number" min="0" class="form-control" placeholder="R$ mín">
+            </div>
+            <div class="filter-group filter-group-sm">
+              <label class="filter-label">Preço Até</label>
+              <input id="f-price-max" type="number" min="0" class="form-control" placeholder="R$ máx">
+            </div>
+            <div class="filter-group filter-group-sm">
+              <label class="filter-label">Área m² De</label>
+              <input id="f-area-min" type="number" min="0" class="form-control" placeholder="mín">
+            </div>
+            <div class="filter-group filter-group-sm">
+              <label class="filter-label">Área m² Até</label>
+              <input id="f-area-max" type="number" min="0" class="form-control" placeholder="máx">
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Status da Obra</label>
+              <select id="f-construction" class="form-control">
+                <option value="">Todos</option>
+                <option value="pronto">Pronto</option>
+                <option value="pre-lancamento">Pré-lançamento</option>
+                <option value="em-obra">Em obra</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Status</label>
+              <select id="f-published" class="form-control">
+                <option value="">Todos</option>
+                <option value="true">Publicado</option>
+                <option value="false">Rascunho</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-row filter-row-btns">
+            <div class="filter-group">
+              <label class="filter-label">Dormitórios</label>
+              <div class="filter-btns" id="f-bedrooms">
+                <button type="button" class="filter-btn" data-val="1">1</button>
+                <button type="button" class="filter-btn" data-val="2">2</button>
+                <button type="button" class="filter-btn" data-val="3">3</button>
+                <button type="button" class="filter-btn" data-val="4">4</button>
+                <button type="button" class="filter-btn" data-val="5+">5+</button>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Suítes</label>
+              <div class="filter-btns" id="f-suites">
+                <button type="button" class="filter-btn" data-val="1">1</button>
+                <button type="button" class="filter-btn" data-val="2">2</button>
+                <button type="button" class="filter-btn" data-val="3">3</button>
+                <button type="button" class="filter-btn" data-val="4">4</button>
+                <button type="button" class="filter-btn" data-val="5+">5+</button>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Vagas</label>
+              <div class="filter-btns" id="f-parking">
+                <button type="button" class="filter-btn" data-val="1">1</button>
+                <button type="button" class="filter-btn" data-val="2">2</button>
+                <button type="button" class="filter-btn" data-val="3">3</button>
+                <button type="button" class="filter-btn" data-val="4">4</button>
+                <button type="button" class="filter-btn" data-val="5+">5+</button>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button type="button" id="f-search-btn" class="btn-primary">🔍 Buscar</button>
+              <button type="button" id="f-clear-btn" class="btn-cancel">Limpar Filtros</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-card-header">Todos os Imóveis</div>
+          <div class="table-wrap">
+            <table class="prop-table">
+              <thead>
+                <tr>
+                  <th>Foto</th>
+                  <th>Referência</th>
+                  <th class="col-addr">Endereço</th>
+                  <th>Valor</th>
+                  <th>Dorms</th>
+                  <th>Vagas</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="admin-properties">
+                <tr><td colspan="8" class="empty-row">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Leads ── -->
+      <section id="section-leads" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Leads</div>
+            <div class="section-sub">Contatos recebidos</div>
+          </div>
+        </div>
+        <div id="leads" class="leads-empty">
+          Nenhum lead recebido ainda.<br>Os contatos aparecerão aqui quando clientes entrarem em contato pelo site.
+        </div>
+      </section>
+
+      <!-- ── Negociações (Funil/Kanban) ── -->
+      <section id="section-funil" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Negociações</div>
+            <div class="section-sub">Funil de vendas Kanban</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <select id="funil-pipe-sel" class="form-control" style="font-size:13px;padding:6px 10px;min-width:160px;"></select>
+            <button id="btn-funil-add-lead" class="btn-primary">+ Novo Lead</button>
+            <button id="btn-import-leads" class="btn-secondary" title="Importar lista de contatos CSV/Excel" style="display:flex;align-items:center;gap:6px;font-size:13px;padding:7px 14px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Importar Contatos
+            </button>
+          </div>
+        </div>
+        <!-- Filtros do kanban -->
+        <div id="kanban-filters" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="position:relative;flex:1;min-width:180px;">
+              <input id="kf-search" type="text" placeholder="Buscar por nome, telefone, email…"
+                style="width:100%;padding:8px 12px 8px 34px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
+              <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#94a3b8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+            <select id="kf-status" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;background:#fff;min-width:140px;">
+              <option value="">Todos os status</option>
+            </select>
+            <button id="kf-clear" style="padding:8px 14px;background:#f1f5f9;border:none;border-radius:8px;font-size:13px;color:#64748b;cursor:pointer;white-space:nowrap;">✕ Limpar</button>
+          </div>
+          <div id="kf-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+        </div>
+
+        <div id="kanban-board" class="kanban-board">
+          <div class="kanban-loading">Carregando funil…</div>
+        </div>
+      </section>
+
+      <!-- ── Tarefas ── -->
+      <section id="section-tarefas" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Tarefas</div>
+            <div class="section-sub">Organize suas atividades diárias</div>
+          </div>
+          <button id="btn-nova-tarefa" class="btn-primary">+ Nova Tarefa</button>
+        </div>
+        <!-- Filtros -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          <button class="tarefa-filter-btn active" data-filter="pending">Pendentes</button>
+          <button class="tarefa-filter-btn" data-filter="done">Concluídas</button>
+          <button class="tarefa-filter-btn" data-filter="all">Todas</button>
+        </div>
+        <div id="tarefas-list" class="tarefas-list">
+          <div class="empty-row" style="padding:40px;text-align:center;color:#94a3b8;">Carregando tarefas…</div>
+        </div>
+      </section>
+
+      <!-- ── Contatos ── -->
+      <section id="section-contatos" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Contatos</div>
+            <div class="section-sub">Gerencie seus clientes e leads</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button id="btn-import-contato" class="btn-secondary">
+              <i data-lucide="upload"></i> Importar
+            </button>
+            <button id="btn-novo-contato" class="btn-primary">
+              + Criar contato
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-filter-panel" style="margin-bottom:16px;">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label class="filter-label">Buscar</label>
+              <input id="contato-search" type="text" class="form-control" placeholder="Nome, email ou telefone…">
+            </div>
+            <div class="filter-actions">
+              <button id="btn-contato-search" class="btn-primary">Buscar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrap">
+            <table class="prop-table" id="contatos-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="contatos-select-all"></th>
+                  <th>Contato</th>
+                  <th>Empresa</th>
+                  <th>E-mails</th>
+                  <th>Telefones</th>
+                  <th>Cargo</th>
+                  <th>Negociações</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="contatos-tbody">
+                <tr><td colspan="8" class="empty-row">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-pagination" id="contatos-pagination"></div>
+        </div>
+
+        <!-- Modal de importação CSV -->
+        <div id="import-modal" class="modal-backdrop hidden">
+          <div class="modal" style="max-width:480px;">
+            <div class="modal-header">
+              <h3>Importar Contatos (CSV)</h3>
+              <button class="modal-close" id="import-modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+              <p style="font-size:13px;color:#64748b;margin-bottom:12px;">
+                O CSV deve ter as colunas: <strong>nome, email, telefone, empresa, cargo</strong> (separadas por vírgula).
+              </p>
+              <a id="download-template" href="#" style="font-size:13px;color:#2563eb;">
+                Baixar modelo CSV
+              </a>
+              <div style="margin-top:16px;">
+                <input type="file" id="import-csv-file" accept=".csv" class="form-control">
+              </div>
+              <div id="import-preview" style="margin-top:12px;font-size:13px;color:#64748b;"></div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn-cancel" id="import-modal-cancel">Cancelar</button>
+              <button class="btn-primary" id="import-modal-confirm" disabled>Importar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Super Admin ── -->
+      <section id="section-super-admin" class="admin-section hidden"></section>
+
+      <!-- ── Empresa ── -->
+      <section id="section-empresa" class="admin-section hidden"></section>
+
+      <!-- ── Visual ── -->
+      <section id="section-visual" class="admin-section hidden"></section>
+
+      <!-- ── Site & SEO ── -->
+      <section id="section-site-config" class="admin-section hidden"></section>
+
+      <!-- ── CRM Config ── -->
+      <section id="section-crm-config" class="admin-section hidden"></section>
+
+      <!-- ── Integrações ── -->
+      <section id="section-integracoes" class="admin-section hidden"></section>
+
+      <!-- ── Mídia ── -->
+      <section id="section-midia" class="admin-section hidden"></section>
+
+      <!-- ── Configurações ── -->
+      <section id="section-settings" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title">Configurações</div>
+            <div class="section-sub">Perfil e gerenciamento de usuários</div>
+          </div>
+        </div>
+
+        <!-- Meu Perfil -->
+        <div class="settings-card">
+          <h3 class="settings-card-title">Meu Perfil</h3>
+          <div class="settings-profile-layout">
+            <div class="settings-avatar-col">
+              <div class="settings-avatar-wrap">
+                <img id="settings-avatar-preview" src="" alt="" class="settings-avatar-img" style="display:none">
+                <div id="settings-avatar-initial" class="settings-avatar-initial">?</div>
+              </div>
+              <label for="settings-avatar-input" class="settings-avatar-btn">Alterar foto</label>
+              <input id="settings-avatar-input" type="file" accept="image/*" style="display:none">
+            </div>
+            <div class="settings-fields-col">
+              <div class="form-group" style="margin-bottom:16px">
+                <label class="form-label">Nome de exibição</label>
+                <input id="settings-name" class="form-control" placeholder="Seu nome completo">
+              </div>
+              <div class="form-group" style="margin-bottom:20px">
+                <label class="form-label">E-mail</label>
+                <input id="settings-email" class="form-control" disabled style="background:#fafbfc;color:#6b7280">
+              </div>
+              <button class="btn-primary" id="settings-save-profile">Salvar Perfil</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alterar Senha — todos os usuários -->
+        <div class="settings-card">
+          <h3 class="settings-card-title">🔒 Alterar Senha</h3>
+          <div class="form-group">
+            <label class="form-label">Nova Senha</label>
+            <input id="change-password-new" type="password" class="form-control" placeholder="Mínimo 6 caracteres">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirmar Senha</label>
+            <input id="change-password-confirm" type="password" class="form-control" placeholder="Repita a nova senha">
+          </div>
+          <p id="change-password-msg" style="display:none;font-size:13px;color:#e11d48;margin-bottom:8px"></p>
+          <button class="btn-primary" id="btn-change-password">Salvar Nova Senha</button>
+        </div>
+
+        <!-- Localização — admin only -->
+        <div class="settings-card" id="settings-locations-section" style="display:none">
+          <h3 class="settings-card-title">Localização (Busca do Site)</h3>
+          <div class="loc-columns">
+
+            <div class="loc-col">
+              <div class="loc-col-title">Cidades</div>
+              <div id="loc-cities-list" class="loc-list">Carregando…</div>
+              <div class="loc-add-row">
+                <input id="loc-new-city" type="text" class="form-control" placeholder="Nova cidade…">
+                <button id="loc-add-city-btn" class="btn-primary">Adicionar</button>
+              </div>
+            </div>
+
+            <div class="loc-col">
+              <div class="loc-col-title">Bairros</div>
+              <div id="loc-neighborhoods-list" class="loc-list">Carregando…</div>
+              <div class="loc-add-row loc-add-row-neigh">
+                <select id="loc-new-neighborhood-city" class="form-control" style="flex:0 0 auto;width:auto">
+                  <option value="">Cidade…</option>
+                </select>
+                <input id="loc-new-neighborhood" type="text" class="form-control" placeholder="Novo bairro…">
+                <button id="loc-add-neighborhood-btn" class="btn-primary">Adicionar</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Gerenciar Corretores — admin only -->
+        <div class="settings-card" id="settings-corretores-section" style="display:none">
+          <h3 class="settings-card-title">Gerenciar Corretores</h3>
+          <div class="settings-invite-row">
+            <div class="form-group" style="flex:1">
+              <label class="form-label">E-mail do Corretor</label>
+              <input id="invite-email" type="email" class="form-control" placeholder="corretor@email.com">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label class="form-label">Senha Inicial</label>
+              <input id="invite-password" type="password" class="form-control" placeholder="Mínimo 6 caracteres">
+            </div>
+            <button class="btn-primary" id="btn-invite-corretor" style="align-self:flex-end">+ Criar Acesso</button>
+          </div>
+          <p id="invite-note" class="settings-note" style="display:none"></p>
+          <div class="settings-divider"></div>
+          <div id="corretores-list" class="corretores-list">Carregando…</div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ── Modal: Cadastro / Edição ── -->
+  <div id="property-modal" class="hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-title">Novo Imóvel</h2>
+        <button class="modal-close" id="modal-close" aria-label="Fechar">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <form id="property-form">
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Título *</label>
+              <input name="title" required class="form-control" placeholder="Ex: Apartamento 3 quartos com vista mar">
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Condomínio / Edifício</label>
+              <input name="condominium" id="imovel-condominium" class="form-control" placeholder="Ex: Residencial Vista Mar">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Rua</label>
+              <input name="rua" class="form-control" placeholder="Nome da rua">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Número</label>
+              <input name="numero" type="number" min="0" class="form-control" placeholder="Ex: 123">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cidade *</label>
+              <select name="city" id="adminCitySelect" required class="form-control">
+                <option value="">Selecione</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Bairro *</label>
+              <select name="neighborhood" id="adminNeighborhood" required class="form-control">
+                <option value="">Selecione a cidade primeiro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row triple">
+            <div class="form-group">
+              <label class="form-label">Preço *</label>
+              <input name="price" required class="form-control" placeholder="Ex: R$ 850.000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dormitórios</label>
+              <input name="bedrooms" type="number" min="0" class="form-control" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vagas</label>
+              <input name="parking" type="number" min="0" class="form-control" placeholder="0">
+            </div>
+          </div>
+
+          <div class="form-row triple">
+            <div class="form-group">
+              <label class="form-label">Suítes</label>
+              <input name="suites" type="number" min="0" class="form-control" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Área (m²)</label>
+              <input name="area" id="imovel-area" type="number" min="0" class="form-control" placeholder="Ex: 120">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select name="published" id="adminPublished" class="form-control">
+                <option value="true">Publicado</option>
+                <option value="false">Rascunho</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Status da Obra</label>
+              <select name="construction_status" id="adminConstructionStatus" class="form-control">
+                <option value="">Não informado</option>
+                <option value="pronto">Pronto</option>
+                <option value="pre-lancamento">Pré-lançamento</option>
+                <option value="em-obra">Em obra</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Fotos (múltiplas)</label>
+              <input name="images" type="file" accept="image/*" multiple class="form-control">
+            </div>
+          </div>
+
+          <div id="cover-picker" class="form-row single" style="display:none">
+            <div class="form-group">
+              <label class="form-label">
+                Foto de Capa
+                <span class="cover-picker-hint">(clique para definir a capa do card público)</span>
+              </label>
+              <div id="cover-strip" class="cover-strip"></div>
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Descrição</label>
+              <textarea name="description" class="form-control" placeholder="Descreva o imóvel…"></textarea>
+            </div>
+          </div>
+
+          <div class="form-section-sep">Dados do Proprietário</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nome do Proprietário</label>
+              <input name="owner_name" class="form-control" placeholder="Nome completo">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Telefone</label>
+              <input name="owner_phone" class="form-control" placeholder="(47) 99999-9999">
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">E-mail do Proprietário</label>
+              <input name="owner_email" type="email" class="form-control" placeholder="proprietario@email.com">
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Observações Confidenciais</label>
+              <textarea name="owner_notes" class="form-control" placeholder="Notas internas sobre o proprietário ou negociação…"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="modal-cancel">Cancelar</button>
+        <button type="submit" form="property-form" class="btn-save" id="form-submit-btn">Salvar Imóvel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Visualização do Imóvel ── -->
+  <div id="view-modal" class="hidden">
+    <div class="modal-box modal-box-wide">
+
+      <!-- ── VM Header ── -->
+      <div class="vm-header">
+        <div class="vm-header-top">
+          <div class="vm-id-title">
+            <span class="vm-code">#<span id="view-code"></span></span>
+            <span id="view-modal-title" class="vm-title"></span>
+            <span id="view-status-badge" class="badge"></span>
+          </div>
+          <button class="modal-close" id="view-modal-close" aria-label="Fechar">✕</button>
+        </div>
+
+        <div class="vm-address-row">
+          <span id="view-modal-address" class="vm-address-text"></span>
+          <div class="vm-map-links">
+            <a id="view-map-link" href="#" target="_blank" rel="noopener" class="vm-map-btn">
+              📍 Localização
+            </a>
+            <a id="view-directions-link" href="#" target="_blank" rel="noopener" class="vm-map-btn">
+              🗺️ Como chegar
+            </a>
+          </div>
+        </div>
+
+        <div class="vm-thumb-actions">
+          <img id="view-thumb-preview" src="" alt="" class="vm-thumb-preview">
+          <div class="vm-actions">
+            <button class="vm-action-btn" title="Feedback ao proprietário">
+              <span class="vm-action-icon">💬</span>
+              <span class="vm-action-label">Feedback p/ proprietário</span>
+            </button>
+            <button class="vm-action-btn" title="Roteiros de visitas">
+              <span class="vm-action-icon">🗓️</span>
+              <span class="vm-action-label">Roteiros de visitas</span>
+            </button>
+            <button class="vm-action-btn" title="Adicionar proposta">
+              <span class="vm-action-icon">📝</span>
+              <span class="vm-action-label">Adicionar proposta</span>
+            </button>
+            <button class="vm-action-btn" title="Controle de chaves">
+              <span class="vm-action-icon">🔑</span>
+              <span class="vm-action-label">Controle de chaves</span>
+            </button>
+            <button class="vm-action-btn" title="Radar">
+              <span class="vm-action-icon">📡</span>
+              <span class="vm-action-label">Radar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <button class="tab-btn active" data-tab="principal">Principal</button>
+        <button class="tab-btn" data-tab="detalhes">Detalhes</button>
+        <button class="tab-btn" data-tab="confidencial">🔒 Confidencial</button>
+      </div>
+
+      <!-- Tab: Principal -->
+      <div id="tab-principal" class="tab-panel">
+        <div class="modal-body">
+          <div class="view-gallery-wrap">
+            <div class="view-main-img-wrap">
+              <img id="view-main-img" src="" alt="" class="view-main-img">
+              <button id="view-prev" class="gallery-nav-btn gallery-nav-prev" style="display:none">&lt;</button>
+              <button id="view-next" class="gallery-nav-btn gallery-nav-next" style="display:none">&gt;</button>
+              <span id="view-counter" class="gallery-counter"></span>
+            </div>
+            <div id="view-thumbs" class="view-thumbs"></div>
+          </div>
+          <div class="vm-data-grid">
+            <div class="vm-data-item vm-price-item">
+              <div class="vm-data-label">Valor</div>
+              <div id="view-price" class="vm-data-value vm-price"></div>
+            </div>
+            <div class="vm-data-item">
+              <div class="vm-data-label">Dormitórios</div>
+              <div id="view-bedrooms" class="vm-data-value">—</div>
+            </div>
+            <div class="vm-data-item">
+              <div class="vm-data-label">Suítes</div>
+              <div id="view-suites" class="vm-data-value">—</div>
+            </div>
+            <div class="vm-data-item">
+              <div class="vm-data-label">Vagas</div>
+              <div id="view-parking" class="vm-data-value">—</div>
+            </div>
+            <div class="vm-data-item">
+              <div class="vm-data-label">Área (m²)</div>
+              <div id="view-area" class="vm-data-value">—</div>
+            </div>
+            <div class="vm-data-item" id="view-condominium-item" style="grid-column:1/-1;display:none">
+              <div class="vm-data-label">Condomínio / Edifício</div>
+              <div id="view-condominium" class="vm-data-value" style="font-size:15px;font-weight:600"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Detalhes -->
+      <div id="tab-detalhes" class="tab-panel hidden">
+        <div class="modal-body">
+          <p class="vm-data-label" style="margin-bottom:10px">Descrição completa</p>
+          <div id="view-description" class="vm-description"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Confidencial -->
+      <div id="tab-confidencial" class="tab-panel hidden">
+        <div class="modal-body">
+          <div class="conf-grid">
+            <div class="conf-item">
+              <div class="conf-label">Nome do Proprietário</div>
+              <div id="conf-name" class="conf-value">—</div>
+            </div>
+            <div class="conf-item">
+              <div class="conf-label">Telefone</div>
+              <div id="conf-phone" class="conf-value">—</div>
+            </div>
+            <div class="conf-item">
+              <div class="conf-label">E-mail</div>
+              <div id="conf-email" class="conf-value">—</div>
+            </div>
+            <div class="conf-item full">
+              <div class="conf-label">Observações</div>
+              <div id="conf-notes" class="conf-value conf-notes-text">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" id="view-modal-close2">Fechar</button>
+        <button class="btn-secondary" id="view-modal-share">🔗 Compartilhar</button>
+        <button class="btn-primary" id="view-modal-edit">✏️ Editar</button>
+      </div>
+
+      <!-- Share panel -->
+      <div id="share-panel" style="display:none;padding:12px 20px 16px;border-top:1px solid var(--border);background:var(--surface);">
+        <p style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 10px;color:#9ca3af;">Compartilhar</p>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px;">
+          <button id="share-whatsapp" style="display:inline-flex;align-items:center;gap:5px;background:transparent;color:#25D366;border:1px solid #25D366;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#25D366';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#25D366'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp
+          </button>
+          <button id="share-instagram" style="display:inline-flex;align-items:center;gap:5px;background:transparent;color:#e1306c;border:1px solid #e1306c;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#e1306c';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#e1306c'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            Instagram
+          </button>
+          <button id="share-email" style="display:inline-flex;align-items:center;gap:5px;background:transparent;color:#6366f1;border:1px solid #6366f1;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#6366f1';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#6366f1'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            E-mail
+          </button>
+          <button id="share-copy" style="display:inline-flex;align-items:center;gap:5px;background:transparent;color:var(--accent,#b8962e);border:1px solid var(--accent,#b8962e);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='var(--accent,#b8962e)';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='var(--accent,#b8962e)'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Copiar link
+          </button>
+        </div>
+        <div style="position:relative;">
+          <input id="share-link-input" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:7px 34px 7px 10px;border:1px solid var(--border);border-radius:8px;font-size:11px;background:#f9fafb;color:#6b7280;cursor:text;outline:none;font-family:monospace;">
+          <span onclick="navigator.clipboard.writeText(document.getElementById('share-link-input').value).then(()=>{this.style.color='#22c55e';setTimeout(()=>this.style.color='#9ca3af',1200)})" style="position:absolute;right:9px;top:50%;transform:translateY(-50%);cursor:pointer;color:#9ca3af;display:flex;align-items:center;" title="Copiar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js");
+      });
+    }
+  </script>
+</body>
+</html>
