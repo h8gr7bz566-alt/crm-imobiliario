@@ -6579,10 +6579,18 @@ function _initTagPicker(panel, allTags, tagMap) {
 async function initDashboardSection() {
   const section = document.getElementById('section-dashboard')
   if (!section) return
-  if (section.dataset.dbInit === '1') return   // já inicializado
+
+  const alreadyBuilt = section.dataset.dbInit === '1'
+
+  // Destroy existing chart instances before re-rendering
+  if (alreadyBuilt) {
+    if (window._dbLeadsChartInstance)  { window.window._dbLeadsChartInstance.destroy();  window._dbLeadsChartInstance  = null }
+    if (window._dbOriginChartInstance) { window.window._dbOriginChartInstance.destroy(); window._dbOriginChartInstance = null }
+  }
+
   section.dataset.dbInit = '1'
 
-  // ── 1. Render skeleton HTML ──────────────────────────────────────────────
+  // ── 1. Render skeleton HTML (always, so KPI cards show shimmer on refresh) ──
   section.innerHTML = `
 <div class="db-wrap">
 
@@ -6891,7 +6899,7 @@ let _dbLeadsChartInstance = null
 function _dbRenderLeadsChart(leads, days) {
   const canvas = document.getElementById('db-leads-chart')
   if (!canvas || !window.Chart) return
-  if (_dbLeadsChartInstance) { _dbLeadsChartInstance.destroy(); _dbLeadsChartInstance = null }
+  if (window._dbLeadsChartInstance) { window._dbLeadsChartInstance.destroy(); _dbLeadsChartInstance = null }
 
   const labels = [], counts = []
   const now = new Date()
@@ -6950,12 +6958,12 @@ function _dbRenderLeadsChart(leads, days) {
 }
 
 // ── Origin Doughnut Chart ─────────────────────────────────────────────────────
-let _dbOriginChartInstance = null
+window._dbOriginChartInstance = null
 function _dbRenderOriginChart(leads) {
   const canvas = document.getElementById('db-origin-chart')
   const legendEl = document.getElementById('db-origin-legend')
   if (!canvas || !window.Chart) return
-  if (_dbOriginChartInstance) { _dbOriginChartInstance.destroy(); _dbOriginChartInstance = null }
+  if (window._dbOriginChartInstance) { window._dbOriginChartInstance.destroy(); _dbOriginChartInstance = null }
 
   // Count by source
   const sources = {}
@@ -6978,7 +6986,7 @@ function _dbRenderOriginChart(leads) {
   const colors  = labels.map((_, i) => palette[i % palette.length])
   const total   = values.reduce((a,b) => a+b, 0)
 
-  _dbOriginChartInstance = new Chart(canvas, {
+  window._dbOriginChartInstance = new Chart(canvas, {
     type: 'doughnut',
     data: {
       labels,
