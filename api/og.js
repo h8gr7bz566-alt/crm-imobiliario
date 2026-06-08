@@ -39,14 +39,6 @@ module.exports = async function handler(req, res) {
 
     const apiUrl = `${SUPABASE_URL}/rest/v1/properties?id=eq.${encodeURIComponent(rawId)}&select=id,title,description,price,images,cover_image,bedrooms,parking,city,neighborhood&limit=1`
 
-    if (debug) {
-      return res.status(200).json({
-        rawId,
-        apiUrl: apiUrl.replace(SUPABASE_KEY, 'KEY_HIDDEN'),
-        env: { URL: !!process.env.VITE_SUPABASE_URL, KEY: !!process.env.VITE_SUPABASE_ANON_KEY }
-      })
-    }
-
     const resp = await fetch(apiUrl, {
       headers: {
         'apikey': SUPABASE_KEY,
@@ -58,6 +50,7 @@ module.exports = async function handler(req, res) {
     if (!resp.ok) {
       const errBody = await resp.text().catch(() => '')
       console.error('OG supabase error:', resp.status, errBody)
+      if (debug) return res.status(500).json({ error: 'supabase_error', status: resp.status, body: errBody })
       return res.redirect(302, target)
     }
 
@@ -66,6 +59,7 @@ module.exports = async function handler(req, res) {
 
     if (!p) {
       console.error('OG: property not found for id:', rawId)
+      if (debug) return res.status(404).json({ error: 'not_found', rawId, rows, apiUrl: apiUrl.replace(SUPABASE_KEY,'KEY') })
       return res.redirect(302, target)
     }
 
