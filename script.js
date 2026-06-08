@@ -369,6 +369,7 @@ function renderCollections(all) {
     wrap._carouselDelegated = true
     wrap.addEventListener('click', carouselHandler)
   }
+  wireCarouselTouch(wrap)
 }
 
 async function renderPublic() {
@@ -430,6 +431,7 @@ async function renderPublic() {
   if (grid && !grid._carouselDelegated) {
     grid._carouselDelegated = true
     grid.addEventListener('click', carouselHandler)
+    wireCarouselTouch(grid)
   }
 }
 
@@ -470,48 +472,94 @@ window.filterByStatus = function(status) {
   renderPublic()
 }
 
-function carouselHandler(e) {
-  // Só age se o clique/toque foi num botão de carousel
-  const btn = e.target.closest('.carousel-btn')
-  if (!btn) return
-  // Agora sim: impede navegação e bubbling
-  e.preventDefault()
-  e.stopPropagation()
-  const wrap = btn.closest('.icard-img-wrap')
-  if (!wrap) return
+// ─── Avança/volta no carrossel de um card ─────────────────────────────────
+function _advanceWrap(wrap, dir) {
   const total = parseInt(wrap.dataset.total, 10)
   if (!total || total < 2) return
   let idx = parseInt(wrap.dataset.idx, 10) || 0
-  const dir = btn.classList.contains('carousel-next') ? 1 : -1
   idx = (idx + dir + total) % total
   wrap.dataset.idx = idx
-  // Lê imagens do atributo data-images (gravado no render)
   try {
     const images = JSON.parse(decodeURIComponent(wrap.dataset.images || '[]'))
     if (images.length && images[idx]) {
-      const newSrc = images[idx]
       const fg = wrap.querySelector('.carousel-img')
       const bg = wrap.querySelector('.carousel-img-bg')
-      if (fg) fg.src = newSrc
-      if (bg) bg.src = newSrc
+      if (fg) fg.src = images[idx]
+      if (bg) bg.src = images[idx]
     }
   } catch(err) {
-    // fallback: busca em cachedProperties
     const prop = cachedProperties.find(x => String(x.id) === String(wrap.dataset.pid))
     const imgs = prop?.images?.length ? prop.images : SAMPLE_URLS
-    if (imgs[idx]) {
-      const fg = wrap.querySelector('.carousel-img')
-      const bg = wrap.querySelector('.carousel-img-bg')
-      if (fg) fg.src = imgs[idx]
-      if (bg) bg.src = imgs[idx]
-    }
+    const fg = wrap.querySelector('.carousel-img')
+    const bg = wrap.querySelector('.carousel-img-bg')
+    if (fg && imgs[idx]) fg.src = imgs[idx]
+    if (bg && imgs[idx]) bg.src = imgs[idx]
   }
-  // Atualiza dots indicadores
   const dots = wrap.querySelectorAll('.icard-dot')
   if (dots.length) {
-    const activeIdx = idx % dots.length
-    dots.forEach((d, i) => d.classList.toggle('active', i === activeIdx))
+    const ai = idx % dots.length
+    dots.forEach((d, i) => d.classList.toggle('active', i === ai))
   }
+}
+
+function carouselHandler(e) {
+  // 1) Botão de carousel clicado
+  const btn = e.target.closest('.carousel-btn')
+  if (btn) {
+    e.preventDefault()
+    e.stopPropagation()
+    const wrap = btn.closest('.icard-img-wrap')
+    if (wrap) _advanceWrap(wrap, btn.classList.contains('carousel-next') ? 1 : -1)
+    return
+  }
+  // 2) Clique no WhatsApp ou no ícone de coração → deixa o link nativo agir
+  if (e.target.closest('.icard-wa') || e.target.closest('.icard-heart')) return
+  // 3) Clique na imagem ou no corpo do card → navega para o imóvel
+  const tapTarget = e.target.closest('[data-href]')
+  if (tapTarget) {
+    e.preventDefault()
+    window.location.href = tapTarget.dataset.href
+    return
+  }
+}
+
+// ─── Touch swipe no carrossel (mobile) ────────────────────────────────────
+function wireCarouselTouch(container) {
+  container.querySelectorAll('.icard-img-wrap').forEach(wrap => {
+    let startX = 0, startY = 0, moved = false
+    wrap.addEventListener('touchstart', function(e) {
+      // Botão: marca que não é swipe e previne clique duplicado no link
+      if (e.target.closest('.carousel-btn')) {
+        moved = true; return
+      }
+      startX = e.touches[0].clientX
+      startY = e.touches[0].clientY
+      moved = false
+    }, { passive: true })
+
+    wrap.addEventListener('touchmove', function(e) {
+      if (!moved) {
+        const dx = Math.abs(e.touches[0].clientX - startX)
+        const dy = Math.abs(e.touches[0].clientY - startY)
+        if (dx > 8 || dy > 8) moved = true
+      }
+    }, { passive: true })
+
+    wrap.addEventListener('touchend', function(e) {
+      if (e.target.closest('.carousel-btn')) {
+        e.preventDefault()
+        const btn = e.target.closest('.carousel-btn')
+        _advanceWrap(wrap, btn.classList.contains('carousel-next') ? 1 : -1)
+        return
+      }
+      if (!moved) return // tap simples → deixa o [data-href] handler agir
+      const dx = e.changedTouches[0].clientX - startX
+      if (Math.abs(dx) > 40) {
+        e.preventDefault()
+        _advanceWrap(wrap, dx < 0 ? 1 : -1)
+      }
+    }, { passive: false })
+  })
 }
 
 // ─── Faixa de Preço (select) ──────────────────────────────────────────────
@@ -906,16 +954,16 @@ function buildPropertyCard(p) {
     <div class="imovel-card" data-pid="${p.id}">
       <div class="icard-img-wrap" data-total="${total}" data-idx="0" data-pid="${p.id}" data-images="${encodeURIComponent(JSON.stringify(images))}">
         <img src="${escapeHTML(img0)}" alt="" class="icard-img-bg carousel-img-bg" aria-hidden="true">
-        <a href="property.html?id=${p.id}" class="icard-img-link">
+        <div class="icard-img-link" data-href="property.html?id=${p.id}" role="link" tabindex="0" aria-label="Ver ${escapeHTML(p.title)}">
           <img src="${escapeHTML(img0)}" alt="${escapeHTML(p.title)}" class="icard-img carousel-img">
-        </a>
+        </div>
         ${total > 1 ? `
           <button type="button" class="carousel-btn carousel-prev icard-prev" aria-label="Anterior">&#8249;</button>
           <button type="button" class="carousel-btn carousel-next icard-next" aria-label="Próximo">&#8250;</button>
         ` : ''}
         ${dots}
       </div>
-      <div class="icard-body">
+      <div class="icard-body" data-href="property.html?id=${p.id}">
         ${p.furnished === true ? '<span class="icard-badge">🛋️ Mobiliado</span>' : ''}
         <div class="icard-neighborhood">${escapeHTML(p.neighborhood || p.title)}</div>
         <div class="icard-address">${escapeHTML(addr)}</div>

@@ -398,6 +398,14 @@ a{color:inherit;text-decoration:none;}
   .footer-col-brand{grid-column:span 1;}
   .prop-section-header{flex-direction:column;align-items:flex-start;}
 
+  /* ── Setas do carousel sempre visíveis no mobile ── */
+  .icard-prev, .icard-next {
+    opacity: 0.88 !important;
+    width: 36px; height: 36px; font-size: 22px;
+  }
+  /* Remove scale hover que causava tremida */
+  .imovel-card:hover .icard-img { transform: none !important; }
+
   /* ── Search box mobile: grid 2 colunas ── */
   .hero-v2-search{padding:0 12px;}
   .hero-v2-search-inner{
@@ -790,6 +798,7 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
   z-index: 1;
   width: 100%;
   height: 100%;
+  cursor: pointer;
 }
 .icard-img {
   width: 100%; height: 100%;
@@ -839,6 +848,7 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
 .icard-body {
   padding: 14px 16px 12px;
   display: flex; flex-direction: column; gap: 4px; flex: 1;
+  cursor: pointer;
 }
 .icard-badge {
   display: inline-block;
