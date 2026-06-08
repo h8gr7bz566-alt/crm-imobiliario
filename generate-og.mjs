@@ -18,7 +18,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 const { data: properties, error } = await supabase
   .from('properties')
-  .select('id, title, description, price, images, bedrooms, parking, city, neighborhood')
+  .select('id, title, description, price, images, cover_image, bedrooms, parking, city, neighborhood')
   .eq('published', true)
 
 if (error) {
@@ -39,7 +39,8 @@ const ogDir = path.join('public', 'og')
 fs.mkdirSync(ogDir, { recursive: true })
 
 for (const p of properties ?? []) {
-  const target = `https://omarcorretor.com.br/property.html?id=${p.id}`
+  const target  = `https://omarcorretor.com.br/property.html?id=${p.id}`
+  const ogUrl   = `https://omarcorretor.com.br/og/${p.id}`
 
   const parts = []
   if (p.price)        parts.push(p.price)
@@ -51,8 +52,14 @@ for (const p of properties ?? []) {
   const ogTitle = esc(`${p.title} - Isaac Omar Corretor`)
   const ogDesc  = esc(parts.length ? parts.join(' | ') : (p.description?.slice(0, 160) || 'Imovel em Isaac Omar Corretor'))
   // Filtra base64 data URIs — WhatsApp só aceita https://
-  const rawImg = p.cover_image || (p.images && p.images.find(i => i && i.startsWith('http'))) || ''
-  const ogImage = rawImg
+  function pickImg(p) {
+    const candidates = [p.cover_image, ...(Array.isArray(p.images) ? p.images : [])]
+    for (const c of candidates) {
+      if (c && typeof c === 'string' && c.startsWith('http')) return c
+    }
+    return 'https://omarcorretor.com.br/logo.png'
+  }
+  const ogImage = pickImg(p)
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -60,7 +67,7 @@ for (const p of properties ?? []) {
 <meta charset="UTF-8">
 <title>${ogTitle}</title>
 <meta property="og:type"        content="website">
-<meta property="og:url"         content="${esc(target)}">
+<meta property="og:url"         content="${esc(ogUrl)}">
 <meta property="og:title"       content="${ogTitle}">
 <meta property="og:description" content="${ogDesc}">
 <meta property="og:site_name"   content="Isaac Omar Corretor">
@@ -71,7 +78,7 @@ ${ogImage ? `<meta property="og:image"       content="${esc(ogImage)}">
 <meta name="twitter:title"       content="${ogTitle}">
 <meta name="twitter:description" content="${ogDesc}">
 ${ogImage ? `<meta name="twitter:image" content="${esc(ogImage)}">` : ''}
-<link rel="canonical" href="${esc(target)}">
+<link rel="canonical" href="${esc(ogUrl)}">
 <meta http-equiv="refresh" content="0;url=${target}">
 </head>
 <body style="font-family:sans-serif;text-align:center;padding:40px;color:#555">

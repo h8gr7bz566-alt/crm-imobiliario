@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:full",
   "outputDirectory": "dist",
   "headers": [
     {
@@ -37,13 +37,11 @@
   "rewrites": [
     {
       "source": "/og/:id",
-      "destination": "/api/og?id=:id",
-      "force": true
+      "destination": "/api/og?id=:id"
     },
     {
       "source": "/og/:id.html",
-      "destination": "/api/og?id=:id",
-      "force": true
+      "destination": "/api/og?id=:id"
     },
     {
       "source": "/ios.imobi",
