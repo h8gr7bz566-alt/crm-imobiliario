@@ -6728,10 +6728,9 @@ async function initDashboardSection() {
   // ── 3. Fetch data in parallel ────────────────────────────────────────────
   let properties = [], leads = []
   try {
-    const tid = getSettingsTenantId()
     const [propsRes, leadsRes] = await Promise.all([
       getAllProperties(),
-      _dbFetchLeads(tid)
+      _dbFetchLeads()
     ])
     properties = propsRes || []
     leads      = leadsRes || []
@@ -6820,13 +6819,18 @@ function _dbFmt(n) {
   return String(n)
 }
 
-async function _dbFetchLeads(tenantId) {
+async function _dbFetchLeads() {
+  // Mirrors loadKanbanLeads tenant logic exactly
   let query = supabase
     .from('leads')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(200)
-  if (tenantId && tenantId !== GLOBAL_TENANT_ID) query = query.eq('tenant_id', tenantId)
+    .limit(500)
+  if (currentProfile?.role === 'corretor') {
+    query = query.eq('assigned_to', currentProfile.id)
+  } else if (currentProfile?.tenant_id) {
+    query = query.eq('tenant_id', currentProfile.tenant_id)
+  }
   const { data, error } = await query
   if (error) { console.warn('[Dashboard] leads fetch error:', error.message); return [] }
   return data || []
