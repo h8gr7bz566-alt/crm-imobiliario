@@ -368,8 +368,15 @@ function renderCollections(all) {
   if (!wrap._carouselDelegated) {
     wrap._carouselDelegated = true
     wrap.addEventListener('click', carouselHandler)
+    // Mobile: touchend nos botões de carousel (não bloqueia scroll do grid)
+    wrap.addEventListener('touchend', function(e) {
+      const btn = e.target.closest('.carousel-btn')
+      if (!btn) return
+      e.preventDefault()
+      e.stopPropagation()
+      _advanceWrap(btn.closest('.icard-img-wrap'), btn.classList.contains('carousel-next') ? 1 : -1)
+    }, { passive: false })
   }
-  wireCarouselTouch(wrap)
 }
 
 async function renderPublic() {
@@ -431,7 +438,6 @@ async function renderPublic() {
   if (grid && !grid._carouselDelegated) {
     grid._carouselDelegated = true
     grid.addEventListener('click', carouselHandler)
-    wireCarouselTouch(grid)
   }
 }
 
@@ -523,44 +529,7 @@ function carouselHandler(e) {
   }
 }
 
-// ─── Touch swipe no carrossel (mobile) ────────────────────────────────────
-function wireCarouselTouch(container) {
-  container.querySelectorAll('.icard-img-wrap').forEach(wrap => {
-    let startX = 0, startY = 0, moved = false
-    wrap.addEventListener('touchstart', function(e) {
-      // Botão: marca que não é swipe e previne clique duplicado no link
-      if (e.target.closest('.carousel-btn')) {
-        moved = true; return
-      }
-      startX = e.touches[0].clientX
-      startY = e.touches[0].clientY
-      moved = false
-    }, { passive: true })
-
-    wrap.addEventListener('touchmove', function(e) {
-      if (!moved) {
-        const dx = Math.abs(e.touches[0].clientX - startX)
-        const dy = Math.abs(e.touches[0].clientY - startY)
-        if (dx > 8 || dy > 8) moved = true
-      }
-    }, { passive: true })
-
-    wrap.addEventListener('touchend', function(e) {
-      if (e.target.closest('.carousel-btn')) {
-        e.preventDefault()
-        const btn = e.target.closest('.carousel-btn')
-        _advanceWrap(wrap, btn.classList.contains('carousel-next') ? 1 : -1)
-        return
-      }
-      if (!moved) return // tap simples → deixa o [data-href] handler agir
-      const dx = e.changedTouches[0].clientX - startX
-      if (Math.abs(dx) > 40) {
-        e.preventDefault()
-        _advanceWrap(wrap, dx < 0 ? 1 : -1)
-      }
-    }, { passive: false })
-  })
-}
+// (wireCarouselTouch removido — scroll nativo do grid tem prioridade)
 
 // ─── Faixa de Preço (select) ──────────────────────────────────────────────
 function getPriceRange() {
