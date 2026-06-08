@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <title>Redirecionando...</title>
   <script>
-    // GitHub Pages 404 redirect — mapeia URLs sem .html para os arquivos corretos
-    var path = window.location.pathname;
+    // Mapeia URLs sem .html para os arquivos corretos
+    var path = window.location.pathname.replace(/\/$/, '');
     var routes = {
       '/ios.imobi': '/ios.imobi.html',
       '/admin':     '/admin.html',
@@ -13,12 +13,23 @@
       '/servicos':  '/servicos.html',
       '/property':  '/property.html'
     };
-    var redirect = routes[path] || routes[path.replace(/\/$/, '')];
-    if (redirect) {
-      window.location.replace(redirect + window.location.search + window.location.hash);
+    // Compatibilidade: links antigos /og/123 ou /og/123.html → property.html?id=123
+    var ogMatch = path.match(/^\/og\/(\d+)(?:\.html)?$/);
+    if (ogMatch) {
+      window.location.replace('/property.html?id=' + ogMatch[1]);
+    } else if (routes[path]) {
+      window.location.replace(routes[path] + window.location.search + window.location.hash);
     } else {
-      document.title = '404 — Página não encontrada';
-      document.open(); document.write('<h2 style="font-family:sans-serif;text-align:center;margin-top:80px">Página não encontrada</h2><p style="text-align:center"><a href="/">← Voltar ao início</a></p>'); document.close();
+      // Tenta extrair id de qualquer formato /property/123 ou /imovel/123
+      var propMatch = path.match(/^\/(?:property|imovel)\/(\d+)$/);
+      if (propMatch) {
+        window.location.replace('/property.html?id=' + propMatch[1]);
+      } else {
+        document.title = '404 — Página não encontrada';
+        document.open();
+        document.write('<h2 style="font-family:sans-serif;text-align:center;margin-top:80px">Página não encontrada</h2><p style="text-align:center"><a href="/">← Voltar ao início</a></p>');
+        document.close();
+      }
     }
   </script>
 </head>
