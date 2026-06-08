@@ -6728,7 +6728,7 @@ async function initDashboardSection() {
   // ── 3. Fetch data in parallel ────────────────────────────────────────────
   let properties = [], leads = []
   try {
-    const tid = currentProfile?.tenant_id
+    const tid = getSettingsTenantId()
     const [propsRes, leadsRes] = await Promise.all([
       getAllProperties(),
       _dbFetchLeads(tid)
@@ -6823,10 +6823,10 @@ function _dbFmt(n) {
 async function _dbFetchLeads(tenantId) {
   let query = supabase
     .from('leads')
-    .select('id,name,phone,email,source,status,stage,created_at,property_id')
+    .select('*')
     .order('created_at', { ascending: false })
-    .limit(60)
-  if (tenantId) query = query.eq('tenant_id', tenantId)
+    .limit(200)
+  if (tenantId && tenantId !== GLOBAL_TENANT_ID) query = query.eq('tenant_id', tenantId)
   const { data, error } = await query
   if (error) { console.warn('[Dashboard] leads fetch error:', error.message); return [] }
   return data || []
