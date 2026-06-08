@@ -268,9 +268,11 @@ function closeMobileNav(){
   </a>
   <script>
     function shareProperty() {
+      // Usa SEMPRE a URL exata da aba atual — garante que o link copiado é igual ao que abriu o imóvel.
       const id = new URLSearchParams(window.location.search).get('id')
-      if (!id) return
-      const url = `https://omarcorretor.com.br/og/${id}.html`
+      const url = id
+        ? 'https://omarcorretor.com.br/property.html?id=' + encodeURIComponent(id)
+        : window.location.href
       if (navigator.clipboard) {
         navigator.clipboard.writeText(url).then(() => showShareToast())
       } else {

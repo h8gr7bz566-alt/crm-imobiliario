@@ -22,6 +22,11 @@
   ],
   "redirects": [
     {
+      "source": "/og/:id",
+      "destination": "https://omarcorretor.com.br/property.html?id=:id",
+      "permanent": false
+    },
+    {
       "source": "/(.*)",
       "has": [
         {
@@ -37,11 +42,19 @@
   "rewrites": [
     {
       "source": "/og/:id",
-      "destination": "/api/og?id=:id"
+      "destination": "/property.html?id=:id"
     },
     {
       "source": "/og/:id.html",
-      "destination": "/api/og?id=:id"
+      "destination": "/property.html?id=:id"
+    },
+    {
+      "source": "/property/:id",
+      "destination": "/property.html?id=:id"
+    },
+    {
+      "source": "/imovel/:id",
+      "destination": "/property.html?id=:id"
     },
     {
       "source": "/ios.imobi",

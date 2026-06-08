@@ -905,7 +905,7 @@ function buildPropertyCard(p) {
   const img0   = p.cover_image || images[0]
   const addr   = formatAddress(p.rua, p.numero, p.neighborhood, p.city, 'SC')
   const price  = formatPrice(p.price, window.currentLang || 'pt')
-  const ogLink = `https://omarcorretor.com.br/og/${p.id}`
+  const ogLink = `https://omarcorretor.com.br/property.html?id=${p.id}`
   const waMsg  = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?\n${ogLink}`)
 
   // Indicadores
@@ -1021,7 +1021,7 @@ function openViewModal(p) {
   document.getElementById('tab-principal').classList.remove('hidden')
 
   // Preencher link de compartilhamento
-  const shareUrl = 'https://omarcorretor.com.br/og/' + p.id
+  const shareUrl = 'https://omarcorretor.com.br/property.html?id=' + p.id
   const shareLinkInput = document.getElementById('share-link-input')
   if (shareLinkInput) shareLinkInput.value = shareUrl
   // Fechar share panel ao abrir novo modal; armazena pid para mensagem WhatsApp

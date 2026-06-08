@@ -138,7 +138,7 @@ function showError() {
 window.shareProperty = function() {
   const id  = new URLSearchParams(window.location.search).get('id')
   const url = id
-    ? `https://omarcorretor.com.br/og/${id}`
+    ? `https://omarcorretor.com.br/property.html?id=${id}`
     : window.location.href
   if (navigator.share) {
     navigator.share({ url }).catch(() => {})
