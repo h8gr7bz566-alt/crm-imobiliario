@@ -394,11 +394,29 @@ a{color:inherit;text-decoration:none;}
   .main-nav{display:none;}
   .hamburger{display:flex;}
   .info-bar-langs{display:none;}
-  .hero-v2-search-inner{flex-direction:column;}
-  .search-field{min-width:100%;}
   .footer-v2-top{grid-template-columns:1fr;}
   .footer-col-brand{grid-column:span 1;}
   .prop-section-header{flex-direction:column;align-items:flex-start;}
+
+  /* ── Search box mobile: grid 2 colunas ── */
+  .hero-v2-search{padding:0 12px;}
+  .hero-v2-search-inner{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    align-items:end;
+    gap:10px;
+    padding:16px;
+    border-radius:12px;
+  }
+  .search-field{min-width:unset;}
+  .search-btn{grid-column:span 2;width:100%;justify-content:center;}
+
+  /* ── Espaço extra abaixo do hero para acomodar card flutuante ── */
+  .prop-section{padding-top:210px !important;}
+
+  /* ── Hero menor no mobile ── */
+  .hero-v2{min-height:72vh;}
+  .hero-v2-content{padding:70px 16px 30px;}
 }
 
 /* ═══════════════════════════════════════════════════════

@@ -357,10 +357,10 @@ function renderCollections(all) {
 
   const _carouselState = snapshotCarouselState(wrap)
   wrap.innerHTML = [
-    buildSection('Imóveis ' + (document.title.split('|')[0].trim() || 'Isaac Omar').split(' ').pop(), '#8B4513', all, 'imoveis.html'),
-    frenteMar.length  ? buildSection('Coleção FRENTE MAR',          '#8B4513', frenteMar,  'imoveis.html?collection=frente-mar') : '',
-    decorados.length  ? buildSection('Coleção DECORADOS',            '#8B4513', decorados,  'imoveis.html?collection=decorados')  : '',
-    casas.length      ? buildSection('Coleção CASAS EM CONDOMÍNIO',  '#8B4513', casas,       'imoveis.html?collection=casas-condominio') : '',
+    buildSection('Imóveis Disponíveis', 'var(--navy, #0d2144)', all, 'imoveis.html'),
+    frenteMar.length  ? buildSection('Coleção FRENTE MAR',          'var(--navy, #0d2144)', frenteMar,  'imoveis.html?collection=frente-mar') : '',
+    decorados.length  ? buildSection('Coleção DECORADOS',            'var(--navy, #0d2144)', decorados,  'imoveis.html?collection=decorados')  : '',
+    casas.length      ? buildSection('Coleção CASAS EM CONDOMÍNIO',  'var(--navy, #0d2144)', casas,       'imoveis.html?collection=casas-condominio') : '',
   ].join('')
   restoreCarouselState(wrap, _carouselState)
 
