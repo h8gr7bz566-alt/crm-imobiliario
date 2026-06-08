@@ -37,12 +37,12 @@
   "rewrites": [
     {
       "source": "/og/:id",
-      "destination": "/api/og/:id",
+      "destination": "/api/og?id=:id",
       "force": true
     },
     {
       "source": "/og/:id.html",
-      "destination": "/api/og/:id",
+      "destination": "/api/og?id=:id",
       "force": true
     },
     {
