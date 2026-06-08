@@ -25,12 +25,18 @@ function formatPrice(raw) {
 module.exports = async function handler(req, res) {
   const rawId = String(req.query.id || '').replace(/\.html$/, '').trim()
   const target = `https://omarcorretor.com.br/property.html?id=${rawId}`
+  const debug  = req.query.debug === '1'
 
   if (!rawId) return res.redirect(302, 'https://omarcorretor.com.br/')
 
   try {
     const SUPABASE_URL = process.env.VITE_SUPABASE_URL
     const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY
+
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      if (debug) return res.status(500).json({ error: 'env vars missing', SUPABASE_URL: !!SUPABASE_URL, SUPABASE_KEY: !!SUPABASE_KEY })
+      return res.redirect(302, target)
+    }
 
     const apiUrl = `${SUPABASE_URL}/rest/v1/properties?id=eq.${encodeURIComponent(rawId)}&select=id,title,description,price,images,cover_image,bedrooms,parking,city,neighborhood&limit=1`
 
@@ -42,12 +48,19 @@ module.exports = async function handler(req, res) {
       }
     })
 
-    if (!resp.ok) return res.redirect(302, target)
+    if (!resp.ok) {
+      const errBody = await resp.text().catch(() => '')
+      if (debug) return res.status(500).json({ error: 'supabase_error', status: resp.status, body: errBody, url: apiUrl.replace(SUPABASE_KEY, 'KEY_HIDDEN') })
+      return res.redirect(302, target)
+    }
 
     const rows = await resp.json()
     const p = rows && rows[0]
 
-    if (!p) return res.redirect(302, target)
+    if (!p) {
+      if (debug) return res.status(404).json({ error: 'not_found', rawId, rows, url: apiUrl.replace(SUPABASE_KEY, 'KEY_HIDDEN') })
+      return res.redirect(302, target)
+    }
 
     const price = formatPrice(p.price)
     const parts = [
@@ -101,6 +114,7 @@ module.exports = async function handler(req, res) {
 
   } catch (err) {
     console.error('OG error:', err)
+    if (req.query.debug === '1') return res.status(500).json({ error: err.message, stack: err.stack })
     return res.redirect(302, target)
   }
 }
