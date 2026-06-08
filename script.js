@@ -1720,10 +1720,23 @@ async function openLeadModal(lead = null) {
   const { data: tags  } = await supabase.from('crm_tags').select('*').eq('tenant_id', tid).order('name')
   const { data: statuses } = await supabase.from('crm_lead_statuses').select('*').eq('tenant_id', tid).order('sort_order')
 
-  const stageOptions = kanbanStages
-    .filter(s => s.pipeline_id === activePipeId)
-    .map(s => `<option value="${escapeHTML(s.name)}" ${lead?.stage === s.name ? 'selected' : ''}>${escapeHTML(s.name)}</option>`)
+  // Determine which pipeline the lead belongs to (or use active)
+  const leadPipeId = lead?.pipeline_id
+    ? (kanbanPipes.find(p => p.id === lead.pipeline_id)?.id || activePipeId)
+    : activePipeId
+
+  function buildStageOptions(pipeId) {
+    return kanbanStages
+      .filter(s => s.pipeline_id === pipeId)
+      .map(s => `<option value="${escapeHTML(s.name)}" ${lead?.stage === s.name ? 'selected' : ''}>${escapeHTML(s.name)}</option>`)
+      .join('')
+  }
+
+  const pipeOptions = kanbanPipes
+    .map(p => `<option value="${p.id}" ${p.id === leadPipeId ? 'selected' : ''}>${escapeHTML(p.name)}</option>`)
     .join('')
+
+  const stageOptions = buildStageOptions(leadPipeId)
 
   const waNum = (lead?.phone || '').replace(/\D/g,'')
 
@@ -1754,6 +1767,11 @@ async function openLeadModal(lead = null) {
         <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">ORIGEM</label>
         <input id="ldp-source" class="form-input" type="text" value="${escapeHTML(lead?.source||'')}" placeholder="site, indicação, instagram…">
       </div>
+      ${kanbanPipes.length > 1 ? `
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">FUNIL</label>
+        <select id="ldp-pipe" class="form-input">${pipeOptions}</select>
+      </div>` : ''}
       <div>
         <label style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;display:block;margin-bottom:4px;">ETAPA DO FUNIL</label>
         <select id="ldp-stage" class="form-input">${stageOptions}</select>
@@ -1816,6 +1834,19 @@ async function openLeadModal(lead = null) {
   requestAnimationFrame(() => { panel.style.transform = 'translateX(0)' })
   _initTagPicker(panel, tags || [], kanbanTagMap)
 
+  // Wire funil → etapa dynamic update
+  const _pipeEl  = panel.querySelector('#ldp-pipe')
+  const _stageEl = panel.querySelector('#ldp-stage')
+  if (_pipeEl && _stageEl) {
+    _pipeEl.addEventListener('change', () => {
+      const pid = _pipeEl.value
+      const stages = kanbanStages.filter(s => s.pipeline_id === pid)
+      _stageEl.innerHTML = stages
+        .map(s => `<option value="${s.name}">${s.name}</option>`)
+        .join('') || '<option value="">— sem etapas —</option>'
+    })
+  }
+
   const close = () => {
     panel.style.transform = 'translateX(100%)'
     setTimeout(() => panel.remove(), 250)
@@ -1830,16 +1861,19 @@ async function openLeadModal(lead = null) {
     btn.disabled = true; btn.textContent = 'Salvando…'
 
     const selectedTags = [...panel.querySelectorAll('#ldp-tag-badge-area .ldp-tag-badge[data-tag]')].map(b => b.dataset.tag)
+    const _selPipeEl = document.getElementById('ldp-pipe')
+    const _selPipeId = _selPipeEl ? _selPipeEl.value : (leadPipeId || activePipeId)
     const row = {
       name,
-      phone:     document.getElementById('ldp-phone').value.trim() || null,
-      email:     document.getElementById('ldp-email').value.trim() || null,
-      source:    document.getElementById('ldp-source').value.trim() || null,
-      stage:     document.getElementById('ldp-stage')?.value || null,
-      status:    document.getElementById('ldp-status')?.value || null,
-      notes:     document.getElementById('ldp-notes').value.trim() || null,
-      tags:      selectedTags,
-      tenant_id: getSettingsTenantId(),
+      phone:       document.getElementById('ldp-phone').value.trim() || null,
+      email:       document.getElementById('ldp-email').value.trim() || null,
+      source:      document.getElementById('ldp-source').value.trim() || null,
+      pipeline_id: _selPipeId || null,
+      stage:       document.getElementById('ldp-stage')?.value || null,
+      status:      document.getElementById('ldp-status')?.value || null,
+      notes:       document.getElementById('ldp-notes').value.trim() || null,
+      tags:        selectedTags,
+      tenant_id:   getSettingsTenantId(),
     }
 
     let error
