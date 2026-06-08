@@ -1124,6 +1124,7 @@ async function updateVerSiteLink(profile) {
 // Helper: navigate to a section by name
 // Mapa de inicializadores de seção — lazy init na primeira navegação
 const _sectionInitMap = {
+  'dashboard':   () => initDashboardSection(),
   'empresa':     () => initEmpresaSection(),
   'visual':      () => initVisualSection(),
   'site-config': () => initSiteConfigSection(),
@@ -3566,6 +3567,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       await initSettings(currentProfile)
       if (window.lucide) lucide.createIcons()
       initNotifBadge()
+      navigateToSection('dashboard')
     } else {
       if (adminRoot) adminRoot.classList.add('hidden')
       loginModal.classList.remove('hidden')
@@ -3627,6 +3629,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               await renderAdmin()
               await initSettings(currentProfile)
               if (window.lucide) lucide.createIcons()
+              navigateToSection('dashboard')
             } else {
               alert('E-mail ou senha incorretos')
             }
@@ -6217,4 +6220,622 @@ function downloadImportTemplate() {
   const a    = document.createElement('a')
   a.href = url; a.download = 'modelo-contatos.csv'; a.click()
   URL.revokeObjectURL(url)
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD — initDashboardSection
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Lazy loader para Chart.js (CDN)
+function _loadChartJS() {
+  if (window.Chart) return Promise.resolve()
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script')
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js'
+    s.onload = resolve
+    s.onerror = reject
+    document.head.appendChild(s)
+  })
+}
+
+async function initDashboardSection() {
+  const section = document.getElementById('section-dashboard')
+  if (!section) return
+  if (section.dataset.dbInit === '1') return   // já inicializado
+  section.dataset.dbInit = '1'
+
+  // ── 1. Render skeleton HTML ──────────────────────────────────────────────
+  section.innerHTML = `
+<div class="db-wrap">
+
+  <!-- Header -->
+  <div class="db-header">
+    <div>
+      <h1 class="db-greeting">Carregando… <span class="db-greeting-name" id="db-greeting-name"></span></h1>
+      <p class="db-subline" id="db-subline">Preparando seu painel…</p>
+    </div>
+    <div class="db-header-chips" id="db-header-chips"></div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="db-kpis">
+    ${['db-kpi-indigo','db-kpi-emerald','db-kpi-amber','db-kpi-sky'].map((cls, i) => `
+    <div class="db-kpi ${cls}" id="db-kpi-${i}">
+      <div class="db-kpi-icon">
+        <div class="db-skeleton" style="width:22px;height:22px;border-radius:4px;"></div>
+      </div>
+      <div class="db-kpi-body">
+        <div class="db-skeleton db-skel-val"></div>
+        <div class="db-skeleton db-skel-lbl" style="margin-top:6px;"></div>
+        <div class="db-skeleton db-skel-trend" style="margin-top:8px;"></div>
+      </div>
+    </div>`).join('')}
+  </div>
+
+  <!-- Charts Row -->
+  <div class="db-row-main">
+    <div class="db-card">
+      <div class="db-card-head">
+        <div>
+          <div class="db-card-title">Leads Recebidos</div>
+          <div class="db-card-sub">Evolução por período</div>
+        </div>
+        <div class="db-ptabs" id="db-ptabs">
+          <button class="db-ptab active" data-p="7">7 dias</button>
+          <button class="db-ptab" data-p="30">30 dias</button>
+          <button class="db-ptab" data-p="90">3 meses</button>
+        </div>
+      </div>
+      <div class="db-chart-wrap"><canvas id="db-leads-chart"></canvas></div>
+    </div>
+    <div class="db-card">
+      <div class="db-card-head">
+        <div>
+          <div class="db-card-title">Origem dos Leads</div>
+          <div class="db-card-sub">Distribuição por canal</div>
+        </div>
+      </div>
+      <div class="db-donut-wrap"><canvas id="db-origin-chart"></canvas></div>
+      <div id="db-origin-legend" class="db-origin-legend"></div>
+    </div>
+  </div>
+
+  <!-- Second Row -->
+  <div class="db-row-secondary">
+    <div class="db-card">
+      <div class="db-card-head">
+        <div>
+          <div class="db-card-title">Leads Recentes</div>
+          <div class="db-card-sub" id="db-leads-sub">Últimos contatos recebidos</div>
+        </div>
+        <button class="db-card-link" onclick="navigateToSection('funil')">Ver todos →</button>
+      </div>
+      <div class="db-table-scroll">
+        <table class="db-table">
+          <thead><tr>
+            <th>Contato</th>
+            <th>Origem</th>
+            <th>Status</th>
+            <th>Data</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="db-leads-tbody">
+            <tr><td colspan="5" class="db-empty"><div class="db-empty-icon">⏳</div><div class="db-empty-text">Carregando leads…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="db-card">
+      <div class="db-card-head">
+        <div>
+          <div class="db-card-title">Imóveis do Portfólio</div>
+          <div class="db-card-sub">Mais recentes</div>
+        </div>
+        <button class="db-card-link" onclick="navigateToSection('properties')">Ver todos →</button>
+      </div>
+      <div class="db-prop-list" id="db-top-props">
+        <div class="db-empty"><div class="db-empty-icon">⏳</div><div class="db-empty-text">Carregando…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Third Row -->
+  <div class="db-row-third">
+    <div class="db-card">
+      <div class="db-card-head">
+        <div>
+          <div class="db-card-title">Atividade Recente</div>
+          <div class="db-card-sub">Histórico do sistema</div>
+        </div>
+      </div>
+      <div class="db-timeline" id="db-timeline">
+        <div class="db-empty"><div class="db-empty-icon">⏳</div><div class="db-empty-text">Carregando…</div></div>
+      </div>
+    </div>
+    <div class="db-card">
+      <div class="db-card-head">
+        <div>
+          <div class="db-card-title">Resumo da Carteira</div>
+          <div class="db-card-sub">Situação dos imóveis</div>
+        </div>
+      </div>
+      <div class="db-portfolio-grid" id="db-portfolio"></div>
+    </div>
+  </div>
+
+</div>`
+
+  // ── 2. Greeting ──────────────────────────────────────────────────────────
+  const now   = new Date()
+  const hour  = now.getHours()
+  const greet = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
+  const days   = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado']
+  const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+  const dateStr = `${days[now.getDay()]}, ${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`
+  const userName = currentProfile?.name?.split(' ')[0] || 'Corretor'
+
+  const greetEl = section.querySelector('.db-greeting')
+  if (greetEl) greetEl.innerHTML = `${greet}, <span class="db-greeting-name">${_dbEsc(userName)}</span> 👋`
+  const sublineEl = document.getElementById('db-subline')
+  if (sublineEl) sublineEl.textContent = `Aqui está o resumo do seu negócio — ${dateStr}`
+
+  // ── 3. Fetch data in parallel ────────────────────────────────────────────
+  let properties = [], leads = []
+  try {
+    const tid = currentProfile?.tenant_id
+    const [propsRes, leadsRes] = await Promise.all([
+      getAllProperties(),
+      _dbFetchLeads(tid)
+    ])
+    properties = propsRes || []
+    leads      = leadsRes || []
+  } catch (e) {
+    console.warn('[Dashboard] Erro ao carregar dados:', e)
+  }
+
+  // ── 4. KPI Cards ─────────────────────────────────────────────────────────
+  _dbRenderKPIs(properties, leads, now)
+
+  // ── 5. Header chips ───────────────────────────────────────────────────────
+  const published   = properties.filter(p => p.published).length
+  const leadsToday  = leads.filter(l => _dbDateStr(l.created_at) === _dbDateStr(now.toISOString())).length
+  const chipsEl = document.getElementById('db-header-chips')
+  if (chipsEl) chipsEl.innerHTML = `
+    <span class="db-chip db-chip-green">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      ${published} publicados
+    </span>
+    <span class="db-chip db-chip-blue">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      ${leadsToday} lead${leadsToday !== 1 ? 's' : ''} hoje
+    </span>
+    <span class="db-chip db-chip-gold">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      ${dateStr.split(',')[0]}
+    </span>`
+
+  // ── 6. Recent Leads Table ────────────────────────────────────────────────
+  _dbRenderLeadsTable(leads, properties)
+
+  // ── 7. Top Properties ────────────────────────────────────────────────────
+  _dbRenderTopProperties(properties)
+
+  // ── 8. Activity Timeline ─────────────────────────────────────────────────
+  _dbRenderTimeline(properties, leads, now)
+
+  // ── 9. Portfolio Summary ──────────────────────────────────────────────────
+  _dbRenderPortfolio(properties, leads)
+
+  // ── 10. Load Chart.js and render charts ──────────────────────────────────
+  try {
+    await _loadChartJS()
+    _dbRenderLeadsChart(leads, 7)
+    _dbRenderOriginChart(leads)
+    // Period tab buttons
+    document.querySelectorAll('.db-ptab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.db-ptab').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+        _dbRenderLeadsChart(leads, parseInt(btn.dataset.p))
+      })
+    })
+  } catch (e) {
+    console.warn('[Dashboard] Chart.js não carregou:', e)
+  }
+
+  if (window.lucide) lucide.createIcons()
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function _dbEsc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+function _dbDateStr(iso) {
+  return (iso || '').slice(0, 10)
+}
+function _dbRelTime(iso, now) {
+  if (!iso) return '—'
+  const diff = now - new Date(iso)
+  const mins = Math.floor(diff / 60000)
+  if (mins < 2)  return 'agora mesmo'
+  if (mins < 60) return `há ${mins}min`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24)  return `há ${hrs}h`
+  const days = Math.floor(hrs / 24)
+  if (days === 1) return 'ontem'
+  if (days < 7)  return `há ${days} dias`
+  const d = new Date(iso)
+  return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' })
+}
+function _dbFmt(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1).replace('.', ',') + 'M'
+  if (n >= 1000)    return (n / 1000).toFixed(0) + 'k'
+  return String(n)
+}
+
+async function _dbFetchLeads(tenantId) {
+  let query = supabase
+    .from('leads')
+    .select('id,name,phone,email,source,status,stage,created_at,property_id')
+    .order('created_at', { ascending: false })
+    .limit(60)
+  if (tenantId) query = query.eq('tenant_id', tenantId)
+  const { data, error } = await query
+  if (error) { console.warn('[Dashboard] leads fetch error:', error.message); return [] }
+  return data || []
+}
+
+// ── KPI Render ───────────────────────────────────────────────────────────────
+function _dbRenderKPIs(properties, leads, now) {
+  const total     = properties.length
+  const published = properties.filter(p => p.published).length
+  const totalL    = leads.length
+
+  // Negociações em andamento = leads com stage != null (no funil)
+  const negociando = leads.filter(l => l.stage && l.stage !== 'perdido' && l.stage !== 'fechado').length
+
+  // Calcular variações (últimos 30 dias vs 30 dias anteriores)
+  const d30 = new Date(now); d30.setDate(d30.getDate() - 30)
+  const d60 = new Date(now); d60.setDate(d60.getDate() - 60)
+  const propsThisMonth  = properties.filter(p => p.created_at && new Date(p.created_at) >= d30).length
+  const propsLastMonth  = properties.filter(p => p.created_at && new Date(p.created_at) >= d60 && new Date(p.created_at) < d30).length
+  const leadsThisMonth  = leads.filter(l => l.created_at && new Date(l.created_at) >= d30).length
+  const leadsLastMonth  = leads.filter(l => l.created_at && new Date(l.created_at) >= d60 && new Date(l.created_at) < d30).length
+
+  function trendHtml(curr, prev, suffix) {
+    if (prev === 0 && curr === 0) return '<span class="db-kpi-trend db-trend-neu">Sem dados</span>'
+    if (prev === 0) return '<span class="db-kpi-trend db-trend-up">▲ Novo</span>'
+    const pct = Math.round(((curr - prev) / prev) * 100)
+    if (pct === 0) return '<span class="db-kpi-trend db-trend-neu">= Estável</span>'
+    if (pct > 0)  return `<span class="db-kpi-trend db-trend-up">▲ +${pct}% ${suffix}</span>`
+    return `<span class="db-kpi-trend db-trend-down">▼ ${pct}% ${suffix}</span>`
+  }
+
+  const kpis = [
+    {
+      idx: 0, val: total, label: 'Total de Imóveis',
+      trend: trendHtml(propsThisMonth, propsLastMonth, 'este mês'),
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'
+    },
+    {
+      idx: 1, val: published, label: 'Publicados no Site',
+      trend: published === 0 ? '<span class="db-kpi-trend db-trend-neu">Nenhum publicado</span>' : `<span class="db-kpi-trend db-trend-up">${Math.round((published/Math.max(total,1))*100)}% do total</span>`,
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+    },
+    {
+      idx: 2, val: totalL, label: 'Leads Recebidos',
+      trend: trendHtml(leadsThisMonth, leadsLastMonth, 'vs. mês ant.'),
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>'
+    },
+    {
+      idx: 3, val: negociando, label: 'Em Negociação',
+      trend: negociando === 0 ? '<span class="db-kpi-trend db-trend-neu">Nenhum ativo</span>' : '<span class="db-kpi-trend db-trend-up">▲ Ativos</span>',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>'
+    }
+  ]
+
+  kpis.forEach(({ idx, val, label, trend, icon }) => {
+    const el = document.getElementById(`db-kpi-${idx}`)
+    if (!el) return
+    el.innerHTML = `
+      <div class="db-kpi-icon">${icon}</div>
+      <div class="db-kpi-body">
+        <div class="db-kpi-val">${_dbFmt(val)}</div>
+        <div class="db-kpi-lbl">${_dbEsc(label)}</div>
+        ${trend}
+      </div>`
+  })
+}
+
+// ── Leads Bar Chart ───────────────────────────────────────────────────────────
+let _dbLeadsChartInstance = null
+function _dbRenderLeadsChart(leads, days) {
+  const canvas = document.getElementById('db-leads-chart')
+  if (!canvas || !window.Chart) return
+  if (_dbLeadsChartInstance) { _dbLeadsChartInstance.destroy(); _dbLeadsChartInstance = null }
+
+  const labels = [], counts = []
+  const now = new Date()
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now)
+    d.setDate(d.getDate() - i)
+    const key = d.toISOString().slice(0, 10)
+    const shortLabel = days <= 7
+      ? d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.','')
+      : days <= 30
+        ? d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' })
+        : d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' })
+    labels.push(shortLabel)
+    counts.push(leads.filter(l => _dbDateStr(l.created_at) === key).length)
+  }
+
+  const maxVal = Math.max(...counts, 1)
+  _dbLeadsChartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Leads',
+        data: counts,
+        backgroundColor: counts.map(v => v === maxVal && maxVal > 0 ? 'rgba(201,162,39,0.90)' : 'rgba(201,162,39,0.35)'),
+        borderColor: '#C9A227',
+        borderWidth: 1.5,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0F172A',
+          padding: 10,
+          callbacks: { label: ctx => ` ${ctx.parsed.y} lead${ctx.parsed.y !== 1 ? 's' : ''}` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#94A3B8', font: { size: 11 } } },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(226,232,240,0.6)', drawBorder: false },
+          ticks: {
+            color: '#94A3B8', font: { size: 11 }, precision: 0,
+            stepSize: Math.max(1, Math.ceil(maxVal / 4))
+          }
+        }
+      }
+    }
+  })
+}
+
+// ── Origin Doughnut Chart ─────────────────────────────────────────────────────
+let _dbOriginChartInstance = null
+function _dbRenderOriginChart(leads) {
+  const canvas = document.getElementById('db-origin-chart')
+  const legendEl = document.getElementById('db-origin-legend')
+  if (!canvas || !window.Chart) return
+  if (_dbOriginChartInstance) { _dbOriginChartInstance.destroy(); _dbOriginChartInstance = null }
+
+  // Count by source
+  const sources = {}
+  leads.forEach(l => {
+    const src = l.source || 'Direto'
+    const key = src.charAt(0).toUpperCase() + src.slice(1)
+    sources[key] = (sources[key] || 0) + 1
+  })
+
+  // ── MOCK COMMENT: Futuramente integrar com Meta Ads API e Google Ads API
+  // para preencher automaticamente as origens de leads pagos.
+  if (Object.keys(sources).length === 0) {
+    // Dados mock comentados para futura implementação
+    sources['Site'] = 0; sources['WhatsApp'] = 0; sources['Indicação'] = 0
+  }
+
+  const labels = Object.keys(sources)
+  const values = Object.values(sources)
+  const palette = ['#6366F1','#10B981','#F59E0B','#0EA5E9','#EC4899','#8B5CF6','#14B8A6','#94A3B8']
+  const colors  = labels.map((_, i) => palette[i % palette.length])
+  const total   = values.reduce((a,b) => a+b, 0)
+
+  _dbOriginChartInstance = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff', hoverOffset: 4 }]
+    },
+    options: {
+      responsive: true,
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0F172A',
+          padding: 10,
+          callbacks: {
+            label: ctx => {
+              const pct = total > 0 ? Math.round((ctx.parsed / total) * 100) : 0
+              return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`
+            }
+          }
+        }
+      }
+    }
+  })
+
+  // Legend
+  if (legendEl) {
+    if (total === 0) {
+      legendEl.innerHTML = '<div class="db-empty" style="padding:12px 0"><div class="db-empty-text">Nenhum lead ainda<br><span style="font-size:11px;color:#CBD5E1">Os canais aparecerão aqui quando houver leads</span></div></div>'
+    } else {
+      legendEl.innerHTML = labels.map((lbl, i) => `
+        <div class="db-legend-item">
+          <div class="db-legend-dot-row">
+            <span class="db-legend-dot" style="background:${colors[i]}"></span>
+            <span>${_dbEsc(lbl)}</span>
+          </div>
+          <span class="db-legend-val">${values[i]}</span>
+        </div>`).join('')
+    }
+  }
+}
+
+// ── Recent Leads Table ────────────────────────────────────────────────────────
+function _dbRenderLeadsTable(leads, properties) {
+  const tbody  = document.getElementById('db-leads-tbody')
+  const subEl  = document.getElementById('db-leads-sub')
+  if (!tbody) return
+
+  const recent = leads.slice(0, 8)
+  const now    = new Date()
+
+  if (subEl) subEl.textContent = `${leads.length} lead${leads.length !== 1 ? 's' : ''} no total`
+
+  if (recent.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="db-empty"><div class="db-empty-icon">💬</div><div class="db-empty-text">Nenhum lead recebido ainda</div></div></td></tr>'
+    return
+  }
+
+  const statusMap = {
+    'novo': { cls: 'db-status-novo', label: 'Novo' },
+    'contatado': { cls: 'db-status-contatado', label: 'Contatado' },
+    'negociando': { cls: 'db-status-negociando', label: 'Negociando' },
+    'fechado': { cls: 'db-status-fechado', label: 'Fechado' },
+    'perdido': { cls: 'db-status-perdido', label: 'Perdido' },
+  }
+
+  tbody.innerHTML = recent.map(l => {
+    const st    = statusMap[l.status] || { cls: 'db-status-novo', label: l.status || 'Novo' }
+    const prop  = l.property_id ? properties.find(p => String(p.id) === String(l.property_id)) : null
+    const src   = l.source ? (l.source.charAt(0).toUpperCase() + l.source.slice(1)) : 'Direto'
+    return `
+    <tr>
+      <td>
+        <div class="db-lead-name">${_dbEsc(l.name || '—')}</div>
+        <div class="db-lead-phone">${_dbEsc(l.phone || l.email || '—')}</div>
+        ${prop ? `<div style="font-size:11px;color:#94A3B8;margin-top:1px;">${_dbEsc(prop.title || '')}</div>` : ''}
+      </td>
+      <td><span class="db-lead-src">${_dbEsc(src)}</span></td>
+      <td><span class="db-status-badge ${st.cls}">${_dbEsc(st.label)}</span></td>
+      <td style="color:#64748B;font-size:12px;">${_dbRelTime(l.created_at, now)}</td>
+      <td><button class="db-btn-view" onclick="navigateToSection('funil')">Ver Lead</button></td>
+    </tr>`
+  }).join('')
+}
+
+// ── Top Properties ────────────────────────────────────────────────────────────
+function _dbRenderTopProperties(properties) {
+  const el = document.getElementById('db-top-props')
+  if (!el) return
+
+  const sorted = [...properties]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 6)
+
+  if (sorted.length === 0) {
+    el.innerHTML = '<div class="db-empty"><div class="db-empty-icon">🏠</div><div class="db-empty-text">Nenhum imóvel cadastrado ainda</div></div>'
+    return
+  }
+
+  el.innerHTML = sorted.map((p, i) => {
+    const imgs = (() => { try { return Array.isArray(p.images) ? p.images : JSON.parse(p.images || '[]') } catch(e) { return [] } })()
+    const thumb = p.cover_image || imgs.find(u => u && u.startsWith('http')) || ''
+    const rankCls = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : ''
+    const pubCls  = p.published ? 'pub' : 'rascunho'
+    const pubLbl  = p.published ? 'Publicado' : 'Rascunho'
+    const city    = [p.neighborhood, p.city].filter(Boolean).join(', ') || '—'
+    const price   = p.price ? `R$ ${String(p.price).replace(/[^0-9,.]/g, '')}` : '—'
+    return `
+    <div class="db-prop-item">
+      <div class="db-prop-rank ${rankCls}">${i + 1}</div>
+      ${thumb
+        ? `<img class="db-prop-thumb" src="${_dbEsc(thumb)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : ''}
+      <div class="db-prop-thumb-ph" ${thumb ? 'style="display:none"' : ''}>🏠</div>
+      <div class="db-prop-info">
+        <div class="db-prop-name" title="${_dbEsc(p.title || '')}">${_dbEsc(p.title || 'Sem título')}</div>
+        <div class="db-prop-city">${_dbEsc(city)} · ${_dbEsc(price)}</div>
+      </div>
+      <span class="db-prop-badge ${pubCls}">${pubLbl}</span>
+    </div>`
+  }).join('')
+}
+
+// ── Activity Timeline ─────────────────────────────────────────────────────────
+function _dbRenderTimeline(properties, leads, now) {
+  const el = document.getElementById('db-timeline')
+  if (!el) return
+
+  // Build event list from real data + some contextual entries
+  const events = []
+
+  // Login event (always first)
+  events.push({ icon: '👤', cls: 'tl-login', title: 'Você entrou no sistema', meta: `Bem-vindo de volta, ${currentProfile?.name?.split(' ')[0] || 'Corretor'}`, time: now.toISOString() })
+
+  // Recent leads
+  leads.slice(0, 3).forEach(l => {
+    events.push({ icon: '💬', cls: 'tl-lead', title: `Novo lead: ${l.name || 'Sem nome'}`, meta: `Origem: ${l.source || 'Direto'} · ${l.phone || l.email || ''}`, time: l.created_at })
+  })
+
+  // Recent properties
+  properties.slice(0, 3).forEach(p => {
+    const action = p.published ? 'Imóvel publicado' : 'Imóvel cadastrado'
+    events.push({ icon: '🏠', cls: 'tl-prop', title: `${action}: ${p.title || 'Sem título'}`, meta: `${p.city || ''} · ${p.reference || ''}`, time: p.created_at })
+  })
+
+  // Sort by time desc
+  events.sort((a, b) => new Date(b.time) - new Date(a.time))
+
+  el.innerHTML = events.slice(0, 8).map(ev => `
+    <div class="db-tl-item">
+      <div class="db-tl-icon ${ev.cls}">${ev.icon}</div>
+      <div class="db-tl-body">
+        <div class="db-tl-title">${_dbEsc(ev.title)}</div>
+        ${ev.meta ? `<div class="db-tl-meta">${_dbEsc(ev.meta)}</div>` : ''}
+      </div>
+      <div class="db-tl-time">${_dbRelTime(ev.time, now)}</div>
+    </div>`).join('')
+
+  if (events.length === 0) {
+    el.innerHTML = '<div class="db-empty"><div class="db-empty-icon">📋</div><div class="db-empty-text">Sem atividades recentes</div></div>'
+  }
+}
+
+// ── Portfolio Summary ─────────────────────────────────────────────────────────
+function _dbRenderPortfolio(properties, leads) {
+  const el = document.getElementById('db-portfolio')
+  if (!el) return
+
+  const total       = properties.length
+  const published   = properties.filter(p => p.published).length
+  const rascunho    = total - published
+  const emNegociacao = leads.filter(l => l.stage && l.stage !== 'perdido' && l.stage !== 'fechado').length
+
+  // Destacados = com collection "alto-padrao" ou "lancamentos"
+  const destacados = properties.filter(p => {
+    try {
+      const cols = Array.isArray(p.collection) ? p.collection : JSON.parse(p.collection || '[]')
+      return cols.includes('alto-padrao') || cols.includes('lancamentos') || cols.includes('decorados')
+    } catch(e) { return false }
+  }).length
+
+  // MOCK: Vendidos — futuramente implementar campo status='vendido' na tabela properties
+  // const vendidos = properties.filter(p => p.status === 'vendido').length
+
+  const cards = [
+    { icon: '✅', val: published,    lbl: 'Imóveis Ativos' },
+    { icon: '📝', val: rascunho,     lbl: 'Em Rascunho' },
+    { icon: '🤝', val: emNegociacao, lbl: 'Em Negociação' },
+    { icon: '⭐', val: destacados,   lbl: 'Em Coleções' },
+  ]
+
+  el.innerHTML = cards.map(c => `
+    <div class="db-port-card">
+      <div class="db-port-icon">${c.icon}</div>
+      <div class="db-port-val">${_dbFmt(c.val)}</div>
+      <div class="db-port-lbl">${_dbEsc(c.lbl)}</div>
+    </div>`).join('')
 }
