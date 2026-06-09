@@ -815,6 +815,33 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 }
 .cover-thumb-wrap.selected .cover-star { opacity: 1; }
 
+/* ─── Botão lixeirinha (excluir foto individual) ─────────────────── */
+.cover-delete {
+  position: absolute;
+  top: 4px; left: 4px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(220, 38, 38, 0.92);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  padding: 0;
+}
+.cover-thumb-wrap:hover .cover-delete { opacity: 1; }
+.cover-delete:hover { transform: scale(1.1); background: rgb(220, 38, 38); }
+@media (hover: none) {
+  .cover-delete { opacity: 1; }  /* sempre visível no mobile */
+}
+
 /* ─── Sidebar user card ───────────────────────────────────────────── */
 .sidebar-user {
   cursor: pointer;

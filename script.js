@@ -692,6 +692,7 @@ async function renderAdmin() {
 // ─── Formulário admin ─────────────────────────────────────────────────────
 let editingId = null
 let selectedCover = ''
+let currentEditImages = []
 
 function openModal(title) {
   document.getElementById('modal-title').textContent = title || 'Novo Imóvel'
@@ -708,18 +709,39 @@ function renderCoverPicker(images) {
   const picker = document.getElementById('cover-picker')
   const strip  = document.getElementById('cover-strip')
   if (!picker || !strip) return
-  if (!images.length) { picker.style.display = 'none'; return }
+  // Sincroniza estado interno
+  currentEditImages = Array.isArray(images) ? [...images] : []
+  if (!currentEditImages.length) { picker.style.display = 'none'; return }
   picker.style.display = ''
-  strip.innerHTML = images.map(url => `
+  strip.innerHTML = currentEditImages.map(url => `
     <div class="cover-thumb-wrap${url === selectedCover ? ' selected' : ''}" data-url="${url}">
       <img src="${url}" class="cover-thumb" alt="">
-      <span class="cover-star">★</span>
+      <span class="cover-star" title="Marcar como capa">★</span>
+      <button type="button" class="cover-delete" title="Remover foto" aria-label="Remover foto">🗑️</button>
     </div>`).join('')
+  // Click no card: marca como capa (exceto se for clique no botão lixo)
   strip.querySelectorAll('.cover-thumb-wrap').forEach(wrap => {
-    wrap.addEventListener('click', () => {
+    wrap.addEventListener('click', (e) => {
+      if (e.target.closest('.cover-delete')) return
       selectedCover = wrap.dataset.url
       strip.querySelectorAll('.cover-thumb-wrap').forEach(w => w.classList.remove('selected'))
       wrap.classList.add('selected')
+    })
+  })
+  // Click no lixo: remove a foto da lista e re-renderiza
+  strip.querySelectorAll('.cover-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      const wrap = btn.closest('.cover-thumb-wrap')
+      const url = wrap?.dataset.url
+      if (!url) return
+      if (!confirm('Remover esta foto do imóvel?')) return
+      currentEditImages = currentEditImages.filter(u => u !== url)
+      // Se a capa removida era essa, escolhe a primeira restante
+      if (selectedCover === url) {
+        selectedCover = currentEditImages[0] || ''
+      }
+      renderCoverPicker(currentEditImages)
     })
   })
 }
@@ -736,13 +758,19 @@ function attachAdminForm() {
     let images       = []
 
     const newFiles = imageFiles.filter(f => f.size > 0)
+    // Editando: começa com as imagens que sobraram (após o usuário excluir as que quis)
+    if (editingId) {
+      images = [...currentEditImages]
+    }
+    // Upload de fotos novas → anexa ao final
     if (newFiles.length) {
       submitBtn.disabled    = true
       submitBtn.textContent = `Enviando 0/${newFiles.length} foto…`
       try {
-        images = await uploadMultiple(newFiles, (done, total) => {
+        const uploaded = await uploadMultiple(newFiles, (done, total) => {
           submitBtn.textContent = `Enviando ${done}/${total} foto…`
         })
+        images = [...images, ...uploaded]
       } catch (err) {
         console.error('Erro no upload:', err)
         submitBtn.disabled    = false
@@ -750,9 +778,6 @@ function attachAdminForm() {
         alert('Erro ao enviar fotos.\nVerifique se o bucket "imoveis" existe no Supabase Storage e se as políticas de upload estão configuradas.')
         return
       }
-    } else if (editingId) {
-      const orig = cachedProperties.find(x => x.id === editingId)
-      if (orig?.images) images = orig.images
     }
     if (!images.length) images = [...SAMPLE_URLS]
 
