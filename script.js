@@ -698,11 +698,31 @@ function openModal(title) {
   document.getElementById('modal-title').textContent = title || 'Novo Imóvel'
   document.getElementById('property-modal').classList.remove('hidden')
   document.body.style.overflow = 'hidden'
+  // Empilha estado no histórico: se usuário fizer swipe-back, fecha modal em vez de sair da página
+  if (!history.state || history.state.modal !== 'property') {
+    history.pushState({ modal: 'property' }, '')
+  }
 }
 
 function closeModal() {
   document.getElementById('property-modal').classList.add('hidden')
   document.body.style.overflow = ''
+  // Limpa o estado do histórico se ainda estiver lá
+  if (history.state && history.state.modal === 'property') {
+    history.back()
+  }
+}
+
+// Handler único de popstate: se modal aberto, fecha sem navegar
+if (!window._modalPopstateBound) {
+  window._modalPopstateBound = true
+  window.addEventListener('popstate', () => {
+    const modal = document.getElementById('property-modal')
+    if (modal && !modal.classList.contains('hidden')) {
+      modal.classList.add('hidden')
+      document.body.style.overflow = ''
+    }
+  })
 }
 
 function renderCoverPicker(images) {
