@@ -12,6 +12,31 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 let WHATSAPP_NUMBER = '5547999701743'
 let WHATSAPP_URL    = `https://wa.me/${WHATSAPP_NUMBER}`
 
+// ─── Reescreve URLs do Supabase Storage para passar pelo Cloudflare CDN ─────
+// Em produção, /img/* é proxiado pelo Worker img-proxy (cacheia 1 ano).
+// Reduz drasticamente o egress do Supabase.
+const SUPABASE_STORAGE_HOST = 'onknpbzdcrhbfozzvxtz.supabase.co'
+const SUPABASE_STORAGE_PREFIX = '/storage/v1/object/public/'
+function rewriteImageUrl(url) {
+  if (!url || typeof url !== 'string') return url
+  if (!url.includes(SUPABASE_STORAGE_HOST)) return url
+  if (!url.includes(SUPABASE_STORAGE_PREFIX)) return url
+  // Só reescreve quando rodando no domínio público (não em localhost/preview)
+  const host = window.location.hostname
+  if (host !== 'omarcorretor.com.br' && host !== 'www.omarcorretor.com.br') return url
+  try {
+    const u = new URL(url)
+    const newPath = u.pathname.replace(SUPABASE_STORAGE_PREFIX, '/img/')
+    return 'https://omarcorretor.com.br' + newPath + u.search
+  } catch (e) {
+    return url
+  }
+}
+function rewriteImageUrls(arr) {
+  if (!Array.isArray(arr)) return arr
+  return arr.map(rewriteImageUrl)
+}
+
 const SAMPLE_URLS = [
   'https://images.unsplash.com/photo-1560184897-e6f6f0d0b1f8?q=80&w=1200&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop',
@@ -199,7 +224,7 @@ async function loginAdmin(email, password) {
 }
 
 // ─── Compressão → Blob (sem passar por base64) ───────────────────────────
-function compressToBlob(file, maxW = 1200, quality = 0.78) {
+function compressToBlob(file, maxW = 1000, quality = 0.70) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
@@ -302,8 +327,9 @@ function restoreCarouselState(container, state) {
       if (images[i]) {
         const fg = w.querySelector('.carousel-img')
         const bg = w.querySelector('.carousel-img-bg')
-        if (fg) fg.src = images[i]
-        if (bg) bg.src = images[i]
+        const src = rewriteImageUrl(images[i])
+        if (fg) fg.src = src
+        if (bg) bg.src = src
       }
     } catch(e) {}
     const dots = w.querySelectorAll('.icard-dot')
@@ -488,18 +514,20 @@ function _advanceWrap(wrap, dir) {
   try {
     const images = JSON.parse(decodeURIComponent(wrap.dataset.images || '[]'))
     if (images.length && images[idx]) {
+      const src = rewriteImageUrl(images[idx])
       const fg = wrap.querySelector('.carousel-img')
       const bg = wrap.querySelector('.carousel-img-bg')
-      if (fg) fg.src = images[idx]
-      if (bg) bg.src = images[idx]
+      if (fg) fg.src = src
+      if (bg) bg.src = src
     }
   } catch(err) {
     const prop = cachedProperties.find(x => String(x.id) === String(wrap.dataset.pid))
     const imgs = prop?.images?.length ? prop.images : SAMPLE_URLS
     const fg = wrap.querySelector('.carousel-img')
     const bg = wrap.querySelector('.carousel-img-bg')
-    if (fg && imgs[idx]) fg.src = imgs[idx]
-    if (bg && imgs[idx]) bg.src = imgs[idx]
+    const src2 = imgs[idx] ? rewriteImageUrl(imgs[idx]) : ''
+    if (fg && src2) fg.src = src2
+    if (bg && src2) bg.src = src2
   }
   const dots = wrap.querySelectorAll('.icard-dot')
   if (dots.length) {
@@ -954,9 +982,10 @@ function formatAddress(rua, numero, neighborhood, city, state) {
 
 // ─── Constrói card de imóvel no estilo moderno ────────────────────────────────
 function buildPropertyCard(p) {
-  const images = p.images?.length ? p.images : SAMPLE_URLS
+  const rawImages = p.images?.length ? p.images : SAMPLE_URLS
+  const images = rewriteImageUrls(rawImages)
   const total  = images.length
-  const img0   = p.cover_image || images[0]
+  const img0   = rewriteImageUrl(p.cover_image || images[0])
   const addr   = formatAddress(p.rua, p.numero, p.neighborhood, p.city, p.state)
   const price  = formatPrice(p.price, window.currentLang || 'pt')
   const ogLink = `https://omarcorretor.com.br/property.html?id=${p.id}`
@@ -976,9 +1005,9 @@ function buildPropertyCard(p) {
   return `
     <div class="imovel-card" data-pid="${p.id}">
       <div class="icard-img-wrap" data-total="${total}" data-idx="0" data-pid="${p.id}" data-images="${encodeURIComponent(JSON.stringify(images))}">
-        <img src="${escapeHTML(img0)}" alt="" class="icard-img-bg carousel-img-bg" aria-hidden="true">
+        <img src="${escapeHTML(img0)}" alt="" class="icard-img-bg carousel-img-bg" aria-hidden="true" loading="lazy" decoding="async">
         <div class="icard-img-link" data-href="property.html?id=${p.id}" role="link" tabindex="0" aria-label="Ver ${escapeHTML(p.title)}">
-          <img src="${escapeHTML(img0)}" alt="${escapeHTML(p.title)}" class="icard-img carousel-img">
+          <img src="${escapeHTML(img0)}" alt="${escapeHTML(p.title)}" class="icard-img carousel-img" loading="lazy" decoding="async">
         </div>
         ${total > 1 ? `
           <button type="button" class="carousel-btn carousel-prev icard-prev" aria-label="Anterior">&#8249;</button>
