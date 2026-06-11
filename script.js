@@ -807,6 +807,7 @@ function attachAdminForm() {
       rua:          fd.get('rua') || '',
       numero:       fd.get('numero') || '',
       city:         fd.get('city'),
+      state:        fd.get('state') || '',
       neighborhood: fd.get('neighborhood'),
       price:        fd.get('price'),
       bedrooms:     parseInt(fd.get('bedrooms'), 10) || 0,
@@ -882,6 +883,8 @@ function attachAdminForm() {
       form.querySelector('[name="rua"]').value         = p.rua || ''
       form.querySelector('[name="numero"]').value      = p.numero || ''
       form.querySelector('[name="city"]').value        = p.city || ''
+      const stateSel = form.querySelector('[name="state"]')
+      if (stateSel) stateSel.value = p.state || ''
       form.querySelector('[name="price"]').value       = p.price || ''
       form.querySelector('[name="bedrooms"]').value    = p.bedrooms || ''
       form.querySelector('[name="suites"]').value      = p.suites || ''
@@ -933,46 +936,19 @@ function escapeHTML(s) {
     .replace(/'/g, '&#39;')
 }
 
-// ─── Mapa cidade → estado (UF). Cidades fora daqui ficam sem UF no card.
-const CITY_TO_UF = {
-  // Santa Catarina
-  'Balneário Camboriú':'SC','Camboriú':'SC','Itapema':'SC','Itajaí':'SC','Bombinhas':'SC',
-  'Porto Belo':'SC','Florianópolis':'SC','Tijucas':'SC','Navegantes':'SC','Penha':'SC',
-  'Piçarras':'SC','Balneário Piçarras':'SC','Blumenau':'SC','Joinville':'SC','Brusque':'SC',
-  'São José':'SC','Palhoça':'SC','Biguaçu':'SC','Garopaba':'SC','Imbituba':'SC',
-  'Laguna':'SC','Tubarão':'SC','Criciúma':'SC','Chapecó':'SC','Lages':'SC',
-  // Paraná
-  'Curitiba':'PR','Ponta Grossa':'PR','Morretes':'PR','Paranaguá':'PR','Foz do Iguaçu':'PR',
-  'Londrina':'PR','Maringá':'PR','Cascavel':'PR','São José dos Pinhais':'PR','Antonina':'PR',
-  'Guaratuba':'PR','Matinhos':'PR','Pontal do Paraná':'PR',
-  // Rio Grande do Sul
-  'Porto Alegre':'RS','Gramado':'RS','Canela':'RS','Caxias do Sul':'RS','Pelotas':'RS',
-  'Torres':'RS','Capão da Canoa':'RS','Tramandaí':'RS','Xangri-Lá':'RS',
-  // São Paulo
-  'São Paulo':'SP','Campinas':'SP','Santos':'SP','São José dos Campos':'SP','Guarujá':'SP',
-  'São Sebastião':'SP','Ubatuba':'SP','Bertioga':'SP','Praia Grande':'SP','Ribeirão Preto':'SP',
-  // Rio de Janeiro
-  'Rio de Janeiro':'RJ','Niterói':'RJ','Búzios':'RJ','Cabo Frio':'RJ','Angra dos Reis':'RJ',
-  'Petrópolis':'RJ','Teresópolis':'RJ','Arraial do Cabo':'RJ',
-  // Outras capitais frequentes
-  'Brasília':'DF','Belo Horizonte':'MG','Salvador':'BA','Fortaleza':'CE','Recife':'PE',
-  'Manaus':'AM','Belém':'PA','Goiânia':'GO','Vitória':'ES','Natal':'RN','Maceió':'AL',
-  'João Pessoa':'PB','Aracaju':'SE','Teresina':'PI','São Luís':'MA','Cuiabá':'MT',
-  'Campo Grande':'MS','Palmas':'TO','Macapá':'AP','Boa Vista':'RR','Rio Branco':'AC','Porto Velho':'RO'
-}
-function ufForCity(city) {
+// ─── Limpa city: remove qualquer "(UF)" que tenha sido digitado por engano
+function cleanCityName(city) {
   if (!city) return ''
-  return CITY_TO_UF[city.trim()] || ''
+  return String(city).replace(/\s*\([A-Z]{2}\)\s*$/i, '').trim()
 }
 
-// ─── Formata endereço sem número ─────────────────────────────────────────────
+// ─── Formata endereço: rua, bairro, cidade - UF (UF vem do campo state do imóvel)
 function formatAddress(rua, numero, neighborhood, city, state) {
-  // Se state não foi passado, deriva da cidade
-  const uf = state || ufForCity(city)
   const parts = []
   if (rua)          parts.push(rua)
   if (neighborhood) parts.push(neighborhood)
-  if (city)         parts.push(city + (uf ? ' - ' + uf : ''))
+  const cleanCity = cleanCityName(city)
+  if (cleanCity)    parts.push(cleanCity + (state ? ' - ' + state : ''))
   return parts.join(', ')
 }
 
@@ -981,7 +957,7 @@ function buildPropertyCard(p) {
   const images = p.images?.length ? p.images : SAMPLE_URLS
   const total  = images.length
   const img0   = p.cover_image || images[0]
-  const addr   = formatAddress(p.rua, p.numero, p.neighborhood, p.city)
+  const addr   = formatAddress(p.rua, p.numero, p.neighborhood, p.city, p.state)
   const price  = formatPrice(p.price, window.currentLang || 'pt')
   const ogLink = `https://omarcorretor.com.br/property.html?id=${p.id}`
   const waMsg  = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?\n${ogLink}`)
