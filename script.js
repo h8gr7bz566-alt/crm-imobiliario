@@ -19,9 +19,11 @@ const SUPABASE_STORAGE_HOST = 'onknpbzdcrhbfozzvxtz.supabase.co'
 const SUPABASE_STORAGE_PREFIX = '/storage/v1/object/public/'
 function rewriteImageUrl(url) {
   if (!url || typeof url !== 'string') return url
+  // Feature flag: só reescreve quando Cloudflare estiver ativo.
+  // Pra ativar: trocar para `if (!window.__USE_CF_PROXY) return url`
+  if (!window.__USE_CF_PROXY) return url
   if (!url.includes(SUPABASE_STORAGE_HOST)) return url
   if (!url.includes(SUPABASE_STORAGE_PREFIX)) return url
-  // Só reescreve quando rodando no domínio público (não em localhost/preview)
   const host = window.location.hostname
   if (host !== 'omarcorretor.com.br' && host !== 'www.omarcorretor.com.br') return url
   try {
@@ -32,6 +34,22 @@ function rewriteImageUrl(url) {
     return url
   }
 }
+
+// Detecta automaticamente se Cloudflare está ativo (chega via cf-ray nas respostas)
+// e liga o proxy quando confirmado.
+;(function detectCloudflareActive() {
+  if (typeof window === 'undefined') return
+  if (window.location.hostname !== 'omarcorretor.com.br' && window.location.hostname !== 'www.omarcorretor.com.br') return
+  fetch('/img/healthz', { method: 'HEAD', cache: 'no-store' })
+    .then(r => {
+      // Worker responde 404 com cf-ray header; Vercel/origem antiga retorna 404 sem cf-ray
+      if (r.headers.get('cf-ray') || r.headers.get('Cf-Ray')) {
+        window.__USE_CF_PROXY = true
+      }
+    })
+    .catch(() => {})
+})()
+
 function rewriteImageUrls(arr) {
   if (!Array.isArray(arr)) return arr
   return arr.map(rewriteImageUrl)
