@@ -135,7 +135,7 @@ INSERT INTO public.settings (key, value) VALUES
   ('company.logo_url',      '"/logo.png"'),
   ('company.favicon_url',   '"/favicon.ico"'),
   ('company.facebook_url',  '"https://www.facebook.com"'),
-  ('company.instagram_url', '"https://www.instagram.com/isaacomar.corretor?igsh=c2UxaWV0bHNiOHJ3"'),
+  ('company.instagram_url', '"https://www.instagram.com/isaacomar.imoveissc?igsh=c2UxaWV0bHNiOHJ3"'),
   ('company.tiktok_url',    '""'),
   ('company.youtube_url',   '""'),
   ('company.linkedin_url',  '""'),
