@@ -58,7 +58,7 @@ ${l}`),c=e.area?`<span class="icard-spec"><svg width="13" height="13" viewBox="0
         ${E}
       </div>
       <div class="icard-body" data-href="property.html?id=${e.id}">
-        ${(()=>{const y=e.furnishing_status||(e.furnished===!0?"mobiliado":"");return y==="mobiliado"?'<span class="icard-badge badge-furn-mob">🛋️ Mobiliado</span>':y==="semimobiliado"?'<span class="icard-badge badge-furn-semi">🪑 Semimobiliado</span>':y==="vazio"?'<span class="icard-badge badge-furn-vazio">📦 Vazio</span>':""})()}
+        ${(()=>{const y=e.furnishing_status||(e.furnished===!0?"mobiliado":"");return y==="mobiliado"?'<span class="icard-badge badge-furn-mob">Mobiliado</span>':y==="semimobiliado"?'<span class="icard-badge badge-furn-semi">Semimobiliado</span>':y==="vazio"?'<span class="icard-badge badge-furn-vazio">Vazio</span>':""})()}
         <div class="icard-neighborhood">${v(e.neighborhood||e.title)}</div>
         <div class="icard-address">${v(i)}</div>
         ${c||r||m||p?`<div class="icard-specs">${c}${r}${m}${p}</div>`:""}
