@@ -870,7 +870,8 @@ function attachAdminForm() {
       cover_image:  selectedCover || '',
       construction_status: fd.get('construction_status') || '',
       condominium:  fd.get('condominium') || '',
-      furnished:    fd.get('furnished') === 'true',
+      furnishing_status: fd.get('furnishing_status') || '',
+      furnished:    fd.get('furnishing_status') === 'mobiliado',
       collection:   JSON.stringify(
         ['col_frente_mar','col_decorados','col_casas','col_alto_padrao','col_lancamentos']
           .filter(n => fd.get(n))
@@ -943,9 +944,13 @@ function attachAdminForm() {
       form.querySelector('[name="owner_email"]').value  = p.owner_email || ''
       form.querySelector('[name="owner_notes"]').value  = p.owner_notes || ''
       form.querySelector('[name="condominium"]').value     = p.condominium || ''
-      // Restore furnished checkbox
-      const furnishedCb = form.querySelector('[name="furnished"]')
-      if (furnishedCb) furnishedCb.checked = p.furnished === true
+      // Restore status de mobília (dropdown)
+      const furnSel = form.querySelector('[name="furnishing_status"]')
+      if (furnSel) {
+        // Se ainda não tem furnishing_status, deriva do furnished antigo
+        const val = p.furnishing_status || (p.furnished === true ? 'mobiliado' : 'vazio')
+        furnSel.value = val
+      }
       // Restore collection checkboxes
       try {
         const cols = JSON.parse(p.collection || '[]')
@@ -1034,7 +1039,13 @@ function buildPropertyCard(p) {
         ${dots}
       </div>
       <div class="icard-body" data-href="property.html?id=${p.id}">
-        ${p.furnished === true ? '<span class="icard-badge">🛋️ Mobiliado</span>' : ''}
+        ${(() => {
+          const fs = p.furnishing_status || (p.furnished === true ? 'mobiliado' : '')
+          if (fs === 'mobiliado')     return '<span class="icard-badge badge-furn-mob">🛋️ Mobiliado</span>'
+          if (fs === 'semimobiliado') return '<span class="icard-badge badge-furn-semi">🪑 Semimobiliado</span>'
+          if (fs === 'vazio')         return '<span class="icard-badge badge-furn-vazio">📦 Vazio</span>'
+          return ''
+        })()}
         <div class="icard-neighborhood">${escapeHTML(p.neighborhood || p.title)}</div>
         <div class="icard-address">${escapeHTML(addr)}</div>
         ${(area||beds||baths||park) ? `<div class="icard-specs">${area}${beds}${baths}${park}</div>` : ''}

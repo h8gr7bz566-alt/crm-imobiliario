@@ -999,15 +999,15 @@
             </div>
           </div>
 
-          <div class="form-row single">
+          <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Características do Imóvel</label>
-              <div id="caracteristicas-checkboxes" style="display:flex;flex-direction:column;gap:10px;margin-top:6px;padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">
-                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
-                  <input type="checkbox" name="furnished" value="true" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
-                  <span>🛋️ Imóvel Mobiliado (exibe badge "Mobiliado" no card)</span>
-                </label>
-              </div>
+              <label class="form-label">Mobília</label>
+              <select name="furnishing_status" id="adminFurnishingStatus" class="form-control">
+                <option value="">Selecione</option>
+                <option value="mobiliado">🛋️ Mobiliado</option>
+                <option value="semimobiliado">🪑 Semimobiliado</option>
+                <option value="vazio">📦 Vazio (sem mobília)</option>
+              </select>
             </div>
           </div>
 
