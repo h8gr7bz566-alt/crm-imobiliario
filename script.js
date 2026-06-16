@@ -1041,9 +1041,9 @@ function buildPropertyCard(p) {
       <div class="icard-body" data-href="property.html?id=${p.id}">
         ${(() => {
           const fs = p.furnishing_status || (p.furnished === true ? 'mobiliado' : '')
-          if (fs === 'mobiliado')     return '<span class="icard-badge badge-furn-mob">🛋️ Mobiliado</span>'
-          if (fs === 'semimobiliado') return '<span class="icard-badge badge-furn-semi">🪑 Semimobiliado</span>'
-          if (fs === 'vazio')         return '<span class="icard-badge badge-furn-vazio">📦 Vazio</span>'
+          if (fs === 'mobiliado')     return '<span class="icard-badge badge-furn-mob">Mobiliado</span>'
+          if (fs === 'semimobiliado') return '<span class="icard-badge badge-furn-semi">Semimobiliado</span>'
+          if (fs === 'vazio')         return '<span class="icard-badge badge-furn-vazio">Vazio</span>'
           return ''
         })()}
         <div class="icard-neighborhood">${escapeHTML(p.neighborhood || p.title)}</div>
