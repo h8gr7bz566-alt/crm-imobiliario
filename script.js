@@ -4695,11 +4695,13 @@ async function renderCRMConfig() {
   ).join('')
 
   const stagesForPipe = (stages || []).filter(s => s.pipeline_id === defaultPipe?.id)
-  const stageItems = stagesForPipe.map(s => `
-    <div class="stage-item" data-id="${s.id}">
+  const stageItems = stagesForPipe.map((s, i) => `
+    <div class="stage-item" data-id="${s.id}" data-idx="${i}">
       <div class="stage-color-dot" style="background:${s.color}"></div>
-      <span class="stage-name">${escapeHTML(s.name)}</span>
-      <input type="color" value="${s.color}" data-sid="${s.id}" class="stage-color-pick">
+      <input type="text" class="stage-name-input form-control" value="${escapeHTML(s.name)}" data-sid="${s.id}" data-orig="${escapeHTML(s.name)}" style="flex:1;font-size:14px;padding:6px 10px;margin:0 4px;border:1px solid transparent;background:transparent" placeholder="Nome da etapa">
+      <button class="icon-btn stage-up" data-id="${s.id}" data-idx="${i}" title="Mover para cima" ${i === 0 ? 'disabled style="opacity:0.3"' : ''}>▲</button>
+      <button class="icon-btn stage-down" data-id="${s.id}" data-idx="${i}" title="Mover para baixo" ${i === stagesForPipe.length - 1 ? 'disabled style="opacity:0.3"' : ''}>▼</button>
+      <input type="color" value="${s.color}" data-sid="${s.id}" class="stage-color-pick" title="Cor da etapa">
       <button class="icon-btn del-btn stage-del" data-id="${s.id}" title="Remover etapa">🗑️</button>
     </div>`).join('') || '<p style="color:#9ca3af;font-size:14px;margin:0">Nenhuma etapa cadastrada.</p>'
 
@@ -4791,6 +4793,60 @@ async function renderCRMConfig() {
     btn.addEventListener('click', async () => {
       if (!confirm('Remover esta etapa?')) return
       await supabase.from('crm_stages').delete().eq('id', btn.dataset.id)
+      await renderCRMConfig()
+    })
+  })
+
+  // Renomear etapa (salva quando perde o foco e o nome mudou)
+  body.querySelectorAll('.stage-name-input').forEach(inp => {
+    inp.addEventListener('focus', () => { inp.style.border = '1px solid var(--gold,#C9A227)'; inp.style.background = '#fff' })
+    inp.addEventListener('blur', async () => {
+      inp.style.border = '1px solid transparent'
+      inp.style.background = 'transparent'
+      const newName = inp.value.trim()
+      const orig = inp.dataset.orig
+      if (!newName || newName === orig) {
+        inp.value = orig
+        return
+      }
+      await supabase.from('crm_stages').update({ name: newName }).eq('id', inp.dataset.sid)
+      inp.dataset.orig = newName
+    })
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); inp.blur() }
+      if (e.key === 'Escape') { inp.value = inp.dataset.orig; inp.blur() }
+    })
+  })
+
+  // Reordenar para cima
+  body.querySelectorAll('.stage-up').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return
+      const idx = parseInt(btn.dataset.idx, 10)
+      if (idx <= 0) return
+      const a = stagesForPipe[idx]
+      const b = stagesForPipe[idx - 1]
+      // Troca sort_order entre os dois
+      await Promise.all([
+        supabase.from('crm_stages').update({ sort_order: b.sort_order ?? (idx - 1) }).eq('id', a.id),
+        supabase.from('crm_stages').update({ sort_order: a.sort_order ?? idx       }).eq('id', b.id),
+      ])
+      await renderCRMConfig()
+    })
+  })
+
+  // Reordenar para baixo
+  body.querySelectorAll('.stage-down').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return
+      const idx = parseInt(btn.dataset.idx, 10)
+      if (idx >= stagesForPipe.length - 1) return
+      const a = stagesForPipe[idx]
+      const b = stagesForPipe[idx + 1]
+      await Promise.all([
+        supabase.from('crm_stages').update({ sort_order: b.sort_order ?? (idx + 1) }).eq('id', a.id),
+        supabase.from('crm_stages').update({ sort_order: a.sort_order ?? idx       }).eq('id', b.id),
+      ])
       await renderCRMConfig()
     })
   })
@@ -7047,7 +7103,10 @@ async function initDashboardSection() {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.db-ptab').forEach(b => b.classList.remove('active'))
         btn.classList.add('active')
-        _dbRenderLeadsChart(leads, parseInt(btn.dataset.p))
+        const days = parseInt(btn.dataset.p)
+        // Atualiza dataset selecionado e re-renderiza com period escolhido
+        window._dbSelectedDays = days
+        _dbRenderLeadsChart(leads, days)
       })
     })
   } catch (e) {
@@ -7055,6 +7114,16 @@ async function initDashboardSection() {
   }
 
   if (window.lucide) lucide.createIcons()
+
+  // Auto-refresh do dashboard a cada 30 segundos (em tempo real)
+  if (window._dbRefreshTimer) clearInterval(window._dbRefreshTimer)
+  window._dbRefreshTimer = setInterval(() => {
+    // Só atualiza se a aba dashboard ainda está visível
+    const dash = document.getElementById('dashboard-content') || document.querySelector('.db-dashboard')
+    if (!dash || dash.offsetParent === null) return
+    // Re-carrega dados sem destruir a UI inteira
+    if (typeof renderDashboard === 'function') renderDashboard(true)
+  }, 30000)
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -7165,11 +7234,14 @@ function _dbRenderKPIs(properties, leads, now) {
 }
 
 // ── Leads Bar Chart ───────────────────────────────────────────────────────────
-let _dbLeadsChartInstance = null
 function _dbRenderLeadsChart(leads, days) {
   const canvas = document.getElementById('db-leads-chart')
   if (!canvas || !window.Chart) return
-  if (window._dbLeadsChartInstance) { window._dbLeadsChartInstance.destroy(); _dbLeadsChartInstance = null }
+  // Sempre usa window._dbLeadsChartInstance (consistência)
+  if (window._dbLeadsChartInstance) {
+    try { window._dbLeadsChartInstance.destroy() } catch(e){}
+    window._dbLeadsChartInstance = null
+  }
 
   const labels = [], counts = []
   const now = new Date()
@@ -7187,7 +7259,7 @@ function _dbRenderLeadsChart(leads, days) {
   }
 
   const maxVal = Math.max(...counts, 1)
-  _dbLeadsChartInstance = new Chart(canvas, {
+  window._dbLeadsChartInstance = new Chart(canvas, {
     type: 'bar',
     data: {
       labels,
