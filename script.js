@@ -2134,9 +2134,22 @@ async function openLeadModal(lead = null) {
         email: row.email,
         phone: row.phone,
         tracking: _tr,
-      }).then(result => {
-        if (result?.ok) console.log('[CAPI] Lead enviado ao Meta:', result.event_id)
-      }).catch(() => {})
+      }).then(async result => {
+        if (result?.ok) {
+          console.log('[CAPI] Lead enviado ao Meta:', result.event_id)
+          // Atualiza o lead recém-criado com capi_event_id + capi_sent_at
+          try {
+            await supabase.from('leads')
+              .update({ capi_event_id: result.event_id, capi_sent_at: new Date().toISOString() })
+              .eq('name', row.name)
+              .eq('phone', row.phone || '')
+              .order('created_at', { ascending: false })
+              .limit(1)
+          } catch(e) { console.warn('[CAPI] falha ao salvar event_id:', e) }
+        } else {
+          console.warn('[CAPI] não confirmado pelo Meta:', result)
+        }
+      }).catch(err => console.warn('[CAPI] erro:', err))
     }
 
     setTimeout(() => { close(); loadKanbanLeads() }, 700)
