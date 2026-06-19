@@ -93,6 +93,102 @@ let cachedProperties = []
 let currentProfile    = null
 let cachedLocations   = []
 
+// ═══════════════════════════════════════════════════════════════════
+// Meta CAPI — Tracking de atribuição (UTM, fbclid, cookies)
+// Captura origem do tráfego no primeiro acesso, persiste por 90 dias.
+// ═══════════════════════════════════════════════════════════════════
+const TRACKING_STORAGE_KEY = 'imobi_lead_tracking'
+const TRACKING_TTL_MS = 90 * 24 * 60 * 60 * 1000 // 90 dias
+
+function getCookie(name) {
+  try {
+    const all = document.cookie ? document.cookie.split('; ') : []
+    for (const pair of all) {
+      const eq = pair.indexOf('=')
+      if (eq < 0) continue
+      const k = pair.slice(0, eq)
+      if (k === name) return decodeURIComponent(pair.slice(eq + 1))
+    }
+    return null
+  } catch (e) { return null }
+}
+
+function captureLeadTracking() {
+  if (typeof window === 'undefined') return null
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const captured = {
+      utm_source:   params.get('utm_source'),
+      utm_medium:   params.get('utm_medium'),
+      utm_campaign: params.get('utm_campaign'),
+      utm_content:  params.get('utm_content'),
+      utm_term:     params.get('utm_term'),
+      fbclid:       params.get('fbclid'),
+      gclid:        params.get('gclid'),
+      fbp:          getCookie('_fbp'),
+      fbc:          getCookie('_fbc'),
+      landing_url:  window.location.href,
+      captured_at:  Date.now(),
+    }
+
+    // Se chegou com fbclid mas _fbc ainda não existe, gera manualmente (padrão Meta)
+    if (captured.fbclid && !captured.fbc) {
+      const ts = Math.floor(Date.now() / 1000)
+      captured.fbc = `fb.1.${ts}.${captured.fbclid}`
+    }
+
+    // Mescla com dados anteriores: primeira atribuição prevalece, exceto se novo tráfego trouxer UTMs
+    const hasNewAttribution = captured.utm_source || captured.utm_campaign || captured.fbclid || captured.gclid
+    const prevRaw = localStorage.getItem(TRACKING_STORAGE_KEY)
+    let final = captured
+    if (prevRaw) {
+      try {
+        const prev = JSON.parse(prevRaw)
+        // Se o registro anterior ainda é válido E nova visita não tem nova atribuição, mantém o anterior
+        if (prev && prev.captured_at && (Date.now() - prev.captured_at < TRACKING_TTL_MS) && !hasNewAttribution) {
+          final = { ...prev, fbp: captured.fbp || prev.fbp, fbc: captured.fbc || prev.fbc }
+        }
+      } catch (e) {}
+    }
+
+    localStorage.setItem(TRACKING_STORAGE_KEY, JSON.stringify(final))
+    return final
+  } catch (e) {
+    return null
+  }
+}
+
+function getLeadTracking() {
+  try {
+    const raw = localStorage.getItem(TRACKING_STORAGE_KEY)
+    if (!raw) return {}
+    const data = JSON.parse(raw)
+    if (!data || !data.captured_at || (Date.now() - data.captured_at > TRACKING_TTL_MS)) return {}
+    // Atualiza cookies fbp/fbc atuais (esses podem ter mudado)
+    const fbpNow = getCookie('_fbp')
+    const fbcNow = getCookie('_fbc')
+    return {
+      utm_source:   data.utm_source   || null,
+      utm_medium:   data.utm_medium   || null,
+      utm_campaign: data.utm_campaign || null,
+      utm_content:  data.utm_content  || null,
+      utm_term:     data.utm_term     || null,
+      fbclid:       data.fbclid       || null,
+      gclid:        data.gclid        || null,
+      fbp:          fbpNow            || data.fbp || null,
+      fbc:          fbcNow            || data.fbc || null,
+      landing_url:  data.landing_url  || null,
+    }
+  } catch (e) { return {} }
+}
+
+// Captura no carregamento da página (qualquer página do site)
+if (typeof window !== 'undefined') {
+  // Aguarda 100ms pra Pixel setar o _fbp
+  setTimeout(captureLeadTracking, 100)
+}
+
+
 // Flag: captura PASSWORD_RECOVERY antes do DOMContentLoaded
 // O Supabase troca o código PKCE durante a inicialização, antes do DOM estar pronto
 let pendingPasswordRecovery = false
@@ -1992,6 +2088,8 @@ async function openLeadModal(lead = null) {
     const selectedTags = [...panel.querySelectorAll('#ldp-tag-badge-area .ldp-tag-badge[data-tag]')].map(b => b.dataset.tag)
     const _selPipeEl = document.getElementById('ldp-pipe')
     const _selPipeId = _selPipeEl ? _selPipeEl.value : (leadPipeId || activePipeId)
+    // Anexa tracking de atribuição (UTM, fbclid, cookies Meta) ao lead novo
+    const _tr = !isNew ? {} : (typeof getLeadTracking === 'function' ? getLeadTracking() : {})
     const row = {
       name,
       phone:       document.getElementById('ldp-phone').value.trim() || null,
@@ -2003,6 +2101,19 @@ async function openLeadModal(lead = null) {
       notes:       document.getElementById('ldp-notes').value.trim() || null,
       tags:        selectedTags,
       tenant_id:   getSettingsTenantId(),
+      ...(isNew ? {
+        utm_source:   _tr.utm_source   || null,
+        utm_medium:   _tr.utm_medium   || null,
+        utm_campaign: _tr.utm_campaign || null,
+        utm_content:  _tr.utm_content  || null,
+        utm_term:     _tr.utm_term     || null,
+        fbclid:       _tr.fbclid       || null,
+        gclid:        _tr.gclid        || null,
+        fbp:          _tr.fbp          || null,
+        fbc:          _tr.fbc          || null,
+        landing_url:  _tr.landing_url  || null,
+        user_agent:   navigator.userAgent || null,
+      } : {}),
     }
 
     let error
@@ -2015,6 +2126,19 @@ async function openLeadModal(lead = null) {
     btn.disabled = false; btn.textContent = '💾 Salvar'
     if (error) { msgEl.style.color='#ef4444'; msgEl.textContent='Erro: ' + error.message; return }
     msgEl.style.color='#22c55e'; msgEl.textContent='✅ Salvo!'
+
+    // Dispara Meta CAPI apenas para leads NOVOS (não para edição)
+    if (isNew && typeof sendLeadToCAPI === 'function') {
+      sendLeadToCAPI({
+        name:  row.name,
+        email: row.email,
+        phone: row.phone,
+        tracking: _tr,
+      }).then(result => {
+        if (result?.ok) console.log('[CAPI] Lead enviado ao Meta:', result.event_id)
+      }).catch(() => {})
+    }
+
     setTimeout(() => { close(); loadKanbanLeads() }, 700)
   })
 
