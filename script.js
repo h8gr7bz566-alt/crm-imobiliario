@@ -4696,11 +4696,10 @@ async function renderCRMConfig() {
 
   const stagesForPipe = (stages || []).filter(s => s.pipeline_id === defaultPipe?.id)
   const stageItems = stagesForPipe.map((s, i) => `
-    <div class="stage-item" data-id="${s.id}" data-idx="${i}">
+    <div class="stage-item stage-draggable" data-id="${s.id}" data-idx="${i}" draggable="true">
+      <span class="stage-drag-handle" title="Arrastar para reordenar">⋮⋮</span>
       <div class="stage-color-dot" style="background:${s.color}"></div>
-      <input type="text" class="stage-name-input form-control" value="${escapeHTML(s.name)}" data-sid="${s.id}" data-orig="${escapeHTML(s.name)}" style="flex:1;font-size:14px;padding:6px 10px;margin:0 4px;border:1px solid transparent;background:transparent" placeholder="Nome da etapa">
-      <button class="icon-btn stage-up" data-id="${s.id}" data-idx="${i}" title="Mover para cima" ${i === 0 ? 'disabled style="opacity:0.3"' : ''}>▲</button>
-      <button class="icon-btn stage-down" data-id="${s.id}" data-idx="${i}" title="Mover para baixo" ${i === stagesForPipe.length - 1 ? 'disabled style="opacity:0.3"' : ''}>▼</button>
+      <input type="text" class="stage-name-input" value="${escapeHTML(s.name)}" data-sid="${s.id}" data-orig="${escapeHTML(s.name)}" placeholder="Nome da etapa">
       <input type="color" value="${s.color}" data-sid="${s.id}" class="stage-color-pick" title="Cor da etapa">
       <button class="icon-btn del-btn stage-del" data-id="${s.id}" title="Remover etapa">🗑️</button>
     </div>`).join('') || '<p style="color:#9ca3af;font-size:14px;margin:0">Nenhuma etapa cadastrada.</p>'
@@ -4797,56 +4796,68 @@ async function renderCRMConfig() {
     })
   })
 
-  // Renomear etapa (salva quando perde o foco e o nome mudou)
+  // Renomear etapa (salva ao Enter ou perder foco)
   body.querySelectorAll('.stage-name-input').forEach(inp => {
-    inp.addEventListener('focus', () => { inp.style.border = '1px solid var(--gold,#C9A227)'; inp.style.background = '#fff' })
     inp.addEventListener('blur', async () => {
-      inp.style.border = '1px solid transparent'
-      inp.style.background = 'transparent'
       const newName = inp.value.trim()
       const orig = inp.dataset.orig
-      if (!newName || newName === orig) {
-        inp.value = orig
-        return
-      }
+      if (!newName || newName === orig) { inp.value = orig; return }
       await supabase.from('crm_stages').update({ name: newName }).eq('id', inp.dataset.sid)
       inp.dataset.orig = newName
     })
     inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); inp.blur() }
+      if (e.key === 'Enter')  { e.preventDefault(); inp.blur() }
       if (e.key === 'Escape') { inp.value = inp.dataset.orig; inp.blur() }
     })
   })
 
-  // Reordenar para cima
-  body.querySelectorAll('.stage-up').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (btn.disabled) return
-      const idx = parseInt(btn.dataset.idx, 10)
-      if (idx <= 0) return
-      const a = stagesForPipe[idx]
-      const b = stagesForPipe[idx - 1]
-      // Troca sort_order entre os dois
-      await Promise.all([
-        supabase.from('crm_stages').update({ sort_order: b.sort_order ?? (idx - 1) }).eq('id', a.id),
-        supabase.from('crm_stages').update({ sort_order: a.sort_order ?? idx       }).eq('id', b.id),
-      ])
-      await renderCRMConfig()
-    })
-  })
+  // ─── DRAG AND DROP — reordenação profissional ────────────────────────────
+  const stagesList = document.getElementById('crm-stages-list')
+  let _dragSrc = null
 
-  // Reordenar para baixo
-  body.querySelectorAll('.stage-down').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (btn.disabled) return
-      const idx = parseInt(btn.dataset.idx, 10)
-      if (idx >= stagesForPipe.length - 1) return
-      const a = stagesForPipe[idx]
-      const b = stagesForPipe[idx + 1]
-      await Promise.all([
-        supabase.from('crm_stages').update({ sort_order: b.sort_order ?? (idx + 1) }).eq('id', a.id),
-        supabase.from('crm_stages').update({ sort_order: a.sort_order ?? idx       }).eq('id', b.id),
-      ])
+  body.querySelectorAll('.stage-draggable').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      _dragSrc = item
+      item.classList.add('stage-dragging')
+      e.dataTransfer.effectAllowed = 'move'
+      // Workaround pra alguns navegadores precisarem de dataTransfer.setData
+      try { e.dataTransfer.setData('text/plain', item.dataset.id) } catch(err){}
+    })
+    item.addEventListener('dragend', () => {
+      item.classList.remove('stage-dragging')
+      body.querySelectorAll('.stage-drop-over').forEach(el => el.classList.remove('stage-drop-over'))
+    })
+    item.addEventListener('dragover', e => {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      if (item === _dragSrc) return
+      // Highlight do item alvo
+      body.querySelectorAll('.stage-drop-over').forEach(el => el.classList.remove('stage-drop-over'))
+      item.classList.add('stage-drop-over')
+    })
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('stage-drop-over')
+    })
+    item.addEventListener('drop', async e => {
+      e.preventDefault()
+      if (!_dragSrc || item === _dragSrc) return
+      const srcId = _dragSrc.dataset.id
+      const tgtId = item.dataset.id
+
+      // Reordena array em memória
+      const srcIdx = stagesForPipe.findIndex(s => String(s.id) === String(srcId))
+      const tgtIdx = stagesForPipe.findIndex(s => String(s.id) === String(tgtId))
+      if (srcIdx < 0 || tgtIdx < 0) return
+      const moved = stagesForPipe.splice(srcIdx, 1)[0]
+      stagesForPipe.splice(tgtIdx, 0, moved)
+
+      // Persiste nova ordem (sort_order = posição final)
+      const updates = stagesForPipe.map((s, i) =>
+        supabase.from('crm_stages').update({ sort_order: i }).eq('id', s.id)
+      )
+      // Otimismo visual: re-render imediatamente
+      _dragSrc = null
+      await Promise.all(updates).catch(err => console.warn('[stages] erro reordenar:', err))
       await renderCRMConfig()
     })
   })
