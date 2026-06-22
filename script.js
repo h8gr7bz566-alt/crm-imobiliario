@@ -4688,13 +4688,20 @@ async function renderCRMConfig() {
   ])
 
   const pipeList = pipes || []
-  const defaultPipe = pipeList.find(p => p.is_default) || pipeList[0]
+  // Prioriza o pipeline que está ativo no Negociações; senão usa o padrão
+  const activeFromKanban = typeof activePipeId !== 'undefined' && activePipeId
+    ? pipeList.find(p => p.id === activePipeId)
+    : null
+  const defaultPipe = activeFromKanban || pipeList.find(p => p.is_default) || pipeList[0]
 
   const pipeOptions = pipeList.map(p =>
     `<option value="${p.id}"${p.id === defaultPipe?.id ? ' selected' : ''}>${escapeHTML(p.name)}</option>`
   ).join('')
 
-  const stagesForPipe = (stages || []).filter(s => s.pipeline_id === defaultPipe?.id)
+  // Stages do funil selecionado (ordenadas por sort_order)
+  const stagesForPipe = (stages || [])
+    .filter(s => s.pipeline_id === defaultPipe?.id)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
   const stageItems = stagesForPipe.map((s, i) => `
     <div class="stage-item stage-draggable" data-id="${s.id}" data-idx="${i}" draggable="true">
       <span class="stage-drag-handle" title="Arrastar para reordenar">⋮⋮</span>
@@ -4775,6 +4782,19 @@ async function renderCRMConfig() {
       </div>
     </div>
   `
+
+  // Mudar pipeline selecionado → atualiza etapa de stages exibidas E o pipeline ativo do kanban
+  const pipeSel = document.getElementById('crm-pipe-sel')
+  if (pipeSel) {
+    pipeSel.addEventListener('change', async () => {
+      // Atualiza pipeline ativo do kanban também (consistência entre as telas)
+      const newPipeId = parseInt(pipeSel.value, 10)
+      if (!isNaN(newPipeId)) {
+        try { activePipeId = newPipeId } catch(e){}
+      }
+      await renderCRMConfig()
+    })
+  }
 
   // Adicionar etapa
   document.getElementById('crm-add-stage').addEventListener('click', async () => {
