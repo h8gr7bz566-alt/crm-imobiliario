@@ -896,6 +896,10 @@ ${S}`);window.open("https://wa.me/?text="+G,"_blank")}),(f=document.getElementBy
         <select class="pipeline-select" id="crm-pipe-sel">${c}</select>
         <button class="btn-secondary" id="crm-add-pipeline" style="font-size:13px;padding:7px 14px">+ Novo Funil</button>
       </div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e;">
+        <span style="font-size:18px;">💡</span>
+        <span><strong>Para reordenar:</strong> arraste a etapa pelo handle <span style="display:inline-block;background:#C9A227;color:#fff;padding:1px 6px;border-radius:4px;font-weight:700;letter-spacing:-2px;font-family:monospace;">⋮⋮</span> dourado. <strong>Para renomear:</strong> clique no nome da etapa.</span>
+      </div>
       <div class="stages-list" id="crm-stages-list">${m}</div>
       <div class="stage-add-row">
         <input id="crm-new-stage" type="text" class="form-control" placeholder="Nome da etapa…">
