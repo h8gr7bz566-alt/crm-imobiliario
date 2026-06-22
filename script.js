@@ -4729,19 +4729,54 @@ async function renderCRMConfig() {
   body.innerHTML = `
     <div class="cfg-card">
       <div class="cfg-card-title"><span>🔀</span> Funis e Etapas</div>
-      <div class="pipeline-header">
-        <select class="pipeline-select" id="crm-pipe-sel">${pipeOptions}</select>
-        <button class="btn-secondary" id="crm-add-pipeline" style="font-size:13px;padding:7px 14px">+ Novo Funil</button>
+
+      <!-- Seletor de Funil + ações sobre o funil inteiro -->
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:240px">
+            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">Funil ativo:</label>
+            <select class="pipeline-select" id="crm-pipe-sel" style="flex:1;min-width:200px;font-size:14px;padding:8px 10px;border:1px solid var(--border);border-radius:6px">${pipeOptions}</select>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-secondary" id="crm-rename-pipeline" style="font-size:13px;padding:7px 14px" title="Renomear este funil">✏️ Renomear</button>
+            <button class="btn-secondary" id="crm-set-default-pipeline" style="font-size:13px;padding:7px 14px" title="Marcar como padrão">⭐ Tornar padrão</button>
+            <button class="btn-secondary" id="crm-delete-pipeline" style="font-size:13px;padding:7px 14px;color:#dc2626;border-color:#fecaca" title="Excluir este funil">🗑️ Excluir funil</button>
+            <button class="btn-primary" id="crm-add-pipeline" style="font-size:13px;padding:7px 14px">➕ Novo Funil</button>
+          </div>
+        </div>
+        ${defaultPipe?.is_default ? '<div style="margin-top:8px;font-size:12px;color:#059669"><strong>⭐ Funil padrão</strong> · usado por novos leads</div>' : ''}
       </div>
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e;">
-        <span style="font-size:18px;">💡</span>
-        <span><strong>Para reordenar:</strong> arraste a etapa pelo handle <span style="display:inline-block;background:#C9A227;color:#fff;padding:1px 6px;border-radius:4px;font-weight:700;letter-spacing:-2px;font-family:monospace;">⋮⋮</span> dourado. <strong>Para renomear:</strong> clique no nome da etapa.</span>
+
+      <!-- Banner explicativo -->
+      <div style="background:linear-gradient(to right,#fffbeb,#fef3c7);border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <span style="font-size:24px;line-height:1">💡</span>
+          <div style="font-size:13px;color:#78350f;line-height:1.6">
+            <div style="font-weight:700;margin-bottom:4px;color:#92400e">Como editar as etapas do funil "${escapeHTML(defaultPipe?.name || '')}"</div>
+            <div>• <strong>Reordenar:</strong> arraste pela alça <span style="display:inline-block;background:#C9A227;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;letter-spacing:-2px;font-family:monospace;font-size:14px">⋮⋮</span> dourada</div>
+            <div>• <strong>Renomear:</strong> clique no nome da etapa, edite e tecle Enter</div>
+            <div>• <strong>Mudar cor:</strong> clique no quadradinho colorido</div>
+            <div>• <strong>Excluir:</strong> clique no 🗑️ (cuidado: leads dessa etapa ficam órfãos)</div>
+          </div>
+        </div>
       </div>
+
+      <!-- Cabeçalho da lista -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 4px">
+        <div style="font-size:13px;font-weight:700;color:#0f172a;letter-spacing:0.02em;text-transform:uppercase">
+          Etapas (${stagesForPipe.length})
+        </div>
+        <div style="font-size:11px;color:#94a3b8">A ordem aqui = ordem das colunas no Kanban</div>
+      </div>
+
+      <!-- Lista de etapas drag-and-drop -->
       <div class="stages-list" id="crm-stages-list">${stageItems}</div>
-      <div class="stage-add-row">
-        <input id="crm-new-stage" type="text" class="form-control" placeholder="Nome da etapa…">
+
+      <!-- Form de adicionar etapa -->
+      <div class="stage-add-row" style="margin-top:12px;padding:12px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px">
+        <input id="crm-new-stage" type="text" class="form-control" placeholder="Nome da nova etapa (ex: Visita Marcada, Sem Resposta…)">
         <input type="color" id="crm-new-stage-color" value="#3b82f6" style="width:44px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:2px">
-        <button class="btn-primary" id="crm-add-stage">Adicionar Etapa</button>
+        <button class="btn-primary" id="crm-add-stage">➕ Adicionar Etapa</button>
       </div>
     </div>
 
@@ -4799,6 +4834,48 @@ async function renderCRMConfig() {
       await renderCRMConfig()
     })
   }
+
+  // ─── Gerenciar o FUNIL inteiro ────────────────────────────────────────
+  const currentPipeId = defaultPipe?.id
+
+  // Renomear funil
+  document.getElementById('crm-rename-pipeline')?.addEventListener('click', async () => {
+    if (!currentPipeId) return
+    const novo = prompt('Novo nome do funil:', defaultPipe?.name || '')
+    if (!novo || novo.trim() === defaultPipe?.name) return
+    const { error } = await supabase.from('crm_pipelines').update({ name: novo.trim() }).eq('id', currentPipeId)
+    if (error) { alert('Erro: ' + error.message); return }
+    await renderCRMConfig()
+  })
+
+  // Marcar como padrão
+  document.getElementById('crm-set-default-pipeline')?.addEventListener('click', async () => {
+    if (!currentPipeId) return
+    if (defaultPipe?.is_default) { alert('Este funil já é o padrão.'); return }
+    try {
+      const tid = getSettingsTenantId()
+      // Remove a flag dos outros funis do tenant
+      await supabase.from('crm_pipelines').update({ is_default: false }).eq('tenant_id', tid)
+      // Marca este como padrão
+      await supabase.from('crm_pipelines').update({ is_default: true }).eq('id', currentPipeId)
+      await renderCRMConfig()
+    } catch(e) { alert('Erro: ' + e.message) }
+  })
+
+  // Excluir funil inteiro
+  document.getElementById('crm-delete-pipeline')?.addEventListener('click', async () => {
+    if (!currentPipeId) return
+    if (pipeList.length === 1) {
+      alert('Não pode excluir o único funil. Crie outro antes.')
+      return
+    }
+    if (!confirm(`Excluir o funil "${defaultPipe?.name}" e todas as suas etapas?\n\nLeads associados ficarão sem funil — você pode movê-los depois.`)) return
+    // Deleta stages do funil + o funil
+    await supabase.from('crm_stages').delete().eq('pipeline_id', currentPipeId)
+    await supabase.from('crm_pipelines').delete().eq('id', currentPipeId)
+    activePipeId = null
+    await renderCRMConfig()
+  })
 
   // Adicionar etapa
   document.getElementById('crm-add-stage').addEventListener('click', async () => {
