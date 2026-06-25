@@ -2036,7 +2036,12 @@ function renderKanban() {
           const tagsCount = (Array.isArray(l.tags) ? l.tags.length : 0)
           return `
         <div class="kanban-card" draggable="true" data-id="${l.id}" data-stage="${escapeHTML(stage.name)}" style="cursor:pointer;">
-          <span class="rd-card-status">${escapeHTML(statusLabel)}</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+            <span class="rd-card-status">${escapeHTML(statusLabel)}</span>
+            <button class="rd-card-info-btn" data-lead="${l.id}" title="Ver resumo" onclick="event.stopPropagation();window.openLeadSidePanel('${l.id}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;">
             <div class="kanban-card-name" style="flex:1;">${escapeHTML(l.name || '—')}</div>
             ${waNum ? `<a href="https://wa.me/${waNum}?text=${waMsg}" target="_blank" rel="noopener"
@@ -2102,6 +2107,79 @@ function renderKanban() {
 
   attachKanbanEvents()
   if (window.lucide) lucide.createIcons()
+}
+
+// ─── Painel lateral "Sobre a Negociação" (estilo RD Station) ─────────────
+window.openLeadSidePanel = function(leadId) {
+  const lead = (typeof kanbanLeads !== 'undefined' ? kanbanLeads : []).find(l => String(l.id) === String(leadId))
+  if (!lead) { console.warn('[Sidepanel] lead não encontrado:', leadId); return }
+
+  document.getElementById('rd-lead-sidepanel')?.remove()
+  document.getElementById('rd-lead-sidepanel-backdrop')?.remove()
+
+  const backdrop = document.createElement('div')
+  backdrop.id = 'rd-lead-sidepanel-backdrop'
+  backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:1400;opacity:0;transition:opacity .2s;'
+  backdrop.addEventListener('click', () => window.closeLeadSidePanel())
+
+  const panel = document.createElement('div')
+  panel.id = 'rd-lead-sidepanel'
+  panel.className = 'rd-lead-sidepanel'
+
+  const fmtDate = iso => {
+    if (!iso) return '—'
+    try {
+      const d = new Date(iso)
+      const dia = String(d.getDate()).padStart(2,'0')
+      const mes = String(d.getMonth()+1).padStart(2,'0')
+      return `${dia}/${mes}/${d.getFullYear()} às ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+    } catch(e) { return iso }
+  }
+
+  const interacoes = (lead.notes ? 1 : 0) + (lead.updated_at && lead.updated_at !== lead.created_at ? 1 : 0)
+
+  panel.innerHTML = [
+    '<div class="rd-lead-sidepanel-header">',
+      '<div class="rd-lead-sidepanel-title">Sobre a Negociação</div>',
+      '<button class="rd-lead-sidepanel-close" onclick="window.closeLeadSidePanel()" title="Fechar">',
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+      '</button>',
+    '</div>',
+    '<div class="rd-lead-sidepanel-body">',
+      '<div class="rd-lead-sidepanel-section-label">DADOS GERAIS</div>',
+      `<div class="rd-lead-field"><div class="rd-lead-field-label">Nome</div><div class="rd-lead-field-value">${escapeHTML(lead.name || '—')}</div></div>`,
+      lead.phone  ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Telefone</div><div class="rd-lead-field-value">📞 ${escapeHTML(lead.phone)}</div></div>` : '',
+      lead.email  ? `<div class="rd-lead-field"><div class="rd-lead-field-label">E-mail</div><div class="rd-lead-field-value">✉ ${escapeHTML(lead.email)}</div></div>` : '',
+      `<div class="rd-lead-field"><div class="rd-lead-field-label">Fonte</div><div class="rd-lead-field-value">${escapeHTML(lead.source || 'Não informado')}</div></div>`,
+      lead.utm_campaign ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Campanha</div><div class="rd-lead-field-value">${escapeHTML(lead.utm_campaign)}</div></div>` : '',
+      lead.utm_source   ? `<div class="rd-lead-field"><div class="rd-lead-field-label">UTM Source</div><div class="rd-lead-field-value">${escapeHTML(lead.utm_source)}</div></div>` : '',
+      `<div class="rd-lead-field"><div class="rd-lead-field-label">Interações</div><div class="rd-lead-field-value">${interacoes} interaç${interacoes === 1 ? 'ão' : 'ões'}</div></div>`,
+      lead.notes  ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Última anotação</div><div class="rd-lead-field-value" style="background:#f8fafc;padding:10px 12px;border-radius:6px;border-left:3px solid #06b6d4;">${escapeHTML(lead.notes)}</div></div>` : '',
+      `<div class="rd-lead-field"><div class="rd-lead-field-label">Data de criação</div><div class="rd-lead-field-value">${fmtDate(lead.created_at)}</div></div>`,
+      (lead.updated_at && lead.updated_at !== lead.created_at) ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Último contato</div><div class="rd-lead-field-value">${fmtDate(lead.updated_at)}</div></div>` : '',
+      `<div class="rd-lead-field"><div class="rd-lead-field-label">Previsão de fechamento</div><div class="rd-lead-field-value" style="color:${lead.next_contact ? '#0f172a' : '#94a3b8'}">${lead.next_contact ? fmtDate(lead.next_contact) : 'Não preenchido'}</div></div>`,
+      lead.interest ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Qualificação / Interesse</div><div class="rd-lead-field-value">${escapeHTML(lead.interest)}</div></div>` : '',
+      (Array.isArray(lead.tags) && lead.tags.length) ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Tags</div><div class="rd-lead-field-value" style="display:flex;flex-wrap:wrap;gap:4px">${lead.tags.map(t => `<span style="background:#ecfeff;color:#0e7490;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${escapeHTML(t)}</span>`).join('')}</div></div>` : '',
+    '</div>',
+    '<div class="rd-lead-sidepanel-footer">',
+      lead.phone ? `<button class="rd-btn-primary" style="background:#25d366;flex:1;" onclick="window.open('https://wa.me/${(lead.phone||'').replace(/\D/g,'')}','_blank');if(typeof fbq==='function')fbq('track','Contact')">WhatsApp</button>` : '',
+      `<button class="rd-btn-primary" style="flex:1;" onclick="window.closeLeadSidePanel();if(typeof openLeadModal==='function'){const l=kanbanLeads.find(x=>String(x.id)==='${lead.id}');if(l)openLeadModal(l);}">Abrir Negociação</button>`,
+    '</div>'
+  ].join('')
+
+  document.body.appendChild(backdrop)
+  document.body.appendChild(panel)
+  requestAnimationFrame(() => {
+    backdrop.style.opacity = '1'
+    panel.classList.add('open')
+  })
+}
+
+window.closeLeadSidePanel = function() {
+  const panel    = document.getElementById('rd-lead-sidepanel')
+  const backdrop = document.getElementById('rd-lead-sidepanel-backdrop')
+  if (panel)    { panel.classList.remove('open'); setTimeout(() => panel.remove(), 250) }
+  if (backdrop) { backdrop.style.opacity = '0';   setTimeout(() => backdrop.remove(), 250) }
 }
 
 function attachKanbanEvents() {

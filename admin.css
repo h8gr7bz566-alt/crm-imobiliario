@@ -3690,3 +3690,24 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   .rd-kanban .kanban-col { flex: 0 0 260px !important; }
   .rd-lead-sidepanel { width: 100vw; }
 }
+
+/* Botão (i) no card kanban — abre side panel */
+.rd-kanban .rd-card-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.rd-kanban .rd-card-info-btn:hover {
+  background: #0ea5e9;
+  color: #fff;
+  transform: scale(1.05);
+}
