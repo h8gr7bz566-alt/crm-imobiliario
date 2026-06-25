@@ -1266,13 +1266,22 @@ function formatAddress(rua, numero, neighborhood, city, state) {
   return parts.join(', ')
 }
 
+// ─── Formato curto para o CARD: apenas Bairro, Cidade/UF ───────────────────
+function formatCardAddress(neighborhood, city, state) {
+  const parts = []
+  if (neighborhood) parts.push(neighborhood)
+  const cleanCity = cleanCityName(city)
+  if (cleanCity) parts.push(cleanCity + (state ? '/' + state : ''))
+  return parts.join(', ')
+}
+
 // ─── Constrói card de imóvel no estilo moderno ────────────────────────────────
 function buildPropertyCard(p) {
   const rawImages = p.images?.length ? p.images : SAMPLE_URLS
   const images = rewriteImageUrls(rawImages)
   const total  = images.length
   const img0   = rewriteImageUrl(p.cover_image || images[0])
-  const addr   = formatAddress(p.rua, p.numero, p.neighborhood, p.city, p.state)
+  const addr   = formatCardAddress(p.neighborhood, p.city, p.state)
   const price  = formatPrice(p.price, window.currentLang || 'pt')
   const ogLink = `https://omarcorretor.com.br/property.html?id=${p.id}`
   const waMsg  = encodeURIComponent(`Olá! Tenho interesse no imóvel *${p.title}*${p.reference ? ` (Ref: ${p.reference})` : ''}. Poderia me dar mais informações?\n${ogLink}`)
