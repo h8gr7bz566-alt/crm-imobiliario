@@ -331,11 +331,115 @@ async function deleteProperty(id) {
   cachedProperties = cachedProperties.filter(p => p.id !== id)
 }
 
-// ─── Auth admin (Supabase Auth) ───────────────────────────────────────────
-async function loginAdmin(email, password) {
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
-  return !error
+// ═══════════════════════════════════════════════════════════════════
+// SEGURANÇA: Rate limit local + Auto-logout por inatividade
+// ═══════════════════════════════════════════════════════════════════
+
+const _SEC_LOGIN_KEY     = 'imobi_sec_login_attempts'
+const _SEC_MAX_ATTEMPTS  = 5
+const _SEC_BLOCK_MS      = 15 * 60 * 1000  // 15 minutos
+const _SEC_IDLE_TIMEOUT  = 2  * 60 * 60 * 1000  // 2 horas de inatividade
+const _SEC_MIN_PASSWORD  = 12
+
+function _secGetLoginState() {
+  try {
+    const raw = localStorage.getItem(_SEC_LOGIN_KEY)
+    if (!raw) return { count: 0, blockedUntil: 0 }
+    const s = JSON.parse(raw)
+    return s
+  } catch (e) { return { count: 0, blockedUntil: 0 } }
 }
+function _secSetLoginState(s) {
+  try { localStorage.setItem(_SEC_LOGIN_KEY, JSON.stringify(s)) } catch (e) {}
+}
+function _secIsBlocked() {
+  const s = _secGetLoginState()
+  if (s.blockedUntil && Date.now() < s.blockedUntil) {
+    const min = Math.ceil((s.blockedUntil - Date.now()) / 60000)
+    return { blocked: true, minutesLeft: min }
+  }
+  // Limpa contador se já passou o bloqueio
+  if (s.blockedUntil && Date.now() >= s.blockedUntil) {
+    _secSetLoginState({ count: 0, blockedUntil: 0 })
+  }
+  return { blocked: false }
+}
+function _secRegisterFail() {
+  const s = _secGetLoginState()
+  s.count = (s.count || 0) + 1
+  if (s.count >= _SEC_MAX_ATTEMPTS) {
+    s.blockedUntil = Date.now() + _SEC_BLOCK_MS
+    s.count = 0
+  }
+  _secSetLoginState(s)
+  return s
+}
+function _secResetAttempts() {
+  _secSetLoginState({ count: 0, blockedUntil: 0 })
+}
+
+// ─── Auth admin (Supabase Auth) com rate limit ───────────────────────────
+async function loginAdmin(email, password) {
+  // 1. Checa bloqueio local
+  const lock = _secIsBlocked()
+  if (lock.blocked) {
+    alert(`🔒 Muitas tentativas falhas. Tente novamente em ${lock.minutesLeft} minuto(s).`)
+    return false
+  }
+  // 2. Tenta login
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) {
+    const s = _secRegisterFail()
+    if (s.blockedUntil) {
+      alert('🔒 Login bloqueado por 15 minutos após 5 tentativas erradas.')
+    } else {
+      const left = _SEC_MAX_ATTEMPTS - s.count
+      console.warn(`[SEC] Login falhou. ${left} tentativa(s) restante(s) antes do bloqueio.`)
+    }
+    return false
+  }
+  // 3. Sucesso: reseta contador e marca atividade
+  _secResetAttempts()
+  _secMarkActivity()
+  return true
+}
+
+// ─── Auto-logout por inatividade (sem mouse/teclado por 2h) ───────────────
+let _secIdleTimer = null
+function _secMarkActivity() {
+  try { localStorage.setItem('imobi_sec_last_activity', String(Date.now())) } catch(e){}
+  if (_secIdleTimer) clearTimeout(_secIdleTimer)
+  _secIdleTimer = setTimeout(async () => {
+    console.warn('[SEC] Inativo por 2h — fazendo logout automático.')
+    try { await supabase.auth.signOut() } catch (e){}
+    try { localStorage.removeItem('imobi_sec_last_activity') } catch (e){}
+    alert('🔒 Sua sessão expirou por inatividade. Faça login de novo.')
+    location.reload()
+  }, _SEC_IDLE_TIMEOUT)
+}
+function _secStartIdleWatch() {
+  if (typeof window === 'undefined') return
+  // Detecta atividade
+  ;['click','keydown','mousemove','touchstart','scroll'].forEach(evt => {
+    window.addEventListener(evt, () => _secMarkActivity(), { passive: true })
+  })
+  // Checa se já estava inativo antes (ex: aba ficou aberta de ontem)
+  try {
+    const last = parseInt(localStorage.getItem('imobi_sec_last_activity') || '0', 10)
+    if (last && (Date.now() - last) > _SEC_IDLE_TIMEOUT) {
+      console.warn('[SEC] Sessão já estava expirada ao carregar — fazendo logout.')
+      supabase.auth.signOut().finally(() => location.reload())
+      return
+    }
+  } catch(e){}
+  _secMarkActivity()
+}
+
+// Inicia o watcher quando o usuário estiver autenticado
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session && session.user) _secStartIdleWatch()
+})
+
 
 // ─── Compressão → Blob (sem passar por base64) ───────────────────────────
 function compressToBlob(file, maxW = 1000, quality = 0.70) {
@@ -1434,7 +1538,7 @@ function openChangePasswordModal() {
       <div class="modal-body" style="padding:24px;display:flex;flex-direction:column;gap:14px;">
         <div class="form-group">
           <label class="form-label">Nova senha</label>
-          <input id="cp-new" type="password" class="form-control" placeholder="Mínimo 6 caracteres">
+          <input id="cp-new" type="password" class="form-control" placeholder="Mínimo 12 caracteres">
         </div>
         <div class="form-group">
           <label class="form-label">Confirmar nova senha</label>
@@ -1458,7 +1562,7 @@ function openChangePasswordModal() {
     const msgEl    = document.getElementById('cp-msg')
     const btn      = document.getElementById('cp-save')
     msgEl.style.display = 'none'
-    if (nova.length < 6) { msgEl.style.color = '#ef4444'; msgEl.textContent = 'Mínimo 6 caracteres.'; msgEl.style.display = ''; return }
+    if (nova.length < 12) { msgEl.style.color = '#ef4444'; msgEl.textContent = 'Mínimo 6 caracteres.'; msgEl.style.display = ''; return }
     if (nova !== confirma) { msgEl.style.color = '#ef4444'; msgEl.textContent = 'As senhas não coincidem.'; msgEl.style.display = ''; return }
     btn.disabled = true; btn.textContent = 'Salvando…'
     const { error } = await supabase.auth.updateUser({ password: nova })
@@ -1563,7 +1667,7 @@ function openAddCorretorModal(overrideTenantId, onSuccess) {
         </div>
         <div class="form-group">
           <label class="form-label">Senha de acesso *</label>
-          <input id="ac-password" type="text" class="form-control" placeholder="Mínimo 6 caracteres">
+          <input id="ac-password" type="text" class="form-control" placeholder="Mínimo 12 caracteres">
         </div>
         <p id="ac-note" style="display:none;font-size:13px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin:0;line-height:1.6;"></p>
       </div>
@@ -1583,7 +1687,7 @@ function openAddCorretorModal(overrideTenantId, onSuccess) {
     const btn      = document.getElementById('ac-save')
     const noteEl   = document.getElementById('ac-note')
     if (!email) { alert('Informe o e-mail do corretor.'); return }
-    if (!password || password.length < 6) { alert('A senha precisa ter no mínimo 6 caracteres.'); return }
+    if (!password || password.length < 12) { alert('A senha precisa ter no mínimo 6 caracteres.'); return }
     btn.disabled = true; btn.textContent = 'Criando…'
     noteEl.style.display = 'none'
     try {
@@ -3036,7 +3140,7 @@ async function initSettings(profile) {
     const msgEl    = document.getElementById('change-password-msg')
     const btn      = document.getElementById('btn-change-password')
     if (msgEl) msgEl.style.display = 'none'
-    if (nova.length < 6) {
+    if (nova.length < 12) {
       if (msgEl) { msgEl.textContent = 'Mínimo 6 caracteres.'; msgEl.style.display = '' }
       return
     }
@@ -3095,7 +3199,7 @@ async function initSettings(profile) {
       const btn      = document.getElementById('btn-invite-corretor')
       const noteEl   = document.getElementById('invite-note')
       if (!email) { alert('Informe o e-mail do corretor.'); return }
-      if (!password || password.length < 6) { alert('A senha precisa ter no mínimo 6 caracteres.'); return }
+      if (!password || password.length < 12) { alert('A senha precisa ter no mínimo 6 caracteres.'); return }
       if (btn) { btn.disabled = true; btn.textContent = 'Criando…' }
       if (noteEl) { noteEl.style.display = 'none' }
       try {
@@ -3858,7 +3962,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (msgEl) { msgEl.textContent = 'As senhas não coincidem.'; msgEl.style.display = '' }
             return
           }
-          if (newPass.length < 6) {
+          if (newPass.length < 12) {
             if (msgEl) { msgEl.textContent = 'Mínimo 6 caracteres.'; msgEl.style.display = '' }
             return
           }
@@ -5626,7 +5730,7 @@ function openNewTenantModal() {
         <div class="form-group"><label>E-mail do Admin *</label><input id="nt-admin-email" class="form-input" type="email" placeholder="admin@imobiliariaabc.com.br"></div>
         <div class="form-group"><label>Senha *</label>
           <div style="position:relative;">
-            <input id="nt-admin-password" class="form-input" type="password" placeholder="Mínimo 6 caracteres" style="padding-right:38px;">
+            <input id="nt-admin-password" class="form-input" type="password" placeholder="Mínimo 12 caracteres" style="padding-right:38px;">
             <button type="button" id="nt-pwd-toggle" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;">👁</button>
           </div>
         </div>
@@ -5673,7 +5777,7 @@ function openNewTenantModal() {
 
     if (!name || !slug) { msgEl.textContent = '❌ Nome e slug são obrigatórios.'; msgEl.style.color = '#ef4444'; return }
     if (!adminEmail)    { msgEl.textContent = '❌ Informe o e-mail do admin.'; msgEl.style.color = '#ef4444'; return }
-    if (!adminPwd || adminPwd.length < 6) { msgEl.textContent = '❌ A senha precisa ter mínimo 6 caracteres.'; msgEl.style.color = '#ef4444'; return }
+    if (!adminPwd || adminPwd.length < 12) { msgEl.textContent = '❌ A senha precisa ter mínimo 6 caracteres.'; msgEl.style.color = '#ef4444'; return }
 
     saveBtn.disabled = true; saveBtn.textContent = 'Criando…'
     msgEl.textContent = '⏳ Criando imobiliária…'; msgEl.style.color = '#64748b'
@@ -6201,7 +6305,7 @@ function openEditTenantModal(tenant) {
         <div class="form-group"><label>E-mail do Admin</label><input id="et-admin-email" class="form-input" type="email" placeholder="admin@imobiliaria.com.br"></div>
         <div class="form-group"><label>Senha</label>
           <div style="position:relative;">
-            <input id="et-admin-password" class="form-input" type="password" placeholder="Mínimo 6 caracteres" style="padding-right:38px;">
+            <input id="et-admin-password" class="form-input" type="password" placeholder="Mínimo 12 caracteres" style="padding-right:38px;">
             <button type="button" id="et-pwd-toggle" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;">👁</button>
           </div>
         </div>

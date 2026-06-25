@@ -31,10 +31,20 @@ function getClientIp(req) {
 }
 
 module.exports = async function handler(req, res) {
-  // CORS pra chamada do front
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  // CORS restrito apenas pra omarcorretor.com.br (e localhost pra dev)
+  const ALLOWED_ORIGINS = [
+    'https://omarcorretor.com.br',
+    'https://www.omarcorretor.com.br',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ]
+  const origin = req.headers.origin || ''
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Vary', 'Origin')
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
 
