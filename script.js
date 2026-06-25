@@ -2067,9 +2067,8 @@ function renderKanban() {
             }).join('') : ''}
           </div>` : ''}
           <div class="rd-card-icons">
-            <span title="Avaliação">
-              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              ${l.priority === 'high' ? '⭐' : '1'}
+            <span title="Avaliação (clique para mudar)" class="rd-card-stars" data-lead="${l.id}" onclick="event.stopPropagation();window.openRatingPicker?.('${l.id}', event)">
+              ${[1,2,3,4,5].map(i => `<svg viewBox="0 0 24 24" fill="${(l.rating||0) >= i ? '#fbbf24' : '#cbd5e1'}" stroke="none" width="13" height="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`).join('')}
             </span>
             <span title="Responsável">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -2163,6 +2162,7 @@ window.openLeadSidePanel = function(leadId) {
       (lead.updated_at && lead.updated_at !== lead.created_at) ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Último contato</div><div class="rd-lead-field-value">${fmtDate(lead.updated_at)}</div></div>` : '',
       `<div class="rd-lead-field"><div class="rd-lead-field-label">Previsão de fechamento</div><div class="rd-lead-field-value" style="color:${lead.next_contact ? '#0f172a' : '#94a3b8'}">${lead.next_contact ? fmtDate(lead.next_contact) : 'Não preenchido'}</div></div>`,
       lead.interest ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Qualificação / Interesse</div><div class="rd-lead-field-value">${escapeHTML(lead.interest)}</div></div>` : '',
+      `<div class="rd-lead-field"><div class="rd-lead-field-label">⭐ Classificação</div><div class="rd-lead-field-value">${[1,2,3,4,5].map(i => `<svg viewBox="0 0 24 24" fill="${(lead.rating||0) >= i ? '#fbbf24' : '#cbd5e1'}" stroke="none" width="16" height="16" style="cursor:pointer" onclick="window.closeLeadSidePanel();setTimeout(()=>window.openRatingPicker('${lead.id}',event),100)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`).join('')} ${lead.rating ? '<span style=\"margin-left:4px;font-size:11px;color:#92400e\">'+lead.rating+'/5</span>' : ''}</div></div>`,
       (Array.isArray(lead.tags) && lead.tags.length) ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Tags</div><div class="rd-lead-field-value" style="display:flex;flex-wrap:wrap;gap:4px">${lead.tags.map(t => `<span style="background:#ecfeff;color:#0e7490;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${escapeHTML(t)}</span>`).join('')}</div></div>` : '',
     '</div>',
     '<div class="rd-lead-sidepanel-footer">',
@@ -2241,6 +2241,15 @@ window.openLeadDetailPage = function(leadId) {
     } catch(e) { return iso }
   }
   const fmtMoney = v => v ? 'R$ ' + Number(v).toLocaleString('pt-BR') : null
+  // Estrelas de classificação no topo (interativo)
+  const ratingHtml = `<div class="rd-leadpage-field-row" style="background:#fffbeb;border-radius:6px;padding:10px 12px">
+    <span class="rd-leadpage-field-label">⭐ Classificação</span>
+    <span class="rd-leadpage-field-value">
+      ${[1,2,3,4,5].map(i => `<svg viewBox="0 0 24 24" fill="${(lead.rating||0) >= i ? '#fbbf24' : '#cbd5e1'}" stroke="none" width="18" height="18" style="cursor:pointer;margin:0 1px" onclick="window.openRatingPicker?.('${lead.id}', event)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`).join('')}
+      <span style="margin-left:6px;font-size:12px;color:#92400e">${lead.rating ? lead.rating + '/5' : 'Sem classificação'}</span>
+    </span>
+  </div>`
+
   const fields = [
     ['Nome', lead.name],
     ['Qualificação', lead.interest || lead.status],
@@ -2256,12 +2265,12 @@ window.openLeadDetailPage = function(leadId) {
     ['Última atualização', fmtDate(lead.updated_at)],
   ].filter(([_, v]) => v !== null && v !== undefined && v !== '')
 
-  document.getElementById('rd-lp-negociacao-fields').innerHTML = fields.map(([label, val]) => `
+  document.getElementById('rd-lp-negociacao-fields').innerHTML = ratingHtml + (fields.map(([label, val]) => `
     <div class="rd-leadpage-field-row">
       <span class="rd-leadpage-field-label">${escapeHTML(label)}</span>
       <span class="rd-leadpage-field-value">${escapeHTML(String(val))}</span>
     </div>
-  `).join('') || '<p style="color:#94a3b8;font-size:13px;margin:0">Sem dados.</p>'
+  `).join('') || '<p style="color:#94a3b8;font-size:13px;margin:0">Sem dados.</p>')
 
   // ── Contatos ───────────────────────────────────────────────────────
   document.getElementById('rd-lp-contatos-fields').innerHTML = `
@@ -2469,6 +2478,73 @@ async function initPerdasSection() {
       if (typeof toast === 'function') toast('Lead reativado', 'info')
       await initPerdasSection()
       if (typeof loadKanbanLeads === 'function') loadKanbanLeads().catch(()=>{})
+    })
+  })
+}
+
+// ─── Picker de rating (1-5 estrelas) ───────────────────────────────────────
+window.openRatingPicker = function(leadId, evt) {
+  if (evt && evt.stopPropagation) evt.stopPropagation()
+  const lead = (kanbanLeads || []).find(l => String(l.id) === String(leadId))
+  if (!lead) return
+
+  document.getElementById('rd-rating-picker')?.remove()
+  document.getElementById('rd-rating-backdrop')?.remove()
+
+  const picker = document.createElement('div')
+  picker.id = 'rd-rating-picker'
+  picker.className = 'rd-rating-picker'
+  picker.innerHTML = [
+    '<div class="rd-rating-picker-title">Classificação do lead</div>',
+    '<div class="rd-rating-picker-stars">',
+      [1,2,3,4,5].map(i => `<button class="rd-rating-star-btn ${(lead.rating||0) >= i ? 'active' : ''}" data-value="${i}" title="${i} estrela${i>1?'s':''}"><svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`).join(''),
+    '</div>',
+    '<div class="rd-rating-picker-labels"><span>Frio</span><span>Morno</span><span>Quente</span></div>',
+    '<button class="rd-rating-clear" data-value="0">✕ Sem classificação</button>'
+  ].join('')
+
+  const x = evt && evt.clientX ? Math.min(evt.clientX, window.innerWidth - 260) : 100
+  const y = evt && evt.clientY ? Math.min(evt.clientY + 8, window.innerHeight - 200) : 100
+  picker.style.left = x + 'px'
+  picker.style.top  = y + 'px'
+
+  document.body.appendChild(picker)
+
+  const backdrop = document.createElement('div')
+  backdrop.id = 'rd-rating-backdrop'
+  backdrop.style.cssText = 'position:fixed;inset:0;z-index:1899;background:transparent'
+  backdrop.addEventListener('click', () => { picker.remove(); backdrop.remove() })
+  document.body.appendChild(backdrop)
+
+  picker.querySelectorAll('.rd-rating-star-btn').forEach(btn => {
+    btn.addEventListener('mouseenter', () => {
+      const v = parseInt(btn.dataset.value, 10)
+      picker.querySelectorAll('.rd-rating-star-btn').forEach(b => {
+        b.classList.toggle('hover', parseInt(b.dataset.value, 10) <= v)
+      })
+    })
+  })
+  picker.addEventListener('mouseleave', () => {
+    picker.querySelectorAll('.rd-rating-star-btn').forEach(b => b.classList.remove('hover'))
+  })
+
+  picker.querySelectorAll('[data-value]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const value = parseInt(btn.dataset.value, 10)
+      lead.rating = value
+      picker.remove(); backdrop.remove()
+      if (typeof renderKanban === 'function') renderKanban()
+      const det = document.getElementById('section-lead-detail')
+      if (det && !det.classList.contains('hidden') && typeof openLeadDetailPage === 'function') {
+        openLeadDetailPage(lead.id)
+      }
+      const { error } = await supabase.from('leads').update({ rating: value }).eq('id', lead.id)
+      if (error) {
+        console.warn('[Rating] erro:', error)
+        if (typeof toast === 'function') toast('Erro ao salvar', 'error')
+      } else if (typeof toast === 'function') {
+        toast(value === 0 ? 'Classificação removida' : `★ ${value} estrela${value>1?'s':''}`, 'success')
+      }
     })
   })
 }
