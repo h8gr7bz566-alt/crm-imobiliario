@@ -689,6 +689,165 @@
         </div>
       </section>
 
+      <!-- ── Lead Detail Page (estilo RD Station) ── -->
+      <section id="section-lead-detail" class="admin-section hidden">
+        <!-- Topo: voltar + tags + ações -->
+        <div class="rd-leadpage-topbar">
+          <button class="rd-leadpage-back" onclick="window.closeLeadDetailPage?.()" title="Voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <div class="rd-leadpage-title-wrap">
+            <h1 class="rd-leadpage-title" id="rd-lp-name">Carregando…</h1>
+            <div class="rd-leadpage-tags" id="rd-lp-tags"></div>
+          </div>
+          <div class="rd-leadpage-actions">
+            <button class="rd-leadpage-icon-btn" title="Mais opções">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="18" height="18"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+            </button>
+            <button class="rd-leadpage-icon-btn" title="Reativar lead">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            </button>
+            <button class="rd-leadpage-btn rd-leadpage-btn-lose" id="rd-lp-mark-lost" title="Marcar como perda">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 2H7C5.9 2 5 2.9 5 4v8c0 1.1.9 2 2 2h2v8h6v-8h2c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" transform="rotate(180 12 12)"/></svg>
+              Marcar perda
+            </button>
+            <button class="rd-leadpage-btn rd-leadpage-btn-win" id="rd-lp-mark-won" title="Marcar como venda">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 2H7C5.9 2 5 2.9 5 4v8c0 1.1.9 2 2 2h2v8h6v-8h2c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+              Marcar venda
+            </button>
+          </div>
+        </div>
+
+        <!-- Stage progress bar (chevrons) -->
+        <div class="rd-leadpage-stages" id="rd-lp-stages"></div>
+
+        <!-- Body: 2 colunas -->
+        <div class="rd-leadpage-body">
+          <!-- Coluna esquerda: Dados -->
+          <aside class="rd-leadpage-left">
+            <!-- Card Negociação -->
+            <div class="rd-leadpage-card">
+              <div class="rd-leadpage-card-head">
+                <span>Negociação</span>
+                <button class="rd-leadpage-card-toggle" data-target="negociacao">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+              </div>
+              <div class="rd-leadpage-card-body" id="rd-lp-negociacao-fields"></div>
+            </div>
+
+            <!-- Card Contatos -->
+            <div class="rd-leadpage-card">
+              <div class="rd-leadpage-card-head">
+                <span>Contatos</span>
+                <button class="rd-leadpage-card-toggle" data-target="contatos">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+              </div>
+              <div class="rd-leadpage-card-body" id="rd-lp-contatos-fields"></div>
+            </div>
+
+            <!-- Card Empresa -->
+            <div class="rd-leadpage-card">
+              <div class="rd-leadpage-card-head">
+                <span>Empresa</span>
+                <button class="rd-leadpage-card-toggle" data-target="empresa">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+              </div>
+              <div class="rd-leadpage-card-body">
+                <p style="color:#64748b;font-size:13px;margin:0 0 12px;">Não há empresa na negociação. Adicione uma para vincular.</p>
+                <button class="rd-leadpage-add-link">+ Adicionar empresa</button>
+              </div>
+            </div>
+
+            <!-- Card Responsável -->
+            <div class="rd-leadpage-card">
+              <div class="rd-leadpage-card-head">
+                <span>Responsável</span>
+                <button class="rd-leadpage-card-toggle" data-target="responsavel">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+              </div>
+              <div class="rd-leadpage-card-body">
+                <div class="rd-leadpage-field-row">
+                  <span class="rd-leadpage-field-label">Responsável</span>
+                  <span class="rd-leadpage-field-value" id="rd-lp-responsavel">—</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Coluna direita: Tarefas + Histórico -->
+          <section class="rd-leadpage-right">
+            <!-- Próximas tarefas -->
+            <div class="rd-leadpage-card">
+              <div class="rd-leadpage-card-head">
+                <span>Próximas tarefas</span>
+                <button class="rd-leadpage-icon-btn" style="width:30px;height:30px" title="Calendário">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </button>
+              </div>
+              <div class="rd-leadpage-card-body" id="rd-lp-tarefas">
+                <div class="rd-leadpage-empty">
+                  <div class="rd-leadpage-empty-text">Não existem tarefas pendentes para essa Negociação</div>
+                  <button class="rd-leadpage-btn-add" id="rd-lp-add-task">+ Criar tarefa</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="rd-leadpage-tabs">
+              <button class="rd-leadpage-tab active" data-tab="historico">Histórico</button>
+              <button class="rd-leadpage-tab" data-tab="email">E-mail</button>
+              <button class="rd-leadpage-tab" data-tab="tarefas">Tarefas</button>
+              <button class="rd-leadpage-tab" data-tab="questionarios">Questionários</button>
+              <button class="rd-leadpage-tab" data-tab="produtos">Produtos</button>
+              <button class="rd-leadpage-tab" data-tab="arquivos">Arquivos</button>
+              <button class="rd-leadpage-tab" data-tab="propostas">Propostas</button>
+            </div>
+
+            <!-- Tab content -->
+            <div class="rd-leadpage-tab-content">
+              <!-- Histórico (default) -->
+              <div class="rd-leadpage-tab-panel active" data-panel="historico">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+                  <span style="color:#475569;font-weight:600">Do</span>
+                  <select class="rd-leadpage-select">
+                    <option>CRM IOS imobi</option>
+                  </select>
+                  <span style="color:#475569;font-weight:600">Exibir</span>
+                  <select class="rd-leadpage-select">
+                    <option>Todos os eventos</option>
+                  </select>
+                  <button class="rd-leadpage-btn-add" id="rd-lp-add-note" style="margin-left:auto">+ Criar anotação</button>
+                </div>
+                <div id="rd-lp-timeline" class="rd-leadpage-timeline"></div>
+              </div>
+
+              <div class="rd-leadpage-tab-panel" data-panel="email">
+                <div class="rd-leadpage-empty"><div class="rd-leadpage-empty-text">Em breve: integração de e-mail.</div></div>
+              </div>
+              <div class="rd-leadpage-tab-panel" data-panel="tarefas">
+                <div class="rd-leadpage-empty"><div class="rd-leadpage-empty-text">Nenhuma tarefa registrada.</div></div>
+              </div>
+              <div class="rd-leadpage-tab-panel" data-panel="questionarios">
+                <div class="rd-leadpage-empty"><div class="rd-leadpage-empty-text">Sem questionários.</div></div>
+              </div>
+              <div class="rd-leadpage-tab-panel" data-panel="produtos">
+                <div class="rd-leadpage-empty"><div class="rd-leadpage-empty-text">Sem produtos vinculados.</div></div>
+              </div>
+              <div class="rd-leadpage-tab-panel" data-panel="arquivos">
+                <div class="rd-leadpage-empty"><div class="rd-leadpage-empty-text">Sem arquivos.</div></div>
+              </div>
+              <div class="rd-leadpage-tab-panel" data-panel="propostas">
+                <div class="rd-leadpage-empty"><div class="rd-leadpage-empty-text">Sem propostas.</div></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
       <!-- ── Tarefas ── -->
       <section id="section-tarefas" class="admin-section hidden">
         <div class="section-topbar">

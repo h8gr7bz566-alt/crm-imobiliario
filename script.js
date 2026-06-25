@@ -2163,7 +2163,7 @@ window.openLeadSidePanel = function(leadId) {
     '</div>',
     '<div class="rd-lead-sidepanel-footer">',
       lead.phone ? `<button class="rd-btn-primary" style="background:#25d366;flex:1;" onclick="window.open('https://wa.me/${(lead.phone||'').replace(/\D/g,'')}','_blank');if(typeof fbq==='function')fbq('track','Contact')">WhatsApp</button>` : '',
-      `<button class="rd-btn-primary" style="flex:1;" onclick="window.closeLeadSidePanel();if(typeof openLeadModal==='function'){const l=kanbanLeads.find(x=>String(x.id)==='${lead.id}');if(l)openLeadModal(l);}">Abrir Negociação</button>`,
+      `<button class="rd-btn-primary" style="flex:1;" onclick="window.closeLeadSidePanel();window.openLeadDetailPage('${lead.id}')">Abrir Negociação</button>`,
     '</div>'
   ].join('')
 
@@ -2173,6 +2173,173 @@ window.openLeadSidePanel = function(leadId) {
     backdrop.style.opacity = '1'
     panel.classList.add('open')
   })
+}
+
+// ─── Página completa de Negociação (estilo RD Station) ─────────────────────
+window.openLeadDetailPage = function(leadId) {
+  const lead = (typeof kanbanLeads !== 'undefined' ? kanbanLeads : []).find(l => String(l.id) === String(leadId))
+  if (!lead) { console.warn('[LeadPage] não encontrado:', leadId); return }
+
+  // Esconde todas as seções, mostra a de detalhe
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'))
+  const section = document.getElementById('section-lead-detail')
+  if (!section) { console.warn('section-lead-detail não existe no HTML'); return }
+  section.classList.remove('hidden')
+
+  // Marca lead atual no DOM
+  section.dataset.leadId = lead.id
+
+  // ── Header: nome + tags ─────────────────────────────────────────────
+  document.getElementById('rd-lp-name').textContent = lead.name || '—'
+  const pipeName = (typeof kanbanPipes !== 'undefined' ? kanbanPipes : []).find(p => p.id === lead.pipeline_id)?.name
+  const tagsHtml = []
+  if (pipeName) tagsHtml.push(`<span class="rd-lp-tag cyan">${escapeHTML(pipeName)}</span>`)
+  if (lead.source) tagsHtml.push(`<span class="rd-lp-tag">${escapeHTML(lead.source)}</span>`)
+  document.getElementById('rd-lp-tags').innerHTML = tagsHtml.join('')
+
+  // ── Stage progress bar ─────────────────────────────────────────────
+  const stages = (typeof kanbanStages !== 'undefined' ? kanbanStages : []).filter(s => s.pipeline_id === lead.pipeline_id)
+  const currentIdx = stages.findIndex(s => s.name === lead.stage)
+  const stagesEl = document.getElementById('rd-lp-stages')
+  if (stages.length) {
+    stagesEl.innerHTML = stages.map((s, i) => {
+      const cls = i === currentIdx ? 'active' : (i < currentIdx ? 'done' : '')
+      const days = (i === currentIdx && lead.updated_at) ?
+        Math.max(1, Math.floor((Date.now() - new Date(lead.updated_at).getTime()) / 86400000)) : null
+      return `<div class="rd-leadpage-stage ${cls}" data-stage="${escapeHTML(s.name)}">
+        ${escapeHTML(s.name.toUpperCase())}
+        ${days ? `<span class="rd-leadpage-stage-days">(${days} dia${days>1?'s':''})</span>` : ''}
+      </div>`
+    }).join('')
+    // Click na etapa = move o lead
+    stagesEl.querySelectorAll('.rd-leadpage-stage').forEach(el => {
+      el.addEventListener('click', async () => {
+        const newStage = el.dataset.stage
+        if (newStage === lead.stage) return
+        const prev = lead.stage
+        lead.stage = newStage
+        window.openLeadDetailPage(lead.id) // re-renderiza
+        const { error } = await supabase.from('leads').update({ stage: newStage }).eq('id', lead.id)
+        if (error) { lead.stage = prev; window.openLeadDetailPage(lead.id); alert('Erro: ' + error.message) }
+        if (typeof loadKanbanLeads === 'function') loadKanbanLeads().catch(()=>{})
+      })
+    })
+  } else {
+    stagesEl.innerHTML = ''
+  }
+
+  // ── Campos da Negociação ────────────────────────────────────────────
+  const fmtDate = iso => {
+    if (!iso) return null
+    try {
+      const d = new Date(iso)
+      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+    } catch(e) { return iso }
+  }
+  const fmtMoney = v => v ? 'R$ ' + Number(v).toLocaleString('pt-BR') : null
+  const fields = [
+    ['Nome', lead.name],
+    ['Qualificação', lead.interest || lead.status],
+    ['Previsão de fechamento', fmtDate(lead.next_contact)],
+    ['Fonte', lead.source],
+    ['Campanha', lead.utm_campaign],
+    ['Criada em', fmtDate(lead.created_at)],
+    ['Valor total', fmtMoney(lead.budget_max)],
+    ['Orçamento mínimo', fmtMoney(lead.budget_min)],
+    ['Cidade de interesse', lead.city_interest],
+    ['UTM Source', lead.utm_source],
+    ['UTM Medium', lead.utm_medium],
+    ['Última atualização', fmtDate(lead.updated_at)],
+  ].filter(([_, v]) => v !== null && v !== undefined && v !== '')
+
+  document.getElementById('rd-lp-negociacao-fields').innerHTML = fields.map(([label, val]) => `
+    <div class="rd-leadpage-field-row">
+      <span class="rd-leadpage-field-label">${escapeHTML(label)}</span>
+      <span class="rd-leadpage-field-value">${escapeHTML(String(val))}</span>
+    </div>
+  `).join('') || '<p style="color:#94a3b8;font-size:13px;margin:0">Sem dados.</p>'
+
+  // ── Contatos ───────────────────────────────────────────────────────
+  document.getElementById('rd-lp-contatos-fields').innerHTML = `
+    <div style="margin-bottom:14px">
+      <div style="font-weight:700;color:#0f172a;font-size:14px;margin-bottom:8px">${escapeHTML(lead.name || '—')}</div>
+      ${lead.phone ? `<div style="font-size:13px;color:#0ea5e9;margin-bottom:6px">
+        📞 <a href="tel:${escapeHTML(lead.phone)}" style="color:#0ea5e9;text-decoration:none">${escapeHTML(lead.phone)}</a>
+        <button onclick="navigator.clipboard.writeText('${escapeHTML(lead.phone)}');this.textContent='✓'" style="margin-left:6px;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px" title="Copiar">📋</button>
+        <a href="https://wa.me/${(lead.phone||'').replace(/\D/g,'')}" target="_blank" style="margin-left:6px;color:#25d366;text-decoration:none" title="WhatsApp">💬</a>
+      </div>` : ''}
+      ${lead.email ? `<div style="font-size:13px;color:#0ea5e9">
+        ✉ <a href="mailto:${escapeHTML(lead.email)}" style="color:#0ea5e9;text-decoration:none">${escapeHTML(lead.email)}</a>
+        <button onclick="navigator.clipboard.writeText('${escapeHTML(lead.email)}');this.textContent='✓'" style="margin-left:6px;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px" title="Copiar">📋</button>
+      </div>` : ''}
+    </div>
+    <button class="rd-leadpage-add-link">+ Adicionar contato</button>
+  `
+
+  // ── Responsável ─────────────────────────────────────────────────────
+  const responsavel = (typeof currentProfile !== 'undefined' && currentProfile?.full_name) || 'Não atribuído'
+  document.getElementById('rd-lp-responsavel').textContent = responsavel
+
+  // ── Tabs ────────────────────────────────────────────────────────────
+  section.querySelectorAll('.rd-leadpage-tab').forEach(tab => {
+    tab.onclick = () => {
+      section.querySelectorAll('.rd-leadpage-tab').forEach(t => t.classList.remove('active'))
+      tab.classList.add('active')
+      section.querySelectorAll('.rd-leadpage-tab-panel').forEach(p => p.classList.remove('active'))
+      section.querySelector(`.rd-leadpage-tab-panel[data-panel="${tab.dataset.tab}"]`)?.classList.add('active')
+    }
+  })
+
+  // ── Timeline (histórico) ────────────────────────────────────────────
+  const timelineEl = document.getElementById('rd-lp-timeline')
+  const events = []
+  if (lead.notes) events.push({ author: responsavel, text: lead.notes, date: lead.updated_at || lead.created_at, kind: 'note' })
+  events.push({ author: 'Sistema', text: `Lead criado na etapa "${lead.stage || '—'}"`, date: lead.created_at, kind: 'system' })
+  timelineEl.innerHTML = events.map(e => `
+    <div class="rd-leadpage-timeline-item">
+      <div class="rd-leadpage-timeline-author">${escapeHTML(e.author)}</div>
+      <div class="rd-leadpage-timeline-text">${escapeHTML(e.text)}</div>
+      <div class="rd-leadpage-timeline-date">${fmtDate(e.date) || ''}</div>
+    </div>
+  `).join('') || '<p style="color:#94a3b8;font-size:13px">Sem histórico ainda.</p>'
+
+  // ── Botões marcar perda/venda ───────────────────────────────────────
+  document.getElementById('rd-lp-mark-lost').onclick = async () => {
+    const reason = prompt('Motivo da perda (opcional):') || ''
+    const { error } = await supabase.from('leads').update({ lost_at: new Date().toISOString(), lost_reason: reason }).eq('id', lead.id)
+    if (error) return alert('Erro: ' + error.message)
+    if (typeof toast === 'function') toast('Lead marcado como perda', 'warn'); else alert('Lead marcado como perda')
+    window.closeLeadDetailPage()
+    if (typeof loadKanbanLeads === 'function') loadKanbanLeads().catch(()=>{})
+  }
+  document.getElementById('rd-lp-mark-won').onclick = async () => {
+    if (!confirm('Marcar como venda fechada?')) return
+    const { error } = await supabase.from('leads').update({ converted_at: new Date().toISOString() }).eq('id', lead.id)
+    if (error) return alert('Erro: ' + error.message)
+    if (typeof toast === 'function') toast('🎉 Venda confirmada!', 'success'); else alert('Venda confirmada!')
+    window.closeLeadDetailPage()
+    if (typeof loadKanbanLeads === 'function') loadKanbanLeads().catch(()=>{})
+  }
+
+  // ── Botão de criar tarefa / anotação (placeholder) ──────────────────
+  document.getElementById('rd-lp-add-task').onclick = () => alert('Em breve: criar tarefa direto daqui')
+  document.getElementById('rd-lp-add-note').onclick = async () => {
+    const note = prompt('Nova anotação:', lead.notes || '')
+    if (note === null) return
+    const { error } = await supabase.from('leads').update({ notes: note }).eq('id', lead.id)
+    if (error) return alert('Erro: ' + error.message)
+    lead.notes = note
+    window.openLeadDetailPage(lead.id) // re-render
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+window.closeLeadDetailPage = function() {
+  const section = document.getElementById('section-lead-detail')
+  if (section) section.classList.add('hidden')
+  // Volta pro funil
+  document.getElementById('section-funil')?.classList.remove('hidden')
 }
 
 window.closeLeadSidePanel = function() {
