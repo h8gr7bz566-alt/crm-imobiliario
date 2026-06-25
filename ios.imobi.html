@@ -689,6 +689,46 @@
         <div id="kanban-board" class="kanban-board rd-kanban">
           <div class="kanban-loading">Carregando funil…</div>
         </div>
+
+        <!-- Lista (alternativa ao kanban) -->
+        <div id="leads-list-view" class="rd-leads-list hidden">
+          <div class="rd-leads-list-table-wrap">
+            <table class="rd-leads-table">
+              <thead>
+                <tr>
+                  <th style="width:36px"><input type="checkbox" id="rd-list-check-all"></th>
+                  <th>Negociações</th>
+                  <th style="width:120px;text-align:center">Responsável</th>
+                  <th style="width:130px;text-align:center">Qualificação</th>
+                  <th style="width:160px">Etapa do funil</th>
+                  <th style="width:140px;text-align:right">Valor Total</th>
+                  <th style="width:130px;text-align:center">Data de criação</th>
+                  <th style="width:90px;text-align:center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="rd-leads-tbody">
+                <tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="rd-leads-pagination">
+            <div class="rd-leads-pagination-left">
+              Exibindo
+              <select id="rd-list-pagesize">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span id="rd-list-total">de 0 negociações</span>
+            </div>
+            <div class="rd-leads-pagination-right">
+              <button id="rd-list-prev" class="rd-pagination-btn">Anterior</button>
+              <span id="rd-list-page-info" class="rd-pagination-info">1</span>
+              <button id="rd-list-next" class="rd-pagination-btn">Próxima</button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ── Vendas (leads convertidos) ── -->

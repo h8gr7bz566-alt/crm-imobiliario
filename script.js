@@ -1854,6 +1854,9 @@ let dragLeadId = null
 let kanbanFilter = { search: '', tags: new Set(), status: '' }
 
 async function initFunilSection() {
+  // Wire do toggle Kanban/Lista (precisa rodar após DOM atualizar)
+  setTimeout(() => { if (typeof _rdInitViewToggle === 'function') _rdInitViewToggle() }, 100)
+
   // Auto-refresh do kanban a cada 30s pra ter dados sempre frescos
   if (window._kanbanRefreshTimer) clearInterval(window._kanbanRefreshTimer)
   window._kanbanRefreshTimer = setInterval(() => {
@@ -1992,6 +1995,14 @@ async function loadKanbanLeads() {
 }
 
 function renderKanban() {
+  // Se está em modo lista, atualiza a tabela em vez do kanban
+  try {
+    const listView = document.getElementById('leads-list-view')
+    if (listView && !listView.classList.contains('hidden')) {
+      _rdRenderLeadsList()
+    }
+  } catch(e){}
+
   const board = document.getElementById('kanban-board')
   if (!board) return
 
@@ -2548,6 +2559,148 @@ window.openRatingPicker = function(leadId, evt) {
     })
   })
 }
+
+// ─── Visualização em LISTA (alternativa ao Kanban) ─────────────────────────
+let _rdListState = { page: 1, pageSize: 10 }
+
+function _rdRenderLeadsList() {
+  const tbody = document.getElementById('rd-leads-tbody')
+  if (!tbody) return
+  const leads = (typeof kanbanLeads !== 'undefined' ? kanbanLeads : [])
+  const stages = (typeof kanbanStages !== 'undefined' ? kanbanStages : [])
+  const total = leads.length
+  const pageSize = _rdListState.pageSize
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  if (_rdListState.page > totalPages) _rdListState.page = totalPages
+  const start = (_rdListState.page - 1) * pageSize
+  const slice = leads.slice(start, start + pageSize)
+
+  // Atualiza UI de paginação
+  document.getElementById('rd-list-total').textContent = `de ${total} negociaç${total === 1 ? 'ão' : 'ões'}`
+  document.getElementById('rd-list-page-info').textContent = `${_rdListState.page} / ${totalPages}`
+  document.getElementById('rd-list-prev').disabled = _rdListState.page <= 1
+  document.getElementById('rd-list-next').disabled = _rdListState.page >= totalPages
+
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8">Nenhum lead ainda</td></tr>'
+    return
+  }
+
+  // Formata data BR
+  const fmtDt = iso => {
+    if (!iso) return '—'
+    try {
+      const d = new Date(iso)
+      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
+    } catch(e) { return '—' }
+  }
+
+  // Status icon baseado em última atividade
+  function statusIcon(l) {
+    const days = l.updated_at ? Math.floor((Date.now() - new Date(l.updated_at).getTime()) / 86400000) : 999
+    if (days <= 1)  return { icon: '🏃', color: '#059669', title: 'Ativo (atualizado recentemente)' }
+    if (days <= 7)  return { icon: '🚶', color: '#0ea5e9', title: 'Em andamento' }
+    if (days <= 30) return { icon: '😴', color: '#f59e0b', title: 'Parado há mais de 1 semana' }
+    return { icon: '🔴', color: '#dc2626', title: 'Muito tempo sem contato' }
+  }
+
+  tbody.innerHTML = slice.map(l => {
+    const stage = stages.find(s => s.name === l.stage)
+    const stageName = l.stage || '—'
+    const stageColor = stage?.color || '#94a3b8'
+    const valor = l.budget_max ? 'R$ ' + Number(l.budget_max).toLocaleString('pt-BR') : null
+    const rating = l.rating || 0
+    const initial = (l.name || '?').trim()[0]?.toUpperCase() || '?'
+    const status = statusIcon(l)
+    return `
+      <tr class="rd-leads-row" data-id="${l.id}">
+        <td><input type="checkbox" class="rd-list-check" data-id="${l.id}"></td>
+        <td class="rd-leads-name-cell">
+          <a class="rd-leads-name" onclick="event.stopPropagation();window.openLeadDetailPage?.('${l.id}')">${escapeHTML(l.name || '—')}</a>
+          ${l.phone ? `<div class="rd-leads-sub">${escapeHTML(l.phone)}</div>` : ''}
+        </td>
+        <td style="text-align:center">
+          <span class="rd-leads-avatar" title="${escapeHTML((typeof currentProfile !== 'undefined' && currentProfile?.full_name) || 'Você')}">${initial}</span>
+        </td>
+        <td style="text-align:center">
+          <span class="rd-leads-rating" onclick="event.stopPropagation();window.openRatingPicker?.('${l.id}', event)">
+            ${[1,2,3,4,5].map(i => `<span style="color:${rating>=i?'#fbbf24':'#cbd5e1'};font-size:14px">★</span>`).join('')}
+            <span style="margin-left:4px;font-size:12px;color:#64748b">${rating || 0}</span>
+          </span>
+        </td>
+        <td>
+          <span class="rd-leads-stage" style="background:${stageColor}18;color:${stageColor};border:1px solid ${stageColor}55">${escapeHTML(stageName.toUpperCase())}</span>
+        </td>
+        <td style="text-align:right">
+          ${valor ? `<strong>${valor}</strong>` : '<a class="rd-leads-add-value" onclick="event.stopPropagation();window.openLeadDetailPage?.(\''+l.id+'\')">Adicionar valor</a>'}
+        </td>
+        <td style="text-align:center;color:#64748b;font-size:13px">${fmtDt(l.created_at)}</td>
+        <td style="text-align:center">
+          <span title="${status.title}" style="font-size:18px;cursor:help">${status.icon}</span>
+          <button class="rd-list-info-btn" onclick="event.stopPropagation();window.openLeadSidePanel?.('${l.id}')" title="Ver resumo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </button>
+        </td>
+      </tr>`
+  }).join('')
+
+  // Click na linha (não no link) → abre painel lateral
+  tbody.querySelectorAll('.rd-leads-row').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('a, button, input')) return
+      window.openLeadSidePanel?.(row.dataset.id)
+    })
+  })
+}
+
+function _rdToggleView(view) {
+  const board = document.getElementById('kanban-board')
+  const list  = document.getElementById('leads-list-view')
+  const btns  = document.querySelectorAll('.rd-view-btn')
+  btns.forEach(b => b.classList.toggle('active', b.dataset.view === view))
+  if (view === 'list') {
+    if (board) board.classList.add('hidden')
+    if (list)  list.classList.remove('hidden')
+    _rdRenderLeadsList()
+  } else {
+    if (board) board.classList.remove('hidden')
+    if (list)  list.classList.add('hidden')
+  }
+  try { localStorage.setItem('imobi_funil_view', view) } catch(e){}
+}
+
+function _rdInitViewToggle() {
+  document.querySelectorAll('.rd-view-btn').forEach(b => {
+    if (b._wired) return
+    b._wired = true
+    b.addEventListener('click', () => _rdToggleView(b.dataset.view))
+  })
+  // Paginação
+  document.getElementById('rd-list-prev')?.addEventListener('click', () => {
+    if (_rdListState.page > 1) { _rdListState.page--; _rdRenderLeadsList() }
+  })
+  document.getElementById('rd-list-next')?.addEventListener('click', () => {
+    _rdListState.page++; _rdRenderLeadsList()
+  })
+  document.getElementById('rd-list-pagesize')?.addEventListener('change', e => {
+    _rdListState.pageSize = parseInt(e.target.value, 10) || 10
+    _rdListState.page = 1
+    _rdRenderLeadsList()
+  })
+  // Check all
+  document.getElementById('rd-list-check-all')?.addEventListener('change', e => {
+    document.querySelectorAll('.rd-list-check').forEach(c => c.checked = e.target.checked)
+  })
+
+  // Restaura preferência
+  try {
+    const saved = localStorage.getItem('imobi_funil_view')
+    if (saved === 'list') _rdToggleView('list')
+  } catch(e){}
+}
+
+// Expor pra ser chamado quando o kanban carregar
+if (typeof window !== 'undefined') window._rdRenderLeadsList = _rdRenderLeadsList
 
 window.closeLeadDetailPage = function() {
   const section = document.getElementById('section-lead-detail')
