@@ -378,6 +378,69 @@ function _secResetAttempts() {
   _secSetLoginState({ count: 0, blockedUntil: 0 })
 }
 
+
+
+// ─── Toast nativo (substitui alert) ─────────────────────────────────────
+function toast(msg, type = 'info') {
+  if (typeof document === 'undefined') return
+  const colors = { info:'#0f172a', success:'#16a34a', error:'#dc2626', warn:'#d97706' }
+  const div = document.createElement('div')
+  div.textContent = msg
+  div.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${colors[type]||colors.info};color:#fff;padding:12px 22px;border-radius:24px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 6px 24px rgba(0,0,0,0.25);opacity:0;transition:opacity 0.2s, bottom 0.3s;pointer-events:none;max-width:90vw;text-align:center;`
+  document.body.appendChild(div)
+  requestAnimationFrame(() => { div.style.opacity = '1'; div.style.bottom = '40px' })
+  setTimeout(() => {
+    div.style.opacity = '0'
+    div.style.bottom = '24px'
+    setTimeout(() => div.remove(), 300)
+  }, 3000)
+}
+if (typeof window !== 'undefined') window.toast = toast
+
+// ─── Atalhos de teclado globais ─────────────────────────────────────────
+if (typeof window !== 'undefined' && !window._shortcutsAttached) {
+  window._shortcutsAttached = true
+  document.addEventListener('keydown', e => {
+    // Esc fecha qualquer modal/painel aberto
+    if (e.key === 'Escape') {
+      // Fecha modais
+      ;['property-modal','view-modal','lead-modal','tarefa-modal','import-modal','property-modal-create'].forEach(id => {
+        const m = document.getElementById(id)
+        if (m && !m.classList.contains('hidden')) m.classList.add('hidden')
+      })
+      // Fecha painéis lateriais (lead detail, etc)
+      document.querySelectorAll('.side-panel.open, [data-panel-open="true"]').forEach(p => {
+        p.classList.remove('open')
+        p.dataset.panelOpen = 'false'
+      })
+      // Restaura overflow do body
+      document.body.style.overflow = ''
+    }
+    // Cmd/Ctrl+K abre busca global (se existir)
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      const searchInput = document.getElementById('global-search') || document.querySelector('input[type="search"]')
+      if (searchInput) { e.preventDefault(); searchInput.focus() }
+    }
+    // Cmd/Ctrl+S salva (procura botão visível "Salvar" mais próximo)
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      const saveBtn = document.querySelector('.modal:not(.hidden) button[type="submit"], .modal:not(.hidden) .btn-primary, .side-panel.open .btn-primary')
+      if (saveBtn) { e.preventDefault(); saveBtn.click() }
+    }
+  })
+}
+
+// ─── Tratamento global de erros (evita logs vermelhos sem feedback) ──────
+if (typeof window !== 'undefined' && !window._globalErrHandlerAttached) {
+  window._globalErrHandlerAttached = true
+  window.addEventListener('unhandledrejection', e => {
+    console.warn('[CRM] Promise sem catch:', e.reason)
+    // Não mostra alerta — só loga. Evita poluir UX.
+  })
+  window.addEventListener('error', e => {
+    if (e.error && e.error.message) console.warn('[CRM] Erro:', e.error.message)
+  })
+}
+
 // ─── Auth admin (Supabase Auth) com rate limit ───────────────────────────
 async function loginAdmin(email, password) {
   // 1. Checa bloqueio local
@@ -1787,6 +1850,14 @@ let dragLeadId = null
 let kanbanFilter = { search: '', tags: new Set(), status: '' }
 
 async function initFunilSection() {
+  // Auto-refresh do kanban a cada 30s pra ter dados sempre frescos
+  if (window._kanbanRefreshTimer) clearInterval(window._kanbanRefreshTimer)
+  window._kanbanRefreshTimer = setInterval(() => {
+    const sec = document.querySelector('.section[data-section="funil"]')
+    if (!sec || sec.offsetParent === null) return
+    loadKanbanLeads().catch(()=>{})
+  }, 30000)
+
   // Não usa guard funilInitialized para que recarregue quando funnils forem criados
   if (funilInitialized) {
     // Já inicializado: apenas recarrega listas
@@ -2000,8 +2071,12 @@ function renderKanban() {
 }
 
 function attachKanbanEvents() {
+  // Evita duplicação: remove listeners antigos antes de adicionar novos
   const board = document.getElementById('kanban-board')
   if (!board) return
+  if (board._kanbanListenersAttached) return
+  board._kanbanListenersAttached = true
+
 
   // Add lead per column
   board.querySelectorAll('.kanban-add-btn').forEach(btn => {
@@ -2031,11 +2106,17 @@ function attachKanbanEvents() {
       zone.closest('.kanban-col').classList.remove('drag-over')
       const newStage = zone.dataset.stage
       if (!dragLeadId || !newStage) return
-      await supabase.from('leads').update({ stage: newStage }).eq('id', dragLeadId)
+      // Optimistic UI: atualiza localmente antes do servidor confirmar
       const lead = kanbanLeads.find(l => String(l.id) === String(dragLeadId))
-      if (lead) lead.stage = newStage
+      const prevStage = lead?.stage
+      if (lead) { lead.stage = newStage; renderKanban() }
+      const { error } = await supabase.from('leads').update({ stage: newStage }).eq('id', dragLeadId)
+      if (error) {
+        console.warn('[Kanban] falha ao mover lead:', error)
+        if (lead) { lead.stage = prevStage; renderKanban() }
+        alert('Erro ao mover lead. Tente de novo.')
+      }
       dragLeadId = null
-      renderKanban()
     })
   })
 }
@@ -2231,6 +2312,10 @@ async function openLeadModal(lead = null) {
     if (error) { msgEl.style.color='#ef4444'; msgEl.textContent='Erro: ' + error.message; return }
     msgEl.style.color='#22c55e'; msgEl.textContent='✅ Salvo!'
 
+    // Fecha + recarrega kanban IMEDIATAMENTE (sem delay artificial)
+    close()
+    loadKanbanLeads().catch(err => console.warn('[Kanban] reload falhou:', err))
+
     // Dispara Meta CAPI apenas para leads NOVOS (não para edição)
     if (isNew && typeof sendLeadToCAPI === 'function') {
       sendLeadToCAPI({
@@ -2256,7 +2341,6 @@ async function openLeadModal(lead = null) {
       }).catch(err => console.warn('[CAPI] erro:', err))
     }
 
-    setTimeout(() => { close(); loadKanbanLeads() }, 700)
   })
 
   document.getElementById('ldp-delete')?.addEventListener('click', async () => {
@@ -2290,6 +2374,14 @@ let tarefasInitialized = false
 let tarefasFilter = 'pending'
 
 async function initTarefasSection() {
+  // Auto-refresh das tarefas a cada 30s
+  if (window._tarefasRefreshTimer) clearInterval(window._tarefasRefreshTimer)
+  window._tarefasRefreshTimer = setInterval(() => {
+    const sec = document.querySelector('.section[data-section="tarefas"]')
+    if (!sec || sec.offsetParent === null) return
+    loadTarefas().catch(()=>{})
+  }, 30000)
+
   if (tarefasInitialized) return
   tarefasInitialized = true
 
@@ -2706,6 +2798,14 @@ const CONTATOS_PER_PAGE = 10
 let contatosInitialized = false
 
 async function initContatosSection() {
+  // Auto-refresh dos contatos a cada 30s
+  if (window._contatosRefreshTimer) clearInterval(window._contatosRefreshTimer)
+  window._contatosRefreshTimer = setInterval(() => {
+    const sec = document.querySelector('.section[data-section="contatos"]')
+    if (!sec || sec.offsetParent === null) return
+    loadContatos().catch(()=>{})
+  }, 30000)
+
   const sec = document.getElementById('section-contatos')
   if (!sec) return
   if (contatosInitialized) return
@@ -3314,7 +3414,14 @@ async function loadCorretores() {
   }).join('')
   listEl.querySelectorAll('.corretor-role-sel').forEach(sel => {
     sel.addEventListener('change', async () => {
-      await supabase.from('profiles').update({ role: sel.value }).eq('id', sel.dataset.uid)
+      const _origText = sel.options[sel.selectedIndex]?.text || ''
+      sel.disabled = true
+      const { error } = await supabase.from('profiles').update({ role: sel.value }).eq('id', sel.dataset.uid)
+      sel.disabled = false
+      if (error) {
+        console.warn('[Profiles] erro ao trocar role:', error)
+        alert('Erro ao salvar: ' + error.message)
+      }
     })
   })
   listEl.querySelectorAll('.corretor-toggle-btn').forEach(btn => {
@@ -5007,8 +5114,19 @@ async function renderCRMConfig() {
       const newName = inp.value.trim()
       const orig = inp.dataset.orig
       if (!newName || newName === orig) { inp.value = orig; return }
-      await supabase.from('crm_stages').update({ name: newName }).eq('id', inp.dataset.sid)
+      inp.disabled = true
+      const { error } = await supabase.from('crm_stages').update({ name: newName }).eq('id', inp.dataset.sid)
+      inp.disabled = false
+      if (error) {
+        console.warn('[Etapas] erro ao renomear:', error)
+        inp.value = orig
+        alert('Erro ao renomear: ' + error.message)
+        return
+      }
       inp.dataset.orig = newName
+      // Flash verde discreto pra confirmar sucesso
+      inp.style.background = '#dcfce7'
+      setTimeout(() => { inp.style.background = '' }, 800)
     })
     inp.addEventListener('keydown', e => {
       if (e.key === 'Enter')  { e.preventDefault(); inp.blur() }
@@ -5801,7 +5919,7 @@ function openNewTenantModal() {
       saveBtn.disabled = false; saveBtn.textContent = 'Criar Imobiliária'
       msgEl.innerHTML = '⚠️ Imobiliária criada, mas erro ao criar usuário: ' + escapeHTML(result?.error || 'Desconhecido')
       msgEl.style.color = '#f59e0b'
-      setTimeout(() => { close(); loadSATenants() }, 3000)
+      close(); loadSATenants().catch(()=>{})
       return
     }
 
@@ -5825,7 +5943,7 @@ function openNewTenantModal() {
       msgEl.style.color = '#0f172a'
     } else {
       msgEl.textContent = '✅ Imobiliária criada e e-mail enviado com sucesso!'; msgEl.style.color = '#22c55e'
-      setTimeout(() => { close(); loadSATenants() }, 1500)
+      close(); loadSATenants().catch(()=>{})
     }
   })
 }
@@ -7725,7 +7843,7 @@ function _dbRenderPortfolio(properties, leads) {
     } catch(e) { return false }
   }).length
 
-  // MOCK: Vendidos — futuramente implementar campo status='vendido' na tabela properties
+  // Vendidos = imóveis que foram despublicados (estimativa simples)
   // const vendidos = properties.filter(p => p.status === 'vendido').length
 
   const cards = [
