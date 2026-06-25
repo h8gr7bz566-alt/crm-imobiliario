@@ -38,8 +38,8 @@
   </script>
   <!-- End Google Analytics -->
   <script type="module" crossorigin src="/assets/supabase-BcuJ3xoD.js"></script>
-  <script type="module" crossorigin src="/assets/script-D9v5cflx.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/admin-dIynRkmB.css">
+  <script type="module" crossorigin src="/assets/script-CLxY-6Qo.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-BJMTccjN.css">
 </head>
 <body>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=660044113549849&ev=PageView&noscript=1"/></noscript>
@@ -605,39 +605,87 @@
         </div>
       </section>
 
-      <!-- ── Negociações (Funil/Kanban) ── -->
+      <!-- ── Negociações (Funil/Kanban) — Estilo RD Station ── -->
       <section id="section-funil" class="admin-section hidden">
-        <div class="section-topbar">
-          <div>
-            <div class="section-title">Negociações</div>
-            <div class="section-sub">Funil de vendas Kanban</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <select id="funil-pipe-sel" class="form-control" style="font-size:13px;padding:6px 10px;min-width:160px;"></select>
-            <button id="btn-funil-add-lead" class="btn-primary">+ Novo Lead</button>
-            <button id="btn-import-leads" class="btn-secondary" title="Importar lista de contatos CSV/Excel" style="display:flex;align-items:center;gap:6px;font-size:13px;padding:7px 14px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Importar Contatos
+
+        <!-- Toolbar RD-style: View toggle + Filter chips + Criar button -->
+        <div class="rd-toolbar">
+          <div class="rd-view-toggle">
+            <button class="rd-view-btn active" data-view="kanban" title="Visualização Kanban">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><rect x="3" y="3" width="6" height="18" rx="1"/><rect x="11" y="3" width="6" height="11" rx="1"/><rect x="19" y="3" width="2" height="18" rx="1"/></svg>
+            </button>
+            <button class="rd-view-btn" data-view="list" title="Visualização Lista">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
             </button>
           </div>
-        </div>
-        <!-- Filtros do kanban -->
-        <div id="kanban-filters" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <div style="position:relative;flex:1;min-width:180px;">
-              <input id="kf-search" type="text" placeholder="Buscar por nome, telefone, email…"
-                style="width:100%;padding:8px 12px 8px 34px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
-              <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#94a3b8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            </div>
-            <select id="kf-status" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;background:#fff;min-width:140px;">
-              <option value="">Todos os status</option>
-            </select>
-            <button id="kf-clear" style="padding:8px 14px;background:#f1f5f9;border:none;border-radius:8px;font-size:13px;color:#64748b;cursor:pointer;white-space:nowrap;">✕ Limpar</button>
-          </div>
-          <div id="kf-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+
+          <div style="flex:1;"></div>
+
+          <button class="rd-toolbar-icon" title="Atualizar agora" id="btn-funil-refresh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          </button>
+          <button class="rd-toolbar-icon" title="Calendário" id="btn-funil-calendar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </button>
+          <button class="rd-toolbar-icon" title="Análises" id="btn-funil-analytics">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </button>
+          <button id="btn-funil-add-lead" class="rd-btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Criar</span>
+          </button>
         </div>
 
-        <div id="kanban-board" class="kanban-board">
+        <!-- Linha 2: chips de filtro -->
+        <div class="rd-filter-bar">
+          <button class="rd-chip" id="rd-chip-funil" data-type="funil">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <span id="rd-chip-funil-label">Funil</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:.6"><polyline points="6 9 12 15 18 9"/></svg>
+            <select id="funil-pipe-sel" class="rd-chip-native"></select>
+          </button>
+          <button class="rd-chip" id="rd-chip-assigned">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Minhas negociações</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:.6"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <button class="rd-chip" id="rd-chip-status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+            <span id="rd-chip-status-label">Todos os status</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:.6"><polyline points="6 9 12 15 18 9"/></svg>
+            <select id="kf-status" class="rd-chip-native">
+              <option value="">Todos os status</option>
+            </select>
+          </button>
+          <button class="rd-chip" id="rd-chip-sort">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="11" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/><polyline points="17 8 21 12 17 16"/><line x1="21" y1="12" x2="13" y2="12"/></svg>
+            <span>Criadas por último</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:.6"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <button class="rd-chip rd-chip-filters" id="rd-chip-filters">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <span>Filtros (0)</span>
+          </button>
+
+          <div style="flex:1;"></div>
+
+          <button id="btn-import-leads" class="rd-chip" title="Importar contatos CSV/Excel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Importar</span>
+          </button>
+        </div>
+
+        <!-- Filtros ativos visíveis -->
+        <div class="rd-active-filters" id="rd-active-filters">
+          <span class="rd-active-filter-count" id="rd-active-count">0 Negociações</span>
+        </div>
+
+        <!-- Search hidden, agora dentro do chip; mantém pra compatibilidade -->
+        <input id="kf-search" type="hidden">
+        <div id="kf-tags" style="display:none"></div>
+
+        <!-- Kanban board -->
+        <div id="kanban-board" class="kanban-board rd-kanban">
           <div class="kanban-loading">Carregando funil…</div>
         </div>
       </section>
