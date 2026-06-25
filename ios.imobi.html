@@ -333,6 +333,8 @@
           <button class="topnav-link" data-section="funil">Negociações</button>
           <button class="topnav-link" data-section="contatos">Contatos</button>
           <button class="topnav-link" data-section="tarefas">Tarefas</button>
+          <button class="topnav-link" data-section="vendas" style="color:#059669"><i data-lucide="trending-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;"></i>Vendas</button>
+          <button class="topnav-link" data-section="perdas" style="color:#dc2626"><i data-lucide="trending-down" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;"></i>Perdas</button>
           <!-- admin-only items abaixo -->
           <div class="topnav-dropdown admin-only" style="display:none">
             <button class="topnav-link topnav-dropdown-btn">Configurações <i data-lucide="chevron-down"></i></button>
@@ -686,6 +688,48 @@
         <!-- Kanban board -->
         <div id="kanban-board" class="kanban-board rd-kanban">
           <div class="kanban-loading">Carregando funil…</div>
+        </div>
+      </section>
+
+      <!-- ── Vendas (leads convertidos) ── -->
+      <section id="section-vendas" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title" style="display:flex;align-items:center;gap:10px">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;background:#dcfce7;border-radius:8px;color:#059669">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="20" height="20"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              </span>
+              Vendas Realizadas
+            </div>
+            <div class="section-sub">Leads que foram marcados como venda</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="vendas-total" style="font-size:14px;font-weight:700;color:#059669"></span>
+          </div>
+        </div>
+        <div id="vendas-list" class="rd-results-list">
+          <div class="kanban-loading">Carregando vendas…</div>
+        </div>
+      </section>
+
+      <!-- ── Perdas (leads perdidos) ── -->
+      <section id="section-perdas" class="admin-section hidden">
+        <div class="section-topbar">
+          <div>
+            <div class="section-title" style="display:flex;align-items:center;gap:10px">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;background:#fee2e2;border-radius:8px;color:#dc2626">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="20" height="20"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+              </span>
+              Leads Perdidos
+            </div>
+            <div class="section-sub">Negociações que não foram concluídas</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="perdas-total" style="font-size:14px;font-weight:700;color:#dc2626"></span>
+          </div>
+        </div>
+        <div id="perdas-list" class="rd-results-list">
+          <div class="kanban-loading">Carregando perdas…</div>
         </div>
       </section>
 

@@ -1527,6 +1527,10 @@ const _sectionInitMap = {
 }
 
 function navigateToSection(sectionName) {
+  // Vendas e Perdas: carrega dados ao abrir
+  if (sectionName === 'vendas') setTimeout(() => initVendasSection().catch(()=>{}), 50)
+  if (sectionName === 'perdas') setTimeout(() => initPerdasSection().catch(()=>{}), 50)
+
   document.querySelectorAll('.topnav-link, .topnav-dropdown-item').forEach(b => b.classList.remove('active'))
   const btn = document.querySelector(`.topnav-link[data-section="${sectionName}"], .topnav-dropdown-item[data-section="${sectionName}"]`)
   if (btn) btn.classList.add('active')
@@ -1977,7 +1981,7 @@ async function loadKanbanLeads() {
   if (!board) return
   board.innerHTML = '<div class="kanban-loading">Carregando…</div>'
 
-  let query = supabase.from('leads').select('*').order('created_at', { ascending: false })
+  let query = supabase.from('leads').select('*').order('created_at', { ascending: false }).is('converted_at', null).is('lost_at', null)
   if (currentProfile?.role === 'corretor') query = query.eq('assigned_to', currentProfile.id)
   else if (currentProfile?.tenant_id) query = query.eq('tenant_id', currentProfile.tenant_id)
   if (activePipeId) query = query.eq('pipeline_id', activePipeId)
@@ -2333,6 +2337,140 @@ window.openLeadDetailPage = function(leadId) {
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// ─── Seções: Vendas e Perdas ─────────────────────────────────────────────
+async function initVendasSection() {
+  const list = document.getElementById('vendas-list')
+  const total = document.getElementById('vendas-total')
+  if (!list) return
+  list.innerHTML = '<div class="kanban-loading">Carregando…</div>'
+
+  const tid = (typeof getSettingsTenantId === 'function' ? getSettingsTenantId() : null)
+  let q = supabase.from('leads').select('*').not('converted_at', 'is', null).order('converted_at', { ascending: false })
+  if (tid) q = q.eq('tenant_id', tid)
+  const { data, error } = await q
+  if (error) { list.innerHTML = '<p style="color:#ef4444">Erro: ' + escapeHTML(error.message) + '</p>'; return }
+
+  const leads = data || []
+  if (total) total.textContent = `${leads.length} venda${leads.length !== 1 ? 's' : ''}`
+
+  if (!leads.length) {
+    list.innerHTML = `<div class="rd-empty-card">
+      <div style="font-size:48px">🎯</div>
+      <div style="font-size:16px;font-weight:600;color:#0f172a;margin-top:10px">Nenhuma venda registrada ainda</div>
+      <div style="color:#64748b;font-size:13px;margin-top:6px">Conforme você marcar leads como "venda" no funil, eles aparecem aqui.</div>
+    </div>`
+    return
+  }
+
+  list.innerHTML = leads.map(l => {
+    const dt = l.converted_at ? new Date(l.converted_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—'
+    const valor = l.budget_max ? 'R$ ' + Number(l.budget_max).toLocaleString('pt-BR') : '—'
+    const phoneClean = (l.phone || '').replace(/\D/g, '')
+    return `<div class="rd-result-card rd-result-won">
+      <div class="rd-result-badge rd-badge-won">VENDA</div>
+      <div class="rd-result-info">
+        <div class="rd-result-name">${escapeHTML(l.name || '—')}</div>
+        <div class="rd-result-meta">
+          ${l.phone ? `<span>📞 ${escapeHTML(l.phone)}</span>` : ''}
+          ${l.email ? `<span>✉ ${escapeHTML(l.email)}</span>` : ''}
+          ${l.source ? `<span>🎯 ${escapeHTML(l.source)}</span>` : ''}
+        </div>
+      </div>
+      <div class="rd-result-value">
+        <div class="rd-result-value-label">Valor</div>
+        <div class="rd-result-value-amount" style="color:#059669">${valor}</div>
+      </div>
+      <div class="rd-result-date">
+        <div class="rd-result-value-label">Fechada em</div>
+        <div style="font-size:13px;font-weight:600">${dt}</div>
+      </div>
+      <div class="rd-result-actions">
+        ${phoneClean ? `<a href="https://wa.me/${phoneClean}" target="_blank" class="rd-result-action rd-result-wa" title="WhatsApp">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51"/></svg>
+        </a>` : ''}
+        <button class="rd-result-action rd-result-reopen" data-id="${l.id}" title="Reabrir negociação">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        </button>
+      </div>
+    </div>`
+  }).join('')
+
+  // Wire up "reabrir"
+  list.querySelectorAll('.rd-result-reopen').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Reabrir esta negociação? O lead volta para o funil ativo.')) return
+      await supabase.from('leads').update({ converted_at: null }).eq('id', btn.dataset.id)
+      if (typeof toast === 'function') toast('Negociação reaberta', 'info')
+      await initVendasSection()
+      if (typeof loadKanbanLeads === 'function') loadKanbanLeads().catch(()=>{})
+    })
+  })
+}
+
+async function initPerdasSection() {
+  const list = document.getElementById('perdas-list')
+  const total = document.getElementById('perdas-total')
+  if (!list) return
+  list.innerHTML = '<div class="kanban-loading">Carregando…</div>'
+
+  const tid = (typeof getSettingsTenantId === 'function' ? getSettingsTenantId() : null)
+  let q = supabase.from('leads').select('*').not('lost_at', 'is', null).order('lost_at', { ascending: false })
+  if (tid) q = q.eq('tenant_id', tid)
+  const { data, error } = await q
+  if (error) { list.innerHTML = '<p style="color:#ef4444">Erro: ' + escapeHTML(error.message) + '</p>'; return }
+
+  const leads = data || []
+  if (total) total.textContent = `${leads.length} perda${leads.length !== 1 ? 's' : ''}`
+
+  if (!leads.length) {
+    list.innerHTML = `<div class="rd-empty-card">
+      <div style="font-size:48px">🛡️</div>
+      <div style="font-size:16px;font-weight:600;color:#0f172a;margin-top:10px">Nenhum lead perdido ainda</div>
+      <div style="color:#64748b;font-size:13px;margin-top:6px">Bons números! Quando algo der errado, você pode revisar aqui.</div>
+    </div>`
+    return
+  }
+
+  list.innerHTML = leads.map(l => {
+    const dt = l.lost_at ? new Date(l.lost_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—'
+    const phoneClean = (l.phone || '').replace(/\D/g, '')
+    return `<div class="rd-result-card rd-result-lost">
+      <div class="rd-result-badge rd-badge-lost">PERDA</div>
+      <div class="rd-result-info">
+        <div class="rd-result-name">${escapeHTML(l.name || '—')}</div>
+        <div class="rd-result-meta">
+          ${l.phone ? `<span>📞 ${escapeHTML(l.phone)}</span>` : ''}
+          ${l.email ? `<span>✉ ${escapeHTML(l.email)}</span>` : ''}
+          ${l.source ? `<span>🎯 ${escapeHTML(l.source)}</span>` : ''}
+        </div>
+        ${l.lost_reason ? `<div class="rd-result-reason">💬 ${escapeHTML(l.lost_reason)}</div>` : ''}
+      </div>
+      <div class="rd-result-date">
+        <div class="rd-result-value-label">Marcado em</div>
+        <div style="font-size:13px;font-weight:600">${dt}</div>
+      </div>
+      <div class="rd-result-actions">
+        ${phoneClean ? `<a href="https://wa.me/${phoneClean}" target="_blank" class="rd-result-action rd-result-wa" title="Reativar via WhatsApp">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606z"/></svg>
+        </a>` : ''}
+        <button class="rd-result-action rd-result-reopen" data-id="${l.id}" title="Reativar negociação">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        </button>
+      </div>
+    </div>`
+  }).join('')
+
+  list.querySelectorAll('.rd-result-reopen').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Reativar esta negociação? O lead volta para o funil ativo.')) return
+      await supabase.from('leads').update({ lost_at: null, lost_reason: null }).eq('id', btn.dataset.id)
+      if (typeof toast === 'function') toast('Lead reativado', 'info')
+      await initPerdasSection()
+      if (typeof loadKanbanLeads === 'function') loadKanbanLeads().catch(()=>{})
+    })
+  })
 }
 
 window.closeLeadDetailPage = function() {

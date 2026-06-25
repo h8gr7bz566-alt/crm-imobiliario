@@ -4034,3 +4034,135 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   color: #94a3b8;
   margin-top: 4px;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   VENDAS e PERDAS — Cards de resultado
+   ═══════════════════════════════════════════════════════════════════ */
+.rd-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.rd-result-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  transition: all .15s;
+}
+.rd-result-card:hover {
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  border-color: #cbd5e1;
+}
+.rd-result-won { border-left: 4px solid #059669; }
+.rd-result-lost { border-left: 4px solid #dc2626; }
+
+.rd-result-badge {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.rd-badge-won { background: #dcfce7; color: #059669; }
+.rd-badge-lost { background: #fee2e2; color: #dc2626; }
+
+.rd-result-info { min-width: 0; }
+.rd-result-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+.rd-result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+.rd-result-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.rd-result-reason {
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: #fef3c7;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #78350f;
+  font-style: italic;
+  border-left: 3px solid #f59e0b;
+}
+
+.rd-result-value, .rd-result-date {
+  text-align: right;
+  white-space: nowrap;
+}
+.rd-result-value-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rd-result-value-amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.rd-result-actions {
+  display: flex;
+  gap: 6px;
+}
+.rd-result-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  color: #475569;
+  cursor: pointer;
+  transition: all .15s;
+  text-decoration: none;
+}
+.rd-result-action:hover {
+  background: #0ea5e9;
+  color: #fff;
+}
+.rd-result-wa {
+  background: #25d366;
+  color: #fff;
+}
+.rd-result-wa:hover { background: #1ebe57; }
+
+.rd-empty-card {
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 50px 20px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .rd-result-card {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .rd-result-value, .rd-result-date, .rd-result-actions {
+    text-align: left;
+  }
+}
