@@ -7657,8 +7657,8 @@ async function initDashboardSection() {
 
   // Destroy existing chart instances before re-rendering
   if (alreadyBuilt) {
-    if (window._dbLeadsChartInstance)  { window.window._dbLeadsChartInstance.destroy();  window._dbLeadsChartInstance  = null }
-    if (window._dbOriginChartInstance) { window.window._dbOriginChartInstance.destroy(); window._dbOriginChartInstance = null }
+    try { if (window._dbLeadsChartInstance)  { window._dbLeadsChartInstance.destroy();  window._dbLeadsChartInstance  = null } } catch(e){}
+    try { if (window._dbOriginChartInstance) { window._dbOriginChartInstance.destroy(); window._dbOriginChartInstance = null } } catch(e){}
   }
 
   section.dataset.dbInit = '1'
@@ -7676,9 +7676,9 @@ async function initDashboardSection() {
     <div class="db-header-chips" id="db-header-chips"></div>
   </div>
 
-  <!-- KPI Cards -->
-  <div class="db-kpis">
-    ${['db-kpi-indigo','db-kpi-emerald','db-kpi-amber','db-kpi-sky'].map((cls, i) => `
+  <!-- KPI Cards (6 - inclui VGV Total) -->
+  <div class="db-kpis db-kpis-6">
+    ${['db-kpi-indigo','db-kpi-vgv','db-kpi-emerald','db-kpi-amber','db-kpi-sky','db-kpi-pink'].map((cls, i) => `
     <div class="db-kpi ${cls}" id="db-kpi-${i}">
       <div class="db-kpi-icon">
         <div class="db-skeleton" style="width:22px;height:22px;border-radius:4px;"></div>
@@ -7689,6 +7689,56 @@ async function initDashboardSection() {
         <div class="db-skeleton db-skel-trend" style="margin-top:8px;"></div>
       </div>
     </div>`).join('')}
+  </div>
+
+  <!-- Funil visual + ações rápidas (estilo Jetimob "Oportunidades") -->
+  <div class="db-row-funnel">
+    <div class="db-card db-funnel-card">
+      <div class="db-card-head">
+        <div>
+          <div class="db-card-title">Funil de Negociações</div>
+          <div class="db-card-sub">Leads em cada etapa</div>
+        </div>
+        <button class="db-card-link" onclick="navigateToSection('funil')">Ver kanban →</button>
+      </div>
+      <div class="db-funnel-stages" id="db-funnel-stages">
+        <div class="db-empty"><div class="db-empty-icon">⏳</div><div class="db-empty-text">Carregando…</div></div>
+      </div>
+    </div>
+    <div class="db-card db-quick-actions-card">
+      <div class="db-card-head">
+        <div>
+          <div class="db-card-title">Ações rápidas</div>
+          <div class="db-card-sub">Atalhos pra acelerar</div>
+        </div>
+      </div>
+      <div class="db-quick-actions">
+        <button class="db-quick-action" onclick="navigateToSection('funil');setTimeout(()=>document.getElementById('btn-funil-add-lead')?.click(),200)">
+          <span class="db-quick-icon" style="background:#dcfce7;color:#059669">+</span>
+          <span class="db-quick-label">Novo lead</span>
+        </button>
+        <button class="db-quick-action" onclick="navigateToSection('properties');setTimeout(()=>document.querySelector('#section-properties .btn-primary')?.click(),200)">
+          <span class="db-quick-icon" style="background:#dbeafe;color:#2563eb">🏠</span>
+          <span class="db-quick-label">Novo imóvel</span>
+        </button>
+        <button class="db-quick-action" onclick="navigateToSection('tarefas')">
+          <span class="db-quick-icon" style="background:#fef3c7;color:#d97706">✓</span>
+          <span class="db-quick-label">Nova tarefa</span>
+        </button>
+        <button class="db-quick-action" onclick="navigateToSection('vendas')">
+          <span class="db-quick-icon" style="background:#cffafe;color:#0e7490">💰</span>
+          <span class="db-quick-label">Vendas</span>
+        </button>
+        <button class="db-quick-action" onclick="navigateToSection('contatos')">
+          <span class="db-quick-icon" style="background:#fce7f3;color:#be185d">👥</span>
+          <span class="db-quick-label">Contatos</span>
+        </button>
+        <button class="db-quick-action" onclick="navigateToSection('perdas')">
+          <span class="db-quick-icon" style="background:#fee2e2;color:#dc2626">⚠</span>
+          <span class="db-quick-label">Perdas</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Charts Row -->
@@ -7928,8 +7978,32 @@ function _dbRenderKPIs(properties, leads, now) {
   const published = properties.filter(p => p.published).length
   const totalL    = leads.length
 
-  // Negociações em andamento = leads com stage != null (no funil)
-  const negociando = leads.filter(l => l.stage && l.stage !== 'perdido' && l.stage !== 'fechado').length
+  // Negociações ativas = leads sem converted_at e sem lost_at
+  const negociando = leads.filter(l => !l.converted_at && !l.lost_at && l.stage).length
+
+  // VGV TOTAL: soma de TODOS os preços dos imóveis publicados
+  // (price pode ser string tipo "R$ 850.000" ou número)
+  function parsePrice(raw) {
+    if (raw === null || raw === undefined) return 0
+    if (typeof raw === 'number') return raw
+    const s = String(raw).trim()
+    // Remove tudo que não é dígito, ponto ou vírgula
+    let n = s.replace(/[^\d,.]/g, '')
+    // Se tem vírgula como decimal, troca por ponto (e remove pontos de milhar)
+    if (n.includes(',') && n.lastIndexOf(',') > n.lastIndexOf('.')) {
+      n = n.replace(/\./g, '').replace(',', '.')
+    } else {
+      // Se só tem ponto, considera como milhar (remove)
+      n = n.replace(/\./g, '')
+    }
+    const v = parseFloat(n)
+    return isNaN(v) ? 0 : v
+  }
+  const vgv = properties.filter(p => p.published).reduce((sum, p) => sum + parsePrice(p.price), 0)
+
+  // Vendas do mês: leads convertidos nos últimos 30 dias
+  const d30c = new Date(now); d30c.setDate(d30c.getDate() - 30)
+  const vendasMes = leads.filter(l => l.converted_at && new Date(l.converted_at) >= d30c).length
 
   // Calcular variações (últimos 30 dias vs 30 dias anteriores)
   const d30 = new Date(now); d30.setDate(d30.getDate() - 30)
@@ -7948,26 +8022,43 @@ function _dbRenderKPIs(properties, leads, now) {
     return `<span class="db-kpi-trend db-trend-down">▼ ${pct}% ${suffix}</span>`
   }
 
+  // Formata VGV em formato compacto (R$ 1.5M, R$ 850K)
+  function fmtVGV(v) {
+    if (v >= 1000000) return 'R$ ' + (v / 1000000).toFixed(v >= 10000000 ? 1 : 2).replace('.', ',') + 'M'
+    if (v >= 1000)    return 'R$ ' + Math.round(v / 1000) + 'K'
+    return 'R$ ' + Math.round(v).toLocaleString('pt-BR')
+  }
+
   const kpis = [
     {
-      idx: 0, val: total, label: 'Total de Imóveis',
+      idx: 0, val: _dbFmt(total), label: 'Total de Imóveis',
       trend: trendHtml(propsThisMonth, propsLastMonth, 'este mês'),
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'
     },
     {
-      idx: 1, val: published, label: 'Publicados no Site',
+      idx: 1, val: fmtVGV(vgv), label: 'VGV Total',
+      trend: vgv === 0 ? '<span class="db-kpi-trend db-trend-neu">Sem imóveis publicados</span>' : `<span class="db-kpi-trend db-trend-up">▲ ${published} imóveis</span>`,
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>'
+    },
+    {
+      idx: 2, val: _dbFmt(published), label: 'Publicados',
       trend: published === 0 ? '<span class="db-kpi-trend db-trend-neu">Nenhum publicado</span>' : `<span class="db-kpi-trend db-trend-up">${Math.round((published/Math.max(total,1))*100)}% do total</span>`,
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
     },
     {
-      idx: 2, val: totalL, label: 'Leads Recebidos',
+      idx: 3, val: _dbFmt(totalL), label: 'Leads Recebidos',
       trend: trendHtml(leadsThisMonth, leadsLastMonth, 'vs. mês ant.'),
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>'
     },
     {
-      idx: 3, val: negociando, label: 'Em Negociação',
-      trend: negociando === 0 ? '<span class="db-kpi-trend db-trend-neu">Nenhum ativo</span>' : '<span class="db-kpi-trend db-trend-up">▲ Ativos</span>',
-      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>'
+      idx: 4, val: _dbFmt(negociando), label: 'Em Negociação',
+      trend: negociando === 0 ? '<span class="db-kpi-trend db-trend-neu">Nenhum ativo</span>' : '<span class="db-kpi-trend db-trend-up">▲ Ativos no funil</span>',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>'
+    },
+    {
+      idx: 5, val: _dbFmt(vendasMes), label: 'Vendas (30d)',
+      trend: vendasMes === 0 ? '<span class="db-kpi-trend db-trend-neu">Aguardando primeira venda</span>' : '<span class="db-kpi-trend db-trend-up">🎯 Fechadas</span>',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>'
     }
   ]
 
@@ -7977,11 +8068,41 @@ function _dbRenderKPIs(properties, leads, now) {
     el.innerHTML = `
       <div class="db-kpi-icon">${icon}</div>
       <div class="db-kpi-body">
-        <div class="db-kpi-val">${_dbFmt(val)}</div>
+        <div class="db-kpi-val">${val}</div>
         <div class="db-kpi-lbl">${_dbEsc(label)}</div>
         ${trend}
       </div>`
   })
+
+  // Renderiza Funil (etapas do pipeline + contadores)
+  _dbRenderFunnelStages(leads)
+}
+
+function _dbRenderFunnelStages(leads) {
+  const el = document.getElementById('db-funnel-stages')
+  if (!el) return
+  const activeLeads = leads.filter(l => !l.converted_at && !l.lost_at)
+  // Agrupa por stage
+  const byStage = {}
+  activeLeads.forEach(l => {
+    const k = l.stage || 'Sem etapa'
+    byStage[k] = (byStage[k] || 0) + 1
+  })
+  const stages = Object.entries(byStage).sort((a,b) => b[1] - a[1])
+  const total = activeLeads.length
+  const maxV = Math.max(...stages.map(s => s[1]), 1)
+  if (!stages.length) {
+    el.innerHTML = '<div class="db-empty"><div class="db-empty-icon">💼</div><div class="db-empty-text">Nenhum lead em negociação ainda</div></div>'
+    return
+  }
+  el.innerHTML = stages.map(([name, count]) => {
+    const pct = Math.round((count / maxV) * 100)
+    return `<div class="db-funnel-row" onclick="navigateToSection('funil')">
+      <div class="db-funnel-label">${_dbEsc(name)}</div>
+      <div class="db-funnel-bar-wrap"><div class="db-funnel-bar" style="width:${pct}%"></div></div>
+      <div class="db-funnel-count">${count}</div>
+    </div>`
+  }).join('') + `<div class="db-funnel-total">Total ativo: <strong>${total}</strong> negociações</div>`
 }
 
 // ── Leads Bar Chart ───────────────────────────────────────────────────────────
