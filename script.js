@@ -2027,8 +2027,16 @@ function renderKanban() {
       ? cards.map(l => {
           const waNum = (l.phone || '').replace(/\D/g,'')
           const waMsg = encodeURIComponent(`Olá ${l.name}! Aqui é da ${getSetting('company.name','nossa imobiliária')}. Vi seu interesse e gostaria de ajudar. Posso falar agora?`)
+          // Status badge do lead (Em andamento, Frio, Quente, etc.)
+          const statusLabel = l.status === 'quente' ? 'Quente'
+                            : l.status === 'frio'   ? 'Frio'
+                            : l.status === 'morno'  ? 'Morno'
+                            : 'Em andamento'
+          const qualif = l.interest || ''
+          const tagsCount = (Array.isArray(l.tags) ? l.tags.length : 0)
           return `
         <div class="kanban-card" draggable="true" data-id="${l.id}" data-stage="${escapeHTML(stage.name)}" style="cursor:pointer;">
+          <span class="rd-card-status">${escapeHTML(statusLabel)}</span>
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;">
             <div class="kanban-card-name" style="flex:1;">${escapeHTML(l.name || '—')}</div>
             ${waNum ? `<a href="https://wa.me/${waNum}?text=${waMsg}" target="_blank" rel="noopener"
@@ -2040,29 +2048,55 @@ function renderKanban() {
           </div>
           ${l.phone ? `<div class="kanban-card-info">📞 ${escapeHTML(l.phone)}</div>` : ''}
           ${l.email ? `<div class="kanban-card-info" style="font-size:11px;color:#94a3b8;">✉ ${escapeHTML(l.email)}</div>` : ''}
-          ${l.notes ? `<div class="kanban-card-info" style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">📝 ${escapeHTML(l.notes)}</div>` : ''}
-          <div class="kanban-card-tags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">
+          ${l.notes ? `<div class="kanban-card-info" style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">📝 ${escapeHTML(l.notes)}</div>` : ''}
+          ${tagsCount > 0 || l.source ? `<div class="kanban-card-tags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;">
             ${l.source ? `<span class="kanban-card-tag">${escapeHTML(l.source)}</span>` : ''}
             ${Array.isArray(l.tags) ? l.tags.map(t => {
               const td = kanbanTagMap[t]
               const c = td?.color || '#0369a1'
               return `<span class="kanban-card-tag" style="background:${c}18;color:${c};border:1px solid ${c}44;">${escapeHTML(t)}</span>`
             }).join('') : ''}
+          </div>` : ''}
+          <div class="rd-card-icons">
+            <span title="Avaliação">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              ${l.priority === 'high' ? '⭐' : '1'}
+            </span>
+            <span title="Responsável">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
           </div>
+          <button class="rd-card-task-btn" data-lead="${l.id}" onclick="event.stopPropagation()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Criar Tarefa
+          </button>
         </div>`}).join('')
       : '<div class="kanban-empty-col">Sem leads nesta etapa</div>'
 
+    // Calcula valor total da coluna (soma dos leads — se tiver campo budget)
+    const colValue = cards.reduce((sum, l) => sum + (Number(l.budget_max) || 0), 0)
+    const colValueStr = colValue > 0
+      ? 'R$ ' + colValue.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+      : 'R$ 0,00'
+
     return `
       <div class="kanban-col" data-stage="${escapeHTML(stage.name)}">
-        <div class="kanban-col-header" style="border-bottom-color:${stage.color || '#2563eb'}">
+        <div class="kanban-col-header">
           <div class="kanban-col-title">
-            <div class="kanban-stage-dot" style="background:${stage.color || '#2563eb'}"></div>
-            ${escapeHTML(stage.name)}
+            <div class="kanban-stage-dot" style="background:${stage.color || '#0ea5e9'}"></div>
+            ${escapeHTML(stage.name.toUpperCase())} (${cards.length})
           </div>
-          <span class="kanban-col-count">${cards.length}</span>
+        </div>
+        <div class="rd-col-value">${colValueStr}</div>
+        <div class="rd-col-actions">
+          <button class="rd-col-action" title="Atualizar coluna" data-stage="${escapeHTML(stage.name)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10"/></svg>
+          </button>
+          <button class="rd-col-action" title="Ver análises da etapa">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </button>
         </div>
         <div class="kanban-cards" data-stage="${escapeHTML(stage.name)}">${cardsHTML}</div>
-        <button class="kanban-add-btn" data-stage="${escapeHTML(stage.name)}">+ Adicionar lead</button>
       </div>`
   }).join('')
 
