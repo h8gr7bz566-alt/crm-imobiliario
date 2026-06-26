@@ -2844,32 +2844,21 @@ window.openInlineTaskForm = function(leadId) {
   })
 }
 
-window.openInlineNoteForm = function(leadId) {
-  const el = document.getElementById('rd-lp-timeline')
-  if (!el) return
-  const existing = el.innerHTML
-  el.innerHTML = '<form class="rd-lp-note-form" id="rd-lp-note-form">'+
-    '<textarea id="rd-lp-note-body" rows="3" placeholder="Escreva sua anotação…" required></textarea>'+
-    '<div class="rd-lp-note-actions">'+
-      '<button type="button" class="rd-lp-note-cancel">Cancelar</button>'+
-      '<button type="submit" class="rd-lp-note-save">Salvar anotação</button>'+
-    '</div></form>' + existing
-  const body = document.getElementById('rd-lp-note-body'); body?.focus()
-  el.querySelector('.rd-lp-note-cancel').onclick = () => window._lpLoadTimeline(leadId)
-  document.getElementById('rd-lp-note-form').addEventListener('submit', async e => {
-    e.preventDefault()
-    const sb = e.target.querySelector('.rd-lp-note-save')
-    sb.disabled = true; sb.textContent='Salvando…'
-    const text = body.value.trim()
-    if (!text) { sb.disabled=false; sb.textContent='Salvar anotação'; return }
-    const tid = (typeof currentProfile!=='undefined' && currentProfile?.tenant_id) || null
-    const uid = (typeof currentProfile!=='undefined' && currentProfile?.id) || null
-    const uname = (typeof currentProfile!=='undefined' && (currentProfile?.full_name || currentProfile?.email)) || 'Você'
-    const { error } = await supabase.from('lead_notes').insert({ lead_id: leadId, tenant_id: tid, author_id: uid, author_name: uname, body: text })
-    if (error) { sb.disabled=false; sb.textContent='Salvar anotação'; alert('Erro: '+error.message); return }
-    if (typeof toast==='function') toast('✓ Anotação criada','success')
-    window._lpLoadTimeline(leadId)
-  })
+window.openInlineNoteForm = async function(leadId) {
+  if (!leadId) { alert('Lead não identificado. Recarregue a página.'); return }
+  const text = prompt('Nova anotação:')
+  if (!text || !text.trim()) return
+  const lead = (kanbanLeads || []).find(l => String(l.id) === String(leadId))
+  if (!lead) { alert('Lead não encontrado.'); return }
+  // Append na coluna existente lead.notes (que sempre existe)
+  const stamp = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+  const novaLinha = `[${stamp}] ${text.trim()}`
+  const novoNotes = lead.notes ? (novaLinha + String.fromCharCode(10,10) + lead.notes) : novaLinha
+  const { error } = await supabase.from('leads').update({ notes: novoNotes }).eq('id', leadId)
+  if (error) { alert('Erro: ' + error.message); return }
+  lead.notes = novoNotes
+  if (typeof toast === 'function') toast('✓ Anotação salva', 'success')
+  if (typeof window._lpLoadTimeline === 'function') window._lpLoadTimeline(leadId)
 }
 
 window._lpLoadTimeline = async function(leadId) {
@@ -2891,7 +2880,24 @@ window._lpLoadTimeline = async function(leadId) {
   tasks.filter(t => t.status !== 'concluida' && t.status !== 'done').forEach(t => {
     events.push({ author: 'Tarefa criada', text: t.title, date: t.created_at, icon: '📋' })
   })
-  if (lead.notes) events.push({ author: 'Anotação (antiga)', text: lead.notes, date: lead.updated_at || lead.created_at, icon: '✍️' })
+  // Parse lead.notes (pode ter múltiplas anotações separadas por \n\n)
+  if (lead.notes) {
+    const blocks = lead.notes.split('\n\n').filter(b => b.trim())
+    blocks.forEach(b => {
+      // Tenta extrair timestamp do formato [dd/mm/aaaa hh:mm] texto
+      const m = b.match(/^\[(\d{2}\/\d{2}\/\d{4},?\s+\d{2}:\d{2})\]\s*(.+)$/s)
+      if (m) {
+        // Reconstrói data BR -> Date
+        const [_, dt, txt] = m
+        const [d, t] = dt.replace(',', '').split(/\s+/)
+        const [dia, mes, ano] = d.split('/')
+        const dateObj = new Date(`${ano}-${mes}-${dia}T${t}:00`)
+        events.push({ author: 'Anotação', text: txt, date: dateObj.toISOString(), icon: '✍️' })
+      } else {
+        events.push({ author: 'Anotação', text: b, date: lead.updated_at || lead.created_at, icon: '✍️' })
+      }
+    })
+  }
   events.push({ author: 'Sistema', text: 'Lead criado na etapa "'+(lead.stage || '—')+'"', date: lead.created_at, icon: '🌱' })
   events.sort((a,b) => new Date(b.date) - new Date(a.date))
   const fmtDt = iso => {
