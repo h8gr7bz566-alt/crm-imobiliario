@@ -1857,6 +1857,7 @@ let kanbanPipes = []
 let kanbanStages = []
 let kanbanLeads = []
 let kanbanTagMap = {}    // name → { color }
+let kanbanTaskCounts = {} // leadId → { total, overdue }
 let kanbanStatuses = []
 let activePipeId = null
 let dragLeadId = null
@@ -2000,6 +2001,27 @@ async function loadKanbanLeads() {
 
   const { data } = await query
   kanbanLeads = data || []
+  // Carrega contagem de tarefas pendentes por lead (em paralelo)
+  try {
+    const leadIds = kanbanLeads.map(l => l.id)
+    if (leadIds.length) {
+      const { data: tasks } = await supabase
+        .from('tasks').select('lead_id, status, due_date')
+        .in('lead_id', leadIds)
+        .neq('status', 'concluida').neq('status', 'done')
+      kanbanTaskCounts = {}
+      const now = new Date()
+      ;(tasks || []).forEach(t => {
+        if (!t.lead_id) return
+        const c = kanbanTaskCounts[t.lead_id] || { total: 0, overdue: 0 }
+        c.total++
+        if (t.due_date && new Date(t.due_date) < now) c.overdue++
+        kanbanTaskCounts[t.lead_id] = c
+      })
+    } else {
+      kanbanTaskCounts = {}
+    }
+  } catch(e) { console.warn('[Kanban] task count erro:', e); kanbanTaskCounts = {} }
   renderKanban()
 }
 
@@ -2077,7 +2099,20 @@ function renderKanban() {
           </div>
           ${l.phone ? `<div class="kanban-card-info">📞 ${escapeHTML(l.phone)}</div>` : ''}
           ${l.email ? `<div class="kanban-card-info" style="font-size:11px;color:#94a3b8;">✉ ${escapeHTML(l.email)}</div>` : ''}
-          ${l.notes ? `<div class="kanban-card-info" style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">📝 ${escapeHTML(l.notes)}</div>` : ''}
+          ${(() => {
+            const tc = kanbanTaskCounts[l.id]
+            if (!tc || !tc.total) return ''
+            const isOverdue = tc.overdue > 0
+            const bg = isOverdue ? '#fee2e2' : '#dbeafe'
+            const fg = isOverdue ? '#b91c1c' : '#1e40af'
+            const bd = isOverdue ? '#fca5a5' : '#93c5fd'
+            const label = isOverdue
+              ? (tc.overdue === 1 ? '1 tarefa atrasada' : tc.overdue + ' tarefas atrasadas')
+              : (tc.total === 1 ? '1 tarefa pendente' : tc.total + ' tarefas pendentes')
+            return `<div class="rd-card-task-badge" style="background:${bg};color:${fg};border:1px solid ${bd};">
+              ${isOverdue ? '⏰' : '📋'} ${label}
+            </div>`
+          })()}
           ${tagsCount > 0 || l.source ? `<div class="kanban-card-tags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;">
             ${l.source ? `<span class="kanban-card-tag">${escapeHTML(l.source)}</span>` : ''}
             ${Array.isArray(l.tags) ? l.tags.map(t => {

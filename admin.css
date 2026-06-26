@@ -4725,3 +4725,20 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   transition: all .15s;
 }
 .rd-lp-task-gcal:hover { background: #dbeafe; transform: translateY(-1px); }
+
+/* ─── Badge de tarefa pendente no card do kanban ──────────────────── */
+.rd-card-task-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+  animation: rd-pulse-badge 2s ease-in-out infinite;
+}
+@keyframes rd-pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
