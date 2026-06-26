@@ -4716,3 +4716,12 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 }
 .rd-leadpage-timeline-item.is-note:hover .rd-lp-note-del { opacity: 1; }
 .rd-lp-note-del:hover { color: #ef4444; }
+
+.rd-lp-task-gcal {
+  font-size: 11px; font-weight: 600;
+  color: #2563eb; text-decoration: none;
+  padding: 3px 8px; border-radius: 6px;
+  background: #eff6ff; border: 1px solid #bfdbfe;
+  transition: all .15s;
+}
+.rd-lp-task-gcal:hover { background: #dbeafe; transform: translateY(-1px); }

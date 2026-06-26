@@ -2696,6 +2696,7 @@ function _rdInitViewToggle() {
 
 // Expor pra ser chamado quando o kanban carregar
 if (typeof window !== 'undefined') window._rdRenderLeadsList = _rdRenderLeadsList
+setTimeout(() => window.maybePromptPush?.(), 3000) // push hook
 
 // ─── Tarefas vinculadas ao lead (lista + criar inline) ──────────────
 window._lpLoadTasks = async function(leadId) {
@@ -2736,6 +2737,7 @@ window._lpLoadTasks = async function(leadId) {
         '<div class="rd-lp-task-meta">'+
           (t.due_date?'<span class="rd-lp-task-date '+(overdue?'overdue':'')+'">📅 '+fmtDt(t.due_date)+(overdue?' · ATRASADA':'')+'</span>':'')+
           '<span class="rd-lp-task-prio prio-'+(t.priority||'medium')+'">'+(t.priority||'medium').toUpperCase()+'</span>'+
+          (t.due_date?'<a class="rd-lp-task-gcal" href="'+window.buildGoogleCalendarUrl(t)+'" target="_blank" rel="noopener" title="Adicionar ao Google Agenda">🗓 Google Agenda</a>':'')+
         '</div>'+
       '</div>'+
       '<button class="rd-lp-task-del" data-id="'+t.id+'" title="Excluir">🗑️</button>'+
@@ -2876,6 +2878,107 @@ window._lpLoadTimeline = async function(leadId) {
       window._lpLoadTimeline(leadId)
     }
   })
+}
+
+
+// ─── Google Calendar deep-link (sem OAuth, abre nova aba pré-preenchida) ───
+window.buildGoogleCalendarUrl = function(task) {
+  if (!task) return '#'
+  const title = encodeURIComponent(task.title || 'Tarefa')
+  const details = encodeURIComponent(task.description || '')
+  // Formato exigido: YYYYMMDDTHHmmssZ (UTC, sem dashes/colons)
+  const fmt = d => {
+    const x = new Date(d)
+    return x.getUTCFullYear() +
+      String(x.getUTCMonth()+1).padStart(2,'0') +
+      String(x.getUTCDate()).padStart(2,'0') + 'T' +
+      String(x.getUTCHours()).padStart(2,'0') +
+      String(x.getUTCMinutes()).padStart(2,'0') +
+      String(x.getUTCSeconds()).padStart(2,'0') + 'Z'
+  }
+  let dates = ''
+  if (task.due_date) {
+    const start = new Date(task.due_date)
+    const end   = new Date(start.getTime() + 30 * 60 * 1000) // 30 min default
+    dates = `&dates=${fmt(start)}/${fmt(end)}`
+  }
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}${dates}`
+}
+
+
+// ─── Push Notifications (cliente) ───────────────────────────────────────────
+window.VAPID_PUBLIC_KEY = 'BJ1ohvwEhxXoiQFU2qzMhRlww6deyPrmVsAxc97HCeQFVrkWoQZZ7ZdgSfYB02cq3Y89JEWWZ9avHBDEL03P-9k'
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(base64)
+  return new Uint8Array([...raw].map(c => c.charCodeAt(0)))
+}
+
+window.enablePushNotifications = async function() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Seu navegador não suporta notificações push. Use Chrome ou Edge.')
+      return false
+    }
+    const perm = await Notification.requestPermission()
+    if (perm !== 'granted') {
+      alert('Permissão de notificação negada. Habilite nas configurações do navegador.')
+      return false
+    }
+    const reg = await navigator.serviceWorker.register('/sw.js')
+    await navigator.serviceWorker.ready
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY),
+      })
+    }
+    const payload = {
+      subscription: sub.toJSON(),
+      userId: (typeof currentProfile !== 'undefined' && currentProfile?.id) || null,
+      tenantId: (typeof currentProfile !== 'undefined' && currentProfile?.tenant_id) || null,
+      userAgent: navigator.userAgent,
+    }
+    const r = await fetch('/api/push-register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!r.ok) { alert('Erro ao registrar push'); return false }
+    localStorage.setItem('pushEnabled', '1')
+    if (typeof toast === 'function') toast('🔔 Notificações ativadas!', 'success')
+    return true
+  } catch (e) {
+    console.error('[Push] erro:', e)
+    alert('Erro ao ativar notificações: ' + e.message)
+    return false
+  }
+}
+
+// Mostrar prompt sutil após login se ainda não ativou
+window.maybePromptPush = function() {
+  if (localStorage.getItem('pushEnabled') === '1') return
+  if (localStorage.getItem('pushDismissed') === '1') return
+  if (Notification.permission === 'denied') return
+  // Banner ao topo
+  if (document.getElementById('push-prompt-banner')) return
+  const b = document.createElement('div')
+  b.id = 'push-prompt-banner'
+  b.innerHTML = '🔔 <strong>Ative notificações</strong> para receber alertas de tarefas no PC/celular. ' +
+    '<button id="push-prompt-yes" style="background:#06b6d4;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:600;cursor:pointer;margin-left:10px">Ativar</button>' +
+    '<button id="push-prompt-no" style="background:transparent;border:none;color:#94a3b8;padding:6px 10px;cursor:pointer;margin-left:4px">Depois</button>'
+  b.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fef3c7;border-bottom:1px solid #fde68a;padding:12px 20px;text-align:center;font-size:14px;color:#92400e;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,.05)'
+  document.body.appendChild(b)
+  document.getElementById('push-prompt-yes').onclick = async () => {
+    const ok = await window.enablePushNotifications()
+    if (ok) b.remove()
+  }
+  document.getElementById('push-prompt-no').onclick = () => {
+    localStorage.setItem('pushDismissed', '1')
+    b.remove()
+  }
 }
 
 window.closeLeadDetailPage = function() {
@@ -3449,6 +3552,11 @@ function openTarefaModal(tarefa = null, presetLeadId = null) {
             <textarea name="description" class="form-control" rows="4" placeholder="Detalhes, observações…">${escapeHTML(tarefa?.description || '')}</textarea>
           </div>
         </form>
+        ${tarefa?.due_date ? `<div style="margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;">
+          <a href="${window.buildGoogleCalendarUrl(tarefa)}" target="_blank" rel="noopener" class="btn-cancel" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;">
+            🗓 Adicionar ao Google Agenda
+          </a>
+        </div>` : ''}
       </div>
       <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between;align-items:center;">
         <div style="display:flex;gap:8px;">

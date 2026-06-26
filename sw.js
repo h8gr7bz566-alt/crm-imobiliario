@@ -1,47 +1,35 @@
-const CACHE = "ios-imobi-v3";
-const ASSETS = [
-  "/",
-  "/index.html",
-  "/admin.html",
-  "/property.html",
-  "/servicos.html",
-  "/styles.css",
-  "/admin.css",
-  "/script.js",
-  "/property.js",
-  "/logo.png",
-  "/favicon.png",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/manifest.json"
-];
+// sw.js — Service Worker para PWA + Push Notifications
+const CACHE_NAME = 'imobi-v3'
 
-// Install: cache assets
-self.addEventListener("install", e => {
-  e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
-});
+self.addEventListener('install', e => { self.skipWaiting() })
+self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()) })
 
-// Activate: clean old caches
-self.addEventListener("activate", e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  );
-});
+// ─── Push handler ──────────────────────────────────────────────────────────
+self.addEventListener('push', event => {
+  let data = {}
+  try { data = event.data ? event.data.json() : {} } catch(e) { data = { title: 'Tarefa', body: event.data?.text() } }
+  const title = data.title || 'IOS Imobi'
+  const options = {
+    body: data.body || 'Nova notificação',
+    icon: data.icon || '/logo.png',
+    badge: '/logo.png',
+    data: { url: data.url || '/ios.imobi' },
+    requireInteraction: true,
+    vibrate: [200, 100, 200],
+  }
+  event.waitUntil(self.registration.showNotification(title, options))
+})
 
-// Fetch: network first, fallback to cache
-self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET") return;
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(cache => cache.put(e.request, clone));
-        return res;
-      })
-      .catch(() => caches.match(e.request))
-  );
-});
+// Click → abre o CRM na tarefa
+self.addEventListener('notificationclick', event => {
+  event.notification.close()
+  const url = event.notification.data?.url || '/ios.imobi'
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then(list => {
+      for (const c of list) {
+        if (c.url.includes('/ios.imobi')) return c.focus()
+      }
+      return clients.openWindow(url)
+    })
+  )
+})
