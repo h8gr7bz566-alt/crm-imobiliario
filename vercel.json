@@ -110,11 +110,5 @@
       "source": "/servicos",
       "destination": "/servicos.html"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/push-send-reminders",
-      "schedule": "*/5 * * * *"
-    }
   ]
 }
