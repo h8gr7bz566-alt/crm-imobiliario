@@ -2731,6 +2731,25 @@ function attachKanbanEvents() {
     const addBtn = e.target.closest('.kanban-add-btn')
     if (addBtn) { openLeadModal(); return }
 
+    // Botão "+ Criar Tarefa" dentro do card → abre modal de tarefa com lead vinculado
+    const taskBtn = e.target.closest('.rd-card-task-btn')
+    if (taskBtn) {
+      e.preventDefault()
+      const leadId = taskBtn.dataset.lead
+      if (typeof openTarefaModal === 'function') openTarefaModal(null, leadId)
+      else console.warn('[Tarefa] openTarefaModal não disponível')
+      return
+    }
+
+    // Botão "(i)" do card → painel lateral
+    const infoBtn = e.target.closest('.rd-card-info-btn')
+    if (infoBtn) {
+      e.preventDefault()
+      const id = infoBtn.closest('.kanban-card')?.dataset.id
+      if (id && typeof window.openLeadSidePanel === 'function') window.openLeadSidePanel(id)
+      return
+    }
+
     // Ignora cliques em controles internos do card (info, tarefa, status, etc.)
     if (e.target.closest('button, a, input, .rd-card-info-btn, .rd-card-task-btn, .rd-card-stars, .rd-card-status, [onclick]')) {
       return
@@ -3206,7 +3225,7 @@ function renderTarefas() {
   })
 }
 
-function openTarefaModal(tarefa = null) {
+function openTarefaModal(tarefa = null, presetLeadId = null) {
   const existing = document.getElementById('tarefa-modal-root')
   if (existing) existing.remove()
 
@@ -3308,6 +3327,7 @@ function openTarefaModal(tarefa = null) {
       status:      tarefa?.status || 'pending',
       assigned_to: currentProfile?.id || null,
       tenant_id:   currentProfile?.tenant_id || null,
+      lead_id:     (tarefa?.lead_id) || presetLeadId || null,
     }
 
     let error
