@@ -2094,7 +2094,7 @@ function renderKanban() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </span>
           </div>
-          <button class="rd-card-task-btn" data-lead="${l.id}" onclick="event.stopPropagation()">
+          <button class="rd-card-task-btn" data-lead="${l.id}" onclick="event.stopPropagation();window.openTarefaModal?.(null,'${l.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Criar Tarefa
           </button>
@@ -2639,7 +2639,7 @@ function _rdRenderLeadsList() {
         <td style="text-align:center;color:#64748b;font-size:13px">${fmtDt(l.created_at)}</td>
         <td style="text-align:center">
           <span title="${status.title}" style="font-size:18px;cursor:help">${status.icon}</span>
-          <button class="rd-list-info-btn" onclick="event.stopPropagation();window.openLeadSidePanel?.('${l.id}')" title="Ver resumo">
+          <button class="rd-list-info-btn"  title="Ver resumo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           </button>
         </td>
@@ -8695,3 +8695,6 @@ function _dbRenderPortfolio(properties, leads) {
       <div class="db-port-lbl">${_dbEsc(c.lbl)}</div>
     </div>`).join('')
 }
+
+// Expor openTarefaModal globalmente pro onclick inline dos cards
+if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaModal
