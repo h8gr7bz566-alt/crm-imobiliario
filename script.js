@@ -2383,8 +2383,12 @@ window.openLeadDetailPage = async function(leadId) {
   }
 
   // ── Botão de criar tarefa / anotação (placeholder) ──────────────────
-  document.getElementById('rd-lp-add-task').onclick = () => window.openInlineTaskForm?.(lead.id)
-  document.getElementById('rd-lp-add-note').onclick = () => window.openInlineNoteForm?.(lead.id)
+  // Wireia botão Criar tarefa (pode estar sumido se _lpLoadTasks recriou o conteúdo)
+  const _addTaskBtn = document.getElementById('rd-lp-add-task')
+  if (_addTaskBtn) _addTaskBtn.onclick = () => window.openInlineTaskForm?.(lead.id)
+  // Wireia botão Criar anotação
+  const _addNoteBtn = document.getElementById('rd-lp-add-note')
+  if (_addNoteBtn) _addNoteBtn.onclick = () => window.openInlineNoteForm?.(lead.id)
 
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
