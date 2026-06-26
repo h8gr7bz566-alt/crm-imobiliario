@@ -875,7 +875,7 @@
               <div class="rd-leadpage-card-body" id="rd-lp-tarefas">
                 <div class="rd-leadpage-empty">
                   <div class="rd-leadpage-empty-text">Não existem tarefas pendentes para essa Negociação</div>
-                  <button class="rd-leadpage-btn-add" id="rd-lp-add-task">+ Criar tarefa</button>
+                  <button class="rd-leadpage-btn-add" id="rd-lp-add-task" onclick="window.openInlineTaskForm&amp;&amp;window.openInlineTaskForm(window._currentLeadId)">+ Criar tarefa</button>
                 </div>
               </div>
             </div>
@@ -904,7 +904,7 @@
                   <select class="rd-leadpage-select">
                     <option>Todos os eventos</option>
                   </select>
-                  <button class="rd-leadpage-btn-add" id="rd-lp-add-note" style="margin-left:auto">+ Criar anotação</button>
+                  <button class="rd-leadpage-btn-add" id="rd-lp-add-note" style="margin-left:auto" onclick="window.openInlineNoteForm&amp;&amp;window.openInlineNoteForm(window._currentLeadId)">+ Criar anotação</button>
                 </div>
                 <div id="rd-lp-timeline" class="rd-leadpage-timeline"></div>
               </div>

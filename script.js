@@ -2238,6 +2238,8 @@ window.openLeadSidePanel = function(leadId) {
 window.openLeadDetailPage = async function(leadId) {
   const lead = (typeof kanbanLeads !== 'undefined' ? kanbanLeads : []).find(l => String(l.id) === String(leadId))
   if (!lead) { console.warn('[LeadPage] não encontrado:', leadId); return }
+  // Guarda lead atual pra onclick inline dos botões funcionarem sem closure
+  window._currentLeadId = lead.id
 
   // Esconde todas as seções, mostra a de detalhe
   document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'))
