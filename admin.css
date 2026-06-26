@@ -4541,3 +4541,27 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   min-width: 60px;
   text-align: center;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Kanban drag-and-drop — feedback visual claro
+   ═══════════════════════════════════════════════════════════════════ */
+.rd-kanban .kanban-card {
+  cursor: grab;
+}
+.rd-kanban .kanban-card:active { cursor: grabbing; }
+.rd-kanban .kanban-card.dragging {
+  opacity: 0.5 !important;
+  transform: rotate(2deg) scale(0.98);
+  box-shadow: 0 12px 24px rgba(15,23,42,0.18) !important;
+}
+.rd-kanban .kanban-col.drag-over {
+  background: #ecfeff !important;
+  outline: 2px dashed #06b6d4;
+  outline-offset: -4px;
+}
+.rd-kanban .kanban-col.drag-over .kanban-cards {
+  background: rgba(6,182,212,0.05);
+  border-radius: 6px;
+  min-height: 80px;
+}

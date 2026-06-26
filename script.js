@@ -2726,53 +2726,99 @@ window.closeLeadSidePanel = function() {
 }
 
 function attachKanbanEvents() {
-  // Evita duplicação: remove listeners antigos antes de adicionar novos
+  // Usa event delegation no BOARD — funciona pra cards atuais e futuros
   const board = document.getElementById('kanban-board')
   if (!board) return
   if (board._kanbanListenersAttached) return
   board._kanbanListenersAttached = true
 
+  // ── CLICK: card abre edit; botão de adicionar lead na coluna ─────────
+  board.addEventListener('click', e => {
+    // Botão "+ Adicionar lead" no header da coluna
+    const addBtn = e.target.closest('.kanban-add-btn')
+    if (addBtn) { openLeadModal(); return }
 
-  // Add lead per column
-  board.querySelectorAll('.kanban-add-btn').forEach(btn => {
-    btn.addEventListener('click', () => openLeadModal())
+    // Ignora cliques em controles internos do card (info, tarefa, status, etc.)
+    if (e.target.closest('button, a, input, .rd-card-info-btn, .rd-card-task-btn, .rd-card-stars, .rd-card-status, [onclick]')) {
+      return
+    }
+
+    // Click no card → abre o painel lateral (mais leve que modal de edição)
+    const card = e.target.closest('.kanban-card')
+    if (card) {
+      const id = card.dataset.id
+      if (typeof window.openLeadSidePanel === 'function') window.openLeadSidePanel(id)
+      else { const lead = kanbanLeads.find(l => String(l.id) === String(id)); if (lead) openLeadModal(lead) }
+    }
   })
 
-  // Card click → open edit
-  board.querySelectorAll('.kanban-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const lead = kanbanLeads.find(l => String(l.id) === String(card.dataset.id))
-      if (lead) openLeadModal(lead)
-    })
-    card.addEventListener('dragstart', e => {
-      dragLeadId = card.dataset.id
-      card.classList.add('dragging')
+  // ── DRAG-START: marca o card que está sendo arrastado ───────────────
+  board.addEventListener('dragstart', e => {
+    const card = e.target.closest?.('.kanban-card')
+    if (!card) return
+    dragLeadId = card.dataset.id
+    card.classList.add('dragging')
+    try {
       e.dataTransfer.effectAllowed = 'move'
-    })
-    card.addEventListener('dragend', () => card.classList.remove('dragging'))
+      e.dataTransfer.setData('text/plain', dragLeadId) // exigência de alguns navegadores
+    } catch(err){}
   })
 
-  // Drop zones
-  board.querySelectorAll('.kanban-cards').forEach(zone => {
-    zone.addEventListener('dragover', e => { e.preventDefault(); zone.closest('.kanban-col').classList.add('drag-over') })
-    zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.closest('.kanban-col').classList.remove('drag-over') })
-    zone.addEventListener('drop', async e => {
-      e.preventDefault()
-      zone.closest('.kanban-col').classList.remove('drag-over')
-      const newStage = zone.dataset.stage
-      if (!dragLeadId || !newStage) return
-      // Optimistic UI: atualiza localmente antes do servidor confirmar
-      const lead = kanbanLeads.find(l => String(l.id) === String(dragLeadId))
-      const prevStage = lead?.stage
-      if (lead) { lead.stage = newStage; renderKanban() }
-      const { error } = await supabase.from('leads').update({ stage: newStage }).eq('id', dragLeadId)
-      if (error) {
-        console.warn('[Kanban] falha ao mover lead:', error)
-        if (lead) { lead.stage = prevStage; renderKanban() }
-        alert('Erro ao mover lead. Tente de novo.')
-      }
-      dragLeadId = null
-    })
+  // ── DRAG-END: limpa visual ─────────────────────────────────────────
+  board.addEventListener('dragend', e => {
+    const card = e.target.closest?.('.kanban-card')
+    if (card) card.classList.remove('dragging')
+    board.querySelectorAll('.kanban-col.drag-over').forEach(c => c.classList.remove('drag-over'))
+  })
+
+  // ── DRAG-OVER: permite drop em qualquer parte da coluna ────────────
+  board.addEventListener('dragover', e => {
+    const col = e.target.closest?.('.kanban-col')
+    if (!col || !dragLeadId) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    // Realça apenas a coluna alvo
+    board.querySelectorAll('.kanban-col.drag-over').forEach(c => { if (c !== col) c.classList.remove('drag-over') })
+    col.classList.add('drag-over')
+  })
+
+  board.addEventListener('dragleave', e => {
+    const col = e.target.closest?.('.kanban-col')
+    if (!col) return
+    // Só remove se realmente saiu da coluna (e não foi pra elemento filho)
+    if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over')
+  })
+
+  // ── DROP: muda etapa do lead com optimistic UI + rollback ──────────
+  board.addEventListener('drop', async e => {
+    const col = e.target.closest?.('.kanban-col')
+    if (!col) return
+    e.preventDefault()
+    col.classList.remove('drag-over')
+
+    const newStage = col.dataset.stage
+    const leadId = dragLeadId
+    dragLeadId = null
+    if (!leadId || !newStage) return
+
+    const lead = kanbanLeads.find(l => String(l.id) === String(leadId))
+    if (!lead || lead.stage === newStage) return
+
+    const prevStage = lead.stage
+    // Optimistic: atualiza UI imediato
+    lead.stage = newStage
+    renderKanban()
+
+    const { error } = await supabase.from('leads').update({ stage: newStage }).eq('id', leadId)
+    if (error) {
+      console.warn('[Kanban] erro ao mover:', error)
+      lead.stage = prevStage
+      renderKanban()
+      if (typeof toast === 'function') toast('Erro ao mover lead: ' + error.message, 'error')
+      else alert('Erro ao mover lead. Tente de novo.')
+    } else if (typeof toast === 'function') {
+      toast(`→ ${newStage}`, 'success')
+    }
   })
 }
 
