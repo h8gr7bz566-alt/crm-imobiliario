@@ -2200,7 +2200,7 @@ window.openLeadSidePanel = function(leadId) {
 }
 
 // ─── Página completa de Negociação (estilo RD Station) ─────────────────────
-window.openLeadDetailPage = function(leadId) {
+window.openLeadDetailPage = async function(leadId) {
   const lead = (typeof kanbanLeads !== 'undefined' ? kanbanLeads : []).find(l => String(l.id) === String(leadId))
   if (!lead) { console.warn('[LeadPage] não encontrado:', leadId); return }
 
@@ -2309,6 +2309,9 @@ window.openLeadDetailPage = function(leadId) {
     <button class="rd-leadpage-add-link">+ Adicionar contato</button>
   `
 
+  // ── Tarefas vinculadas ao lead ──────────────────────────────────────
+  await window._lpLoadTasks?.(lead.id)
+
   // ── Responsável ─────────────────────────────────────────────────────
   const responsavel = (typeof currentProfile !== 'undefined' && currentProfile?.full_name) || 'Não atribuído'
   document.getElementById('rd-lp-responsavel').textContent = responsavel
@@ -2323,18 +2326,8 @@ window.openLeadDetailPage = function(leadId) {
     }
   })
 
-  // ── Timeline (histórico) ────────────────────────────────────────────
-  const timelineEl = document.getElementById('rd-lp-timeline')
-  const events = []
-  if (lead.notes) events.push({ author: responsavel, text: lead.notes, date: lead.updated_at || lead.created_at, kind: 'note' })
-  events.push({ author: 'Sistema', text: `Lead criado na etapa "${lead.stage || '—'}"`, date: lead.created_at, kind: 'system' })
-  timelineEl.innerHTML = events.map(e => `
-    <div class="rd-leadpage-timeline-item">
-      <div class="rd-leadpage-timeline-author">${escapeHTML(e.author)}</div>
-      <div class="rd-leadpage-timeline-text">${escapeHTML(e.text)}</div>
-      <div class="rd-leadpage-timeline-date">${fmtDate(e.date) || ''}</div>
-    </div>
-  `).join('') || '<p style="color:#94a3b8;font-size:13px">Sem histórico ainda.</p>'
+  // ── Timeline (histórico) — carrega tarefas, notas e criação ─────────
+  await window._lpLoadTimeline?.(lead.id)
 
   // ── Botões marcar perda/venda ───────────────────────────────────────
   document.getElementById('rd-lp-mark-lost').onclick = async () => {
@@ -2355,7 +2348,7 @@ window.openLeadDetailPage = function(leadId) {
   }
 
   // ── Botão de criar tarefa / anotação (placeholder) ──────────────────
-  document.getElementById('rd-lp-add-task').onclick = () => alert('Em breve: criar tarefa direto daqui')
+  document.getElementById('rd-lp-add-task').onclick = () => window.openInlineTaskForm?.(lead.id)
   document.getElementById('rd-lp-add-note').onclick = async () => {
     const note = prompt('Nova anotação:', lead.notes || '')
     if (note === null) return
