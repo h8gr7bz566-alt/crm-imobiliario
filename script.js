@@ -3510,9 +3510,18 @@ function openTarefaModal(tarefa = null, presetLeadId = null) {
   const isDone = tarefa?.status === 'done'
   const dObj   = parseTarefaDate(tarefa?.due_date)
   const dueFmt = dObj ? dObj.toLocaleDateString('pt-BR') : ''
-  const dueDateValue = tarefa?.due_date
-    ? (tarefa.due_date.includes('T') ? tarefa.due_date.split('T')[0] : tarefa.due_date)
-    : ''
+  // datetime-local precisa de "YYYY-MM-DDTHH:MM" (sem timezone)
+  let dueDateValue = ''
+  if (tarefa?.due_date) {
+    const d = new Date(tarefa.due_date)
+    if (!isNaN(d)) {
+      dueDateValue = d.getFullYear() + '-' +
+        String(d.getMonth()+1).padStart(2,'0') + '-' +
+        String(d.getDate()).padStart(2,'0') + 'T' +
+        String(d.getHours()).padStart(2,'0') + ':' +
+        String(d.getMinutes()).padStart(2,'0')
+    }
+  }
 
   const wrap = document.createElement('div')
   wrap.id = 'tarefa-modal-root'
@@ -3535,8 +3544,8 @@ function openTarefaModal(tarefa = null, presetLeadId = null) {
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Prazo</label>
-              <input name="due_date" type="date" class="form-control" value="${dueDateValue}">
+              <label class="form-label">Prazo (data e hora)</label>
+              <input name="due_date" type="datetime-local" class="form-control" value="${dueDateValue}">
             </div>
             <div class="form-group">
               <label class="form-label">Prioridade</label>
@@ -3604,7 +3613,7 @@ function openTarefaModal(tarefa = null, presetLeadId = null) {
     const payload = {
       title:       fd.get('title')?.trim(),
       description: fd.get('description')?.trim() || null,
-      due_date:    fd.get('due_date') || null,
+      due_date:    fd.get('due_date') ? new Date(fd.get('due_date')).toISOString() : null,
       priority:    fd.get('priority') || 'medium',
       status:      tarefa?.status || 'pending',
       assigned_to: currentProfile?.id || null,
