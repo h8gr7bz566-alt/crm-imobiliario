@@ -2964,45 +2964,72 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 window.enablePushNotifications = async function() {
+  const log = (s) => console.log('[Push]', s)
   try {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Seu navegador não suporta notificações push. Use Chrome ou Edge.')
-      return false
-    }
+    log('1. Verificando suporte do navegador…')
+    if (!('serviceWorker' in navigator)) { alert('Erro etapa 1: Seu navegador não tem Service Worker. Use Chrome ou Edge.'); return false }
+    if (!('PushManager' in window))      { alert('Erro etapa 1: Seu navegador não tem PushManager. No Safari Mac precisa Safari 16.4+'); return false }
+    if (!('Notification' in window))     { alert('Erro etapa 1: Notification API indisponível.'); return false }
+
+    log('2. Pedindo permissão…')
     const perm = await Notification.requestPermission()
+    log('   resultado: ' + perm)
     if (perm !== 'granted') {
-      alert('Permissão de notificação negada. Habilite nas configurações do navegador.')
+      alert('Permissão negada (estado: ' + perm + '). Se você bloqueou antes, clica no cadeado da URL → Notificações → Permitir, depois recarrega a página.')
       return false
     }
+
+    log('3. Registrando Service Worker…')
     const reg = await navigator.serviceWorker.register('/sw.js')
     await navigator.serviceWorker.ready
+    log('   SW pronto')
+
+    log('4. Verificando subscription existente…')
     let sub = await reg.pushManager.getSubscription()
     if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY),
-      })
+      log('5. Criando subscription nova…')
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY),
+        })
+      } catch (subErr) {
+        alert('Erro etapa 5 (subscribe): ' + subErr.message + ' — Se está no Safari tenta no Chrome.')
+        return false
+      }
     }
+    log('   subscription OK')
+
+    log('6. Enviando pro servidor…')
     const payload = {
       subscription: sub.toJSON(),
       userId: (typeof currentProfile !== 'undefined' && currentProfile?.id) || null,
       tenantId: (typeof currentProfile !== 'undefined' && currentProfile?.tenant_id) || null,
       userAgent: navigator.userAgent,
     }
+    log('   payload: ' + JSON.stringify({userId: payload.userId, tenantId: payload.tenantId}))
     const r = await fetch('/api/push-register', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    if (!r.ok) { alert('Erro ao registrar push'); return false }
+    log('   status: ' + r.status)
+    if (!r.ok) {
+      const txt = await r.text().catch(() => '')
+      alert('Erro etapa 6: API retornou ' + r.status + '. ' + txt + ' — Provável causa: SUPABASE_SERVICE_ROLE_KEY não configurada no Vercel.')
+      return false
+    }
     localStorage.setItem('pushEnabled', '1')
     if (typeof toast === 'function') toast('🔔 Notificações ativadas!', 'success')
+    else alert('🔔 Notificações ativadas com sucesso!')
     return true
   } catch (e) {
     console.error('[Push] erro:', e)
-    alert('Erro ao ativar notificações: ' + e.message)
+    alert('Erro inesperado: ' + e.message)
     return false
   }
 }
+
+// Versão antiga ↓ — substituída ↑
 
 // Mostrar prompt sutil após login se ainda não ativou
 window.maybePromptPush = function() {
@@ -3019,8 +3046,14 @@ window.maybePromptPush = function() {
   b.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fef3c7;border-bottom:1px solid #fde68a;padding:12px 20px;text-align:center;font-size:14px;color:#92400e;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,.05)'
   document.body.appendChild(b)
   document.getElementById('push-prompt-yes').onclick = async () => {
+    const btn = document.getElementById('push-prompt-yes')
+    btn.disabled = true
+    btn.textContent = 'Ativando…'
     const ok = await window.enablePushNotifications()
-    if (ok) b.remove()
+    // Sempre fecha o banner — se falhar, alert já mostrou o erro
+    b.remove()
+    // Marca como "perguntado" pra não pedir de novo nessa sessão se falhou
+    if (!ok) localStorage.setItem('pushDismissed', '1')
   }
   document.getElementById('push-prompt-no').onclick = () => {
     localStorage.setItem('pushDismissed', '1')
