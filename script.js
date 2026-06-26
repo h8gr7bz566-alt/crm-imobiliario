@@ -2349,14 +2349,7 @@ window.openLeadDetailPage = async function(leadId) {
 
   // ── Botão de criar tarefa / anotação (placeholder) ──────────────────
   document.getElementById('rd-lp-add-task').onclick = () => window.openInlineTaskForm?.(lead.id)
-  document.getElementById('rd-lp-add-note').onclick = async () => {
-    const note = prompt('Nova anotação:', lead.notes || '')
-    if (note === null) return
-    const { error } = await supabase.from('leads').update({ notes: note }).eq('id', lead.id)
-    if (error) return alert('Erro: ' + error.message)
-    lead.notes = note
-    window.openLeadDetailPage(lead.id) // re-render
-  }
+  document.getElementById('rd-lp-add-note').onclick = () => window.openInlineNoteForm?.(lead.id)
 
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -2703,6 +2696,187 @@ function _rdInitViewToggle() {
 
 // Expor pra ser chamado quando o kanban carregar
 if (typeof window !== 'undefined') window._rdRenderLeadsList = _rdRenderLeadsList
+
+// ─── Tarefas vinculadas ao lead (lista + criar inline) ──────────────
+window._lpLoadTasks = async function(leadId) {
+  const el = document.getElementById('rd-lp-tarefas')
+  if (!el) return
+  el.innerHTML = '<div style="text-align:center;padding:14px;color:#94a3b8;font-size:13px">Carregando tarefas…</div>'
+  const { data, error } = await supabase
+    .from('tasks').select('*')
+    .eq('lead_id', leadId)
+    .order('due_date', { ascending: true, nullsFirst: false })
+  if (error) {
+    el.innerHTML = '<div class="rd-leadpage-empty"><div class="rd-leadpage-empty-text">Erro: ' + escapeHTML(error.message) + '</div></div>'
+    return
+  }
+  const tasks = data || []
+  const pending = tasks.filter(t => t.status !== 'concluida' && t.status !== 'done')
+  const fmtDt = iso => {
+    if (!iso) return ''
+    try {
+      const d = new Date(iso)
+      return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')
+    } catch(e){ return iso }
+  }
+  if (!pending.length) {
+    el.innerHTML = '<div class="rd-leadpage-empty">'+
+      '<div class="rd-leadpage-empty-text">Não existem tarefas pendentes para essa Negociação</div>'+
+      '<button class="rd-leadpage-btn-add" onclick="window.openInlineTaskForm(\''+leadId+'\')">+ Criar tarefa</button>'+
+      '</div>'
+    return
+  }
+  el.innerHTML = pending.map(t => {
+    const overdue = t.due_date && new Date(t.due_date) < new Date()
+    return '<div class="rd-lp-task '+(overdue?'overdue':'')+'" data-id="'+t.id+'">'+
+      '<input type="checkbox" class="rd-lp-task-check" data-id="'+t.id+'" title="Marcar como concluída">'+
+      '<div class="rd-lp-task-body">'+
+        '<div class="rd-lp-task-title">'+escapeHTML(t.title)+'</div>'+
+        (t.description?'<div class="rd-lp-task-desc">'+escapeHTML(t.description)+'</div>':'')+
+        '<div class="rd-lp-task-meta">'+
+          (t.due_date?'<span class="rd-lp-task-date '+(overdue?'overdue':'')+'">📅 '+fmtDt(t.due_date)+(overdue?' · ATRASADA':'')+'</span>':'')+
+          '<span class="rd-lp-task-prio prio-'+(t.priority||'medium')+'">'+(t.priority||'medium').toUpperCase()+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<button class="rd-lp-task-del" data-id="'+t.id+'" title="Excluir">🗑️</button>'+
+    '</div>'
+  }).join('')
+  el.querySelectorAll('.rd-lp-task-check').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      cb.disabled = true
+      const { error } = await supabase.from('tasks').update({ status: 'done' }).eq('id', cb.dataset.id)
+      if (error) { cb.checked = false; cb.disabled = false; alert('Erro: '+error.message); return }
+      if (typeof toast==='function') toast('✓ Tarefa concluída','success')
+      window._lpLoadTasks(leadId); window._lpLoadTimeline?.(leadId)
+    })
+  })
+  el.querySelectorAll('.rd-lp-task-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Excluir esta tarefa?')) return
+      await supabase.from('tasks').delete().eq('id', btn.dataset.id)
+      window._lpLoadTasks(leadId)
+    })
+  })
+}
+
+window.openInlineTaskForm = function(leadId) {
+  const el = document.getElementById('rd-lp-tarefas')
+  if (!el) return
+  const t = new Date(); t.setDate(t.getDate()+1); t.setHours(9,0,0,0)
+  const dt = t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')+'T'+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')
+  el.innerHTML = '<form class="rd-lp-task-form" id="rd-lp-task-form">'+
+    '<div class="rd-lp-task-form-row"><input type="text" id="rd-lp-task-title" placeholder="O que precisa ser feito?" required></div>'+
+    '<div class="rd-lp-task-form-row"><textarea id="rd-lp-task-desc" placeholder="Descrição (opcional)" rows="2"></textarea></div>'+
+    '<div class="rd-lp-task-form-row rd-lp-task-form-grid">'+
+      '<label><span>Quando</span><input type="datetime-local" id="rd-lp-task-date" value="'+dt+'"></label>'+
+      '<label><span>Prioridade</span><select id="rd-lp-task-prio"><option value="low">Baixa</option><option value="medium" selected>Média</option><option value="high">Alta</option></select></label>'+
+    '</div>'+
+    '<div class="rd-lp-task-form-actions">'+
+      '<button type="button" class="rd-lp-task-cancel">Cancelar</button>'+
+      '<button type="submit" class="rd-lp-task-save">Criar tarefa</button>'+
+    '</div></form>'
+  document.getElementById('rd-lp-task-title')?.focus()
+  el.querySelector('.rd-lp-task-cancel').onclick = () => window._lpLoadTasks(leadId)
+  document.getElementById('rd-lp-task-form').addEventListener('submit', async e => {
+    e.preventDefault()
+    const btn = e.target.querySelector('.rd-lp-task-save')
+    btn.disabled = true; btn.textContent='Salvando…'
+    const title = document.getElementById('rd-lp-task-title').value.trim()
+    if (!title) { btn.disabled=false; btn.textContent='Criar tarefa'; return }
+    const desc = document.getElementById('rd-lp-task-desc').value.trim()
+    const dateStr = document.getElementById('rd-lp-task-date').value
+    const prio = document.getElementById('rd-lp-task-prio').value
+    const tid = (typeof currentProfile!=='undefined' && currentProfile?.tenant_id) || null
+    const uid = (typeof currentProfile!=='undefined' && currentProfile?.id) || null
+    const payload = {
+      lead_id: leadId, tenant_id: tid, assigned_to: uid,
+      title, description: desc||null,
+      due_date: dateStr ? new Date(dateStr).toISOString() : null,
+      priority: prio, status: 'pending',
+    }
+    const { error } = await supabase.from('tasks').insert(payload)
+    if (error) { btn.disabled=false; btn.textContent='Criar tarefa'; alert('Erro: '+error.message); return }
+    if (typeof toast==='function') toast('✓ Tarefa criada','success')
+    window._lpLoadTasks(leadId); window._lpLoadTimeline?.(leadId)
+  })
+}
+
+window.openInlineNoteForm = function(leadId) {
+  const el = document.getElementById('rd-lp-timeline')
+  if (!el) return
+  const existing = el.innerHTML
+  el.innerHTML = '<form class="rd-lp-note-form" id="rd-lp-note-form">'+
+    '<textarea id="rd-lp-note-body" rows="3" placeholder="Escreva sua anotação…" required></textarea>'+
+    '<div class="rd-lp-note-actions">'+
+      '<button type="button" class="rd-lp-note-cancel">Cancelar</button>'+
+      '<button type="submit" class="rd-lp-note-save">Salvar anotação</button>'+
+    '</div></form>' + existing
+  const body = document.getElementById('rd-lp-note-body'); body?.focus()
+  el.querySelector('.rd-lp-note-cancel').onclick = () => window._lpLoadTimeline(leadId)
+  document.getElementById('rd-lp-note-form').addEventListener('submit', async e => {
+    e.preventDefault()
+    const sb = e.target.querySelector('.rd-lp-note-save')
+    sb.disabled = true; sb.textContent='Salvando…'
+    const text = body.value.trim()
+    if (!text) { sb.disabled=false; sb.textContent='Salvar anotação'; return }
+    const tid = (typeof currentProfile!=='undefined' && currentProfile?.tenant_id) || null
+    const uid = (typeof currentProfile!=='undefined' && currentProfile?.id) || null
+    const uname = (typeof currentProfile!=='undefined' && (currentProfile?.full_name || currentProfile?.email)) || 'Você'
+    const { error } = await supabase.from('lead_notes').insert({ lead_id: leadId, tenant_id: tid, author_id: uid, author_name: uname, body: text })
+    if (error) { sb.disabled=false; sb.textContent='Salvar anotação'; alert('Erro: '+error.message); return }
+    if (typeof toast==='function') toast('✓ Anotação criada','success')
+    window._lpLoadTimeline(leadId)
+  })
+}
+
+window._lpLoadTimeline = async function(leadId) {
+  const el = document.getElementById('rd-lp-timeline')
+  if (!el) return
+  const lead = (kanbanLeads || []).find(l => String(l.id) === String(leadId))
+  if (!lead) return
+  const [tasksRes, notesRes] = await Promise.all([
+    supabase.from('tasks').select('*').eq('lead_id', leadId).order('created_at', { ascending: false }),
+    supabase.from('lead_notes').select('*').eq('lead_id', leadId).order('created_at', { ascending: false }),
+  ])
+  const tasks = tasksRes.data || []
+  const notes = notesRes.data || []
+  const events = []
+  notes.forEach(n => events.push({ author: n.author_name || 'Anotação', text: n.body, date: n.created_at, icon: '✍️', noteId: n.id }))
+  tasks.filter(t => t.status === 'concluida' || t.status === 'done').forEach(t => {
+    events.push({ author: 'Tarefa concluída', text: t.title + (t.description ? '\n'+t.description : ''), date: t.updated_at || t.created_at, icon: '✅' })
+  })
+  tasks.filter(t => t.status !== 'concluida' && t.status !== 'done').forEach(t => {
+    events.push({ author: 'Tarefa criada', text: t.title, date: t.created_at, icon: '📋' })
+  })
+  if (lead.notes) events.push({ author: 'Anotação (antiga)', text: lead.notes, date: lead.updated_at || lead.created_at, icon: '✍️' })
+  events.push({ author: 'Sistema', text: 'Lead criado na etapa "'+(lead.stage || '—')+'"', date: lead.created_at, icon: '🌱' })
+  events.sort((a,b) => new Date(b.date) - new Date(a.date))
+  const fmtDt = iso => {
+    if (!iso) return ''
+    try {
+      const d = new Date(iso)
+      return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')
+    } catch(e){ return iso }
+  }
+  el.innerHTML = events.length ? events.map(e =>
+    '<div class="rd-leadpage-timeline-item'+(e.noteId?' is-note':'')+'">'+
+      '<div class="rd-leadpage-timeline-author">'+(e.icon||'')+' '+escapeHTML(e.author)+
+        (e.noteId ? '<button class="rd-lp-note-del" data-note="'+e.noteId+'" title="Excluir anotação">×</button>' : '')+
+      '</div>'+
+      '<div class="rd-leadpage-timeline-text">'+escapeHTML(e.text)+'</div>'+
+      '<div class="rd-leadpage-timeline-date">'+fmtDt(e.date)+'</div>'+
+    '</div>'
+  ).join('') : '<p style="color:#94a3b8;font-size:13px">Sem histórico ainda. Clique em "+ Criar anotação" pra começar.</p>'
+  el.querySelectorAll('.rd-lp-note-del').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('Excluir esta anotação?')) return
+      const { error } = await supabase.from('lead_notes').delete().eq('id', btn.dataset.note)
+      if (error) return alert('Erro: '+error.message)
+      if (typeof toast==='function') toast('Anotação excluída','success')
+      window._lpLoadTimeline(leadId)
+    }
+  })
+}
 
 window.closeLeadDetailPage = function() {
   const section = document.getElementById('section-lead-detail')

@@ -4669,3 +4669,50 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 .rd-lp-task-save { background: #06b6d4; color: #fff; }
 .rd-lp-task-save:hover { background: #0891b2; }
 .rd-lp-task-save:disabled { opacity: .6; cursor: not-allowed; }
+
+/* ─── Anotações inline na timeline do lead ─────────────────────────── */
+.rd-lp-note-form {
+  background: #fff;
+  border: 2px solid #06b6d4;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 12px rgba(6,182,212,.15);
+}
+.rd-lp-note-form textarea {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid #e2e8f0; border-radius: 8px;
+  font-size: 13px; font-family: inherit; resize: vertical;
+}
+.rd-lp-note-form textarea:focus {
+  outline: none; border-color: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+}
+.rd-lp-note-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.rd-lp-note-cancel, .rd-lp-note-save {
+  padding: 8px 16px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  border: none; transition: all .15s;
+}
+.rd-lp-note-cancel { background: #f1f5f9; color: #475569; }
+.rd-lp-note-cancel:hover { background: #e2e8f0; }
+.rd-lp-note-save { background: #06b6d4; color: #fff; }
+.rd-lp-note-save:hover { background: #0891b2; }
+.rd-lp-note-save:disabled { opacity: .6; cursor: not-allowed; }
+
+.rd-leadpage-timeline-item.is-note {
+  border-left: 3px solid #fbbf24;
+  background: #fffbeb;
+}
+.rd-leadpage-timeline-item.is-note .rd-leadpage-timeline-author {
+  color: #92400e;
+}
+.rd-lp-note-del {
+  float: right; background: transparent; border: none;
+  color: #94a3b8; font-size: 18px; cursor: pointer;
+  padding: 0 6px; line-height: 1;
+  opacity: 0; transition: opacity .15s;
+}
+.rd-leadpage-timeline-item.is-note:hover .rd-lp-note-del { opacity: 1; }
+.rd-lp-note-del:hover { color: #ef4444; }
