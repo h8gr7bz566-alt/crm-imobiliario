@@ -278,9 +278,16 @@ async function getPublishedProperties({ background = false } = {}) {
   const result = data || []
   cacheSet(propsCacheKey, result, PROPS_TTL)
 
-  // Se foi refresh em fundo e o conteúdo mudou, re-renderiza silenciosamente
+  // Se foi refresh em fundo, só re-renderiza se conteúdo MUDOU
   if (background && typeof renderPublic === 'function') {
-    renderPublic().catch(() => {})
+    const oldHash = window._lastPropsHash
+    const newHash = JSON.stringify(result.map(p => [p.id, p.updated_at, p.published]))
+    if (oldHash !== newHash) {
+      window._lastPropsHash = newHash
+      renderPublic().catch(() => {})
+    }
+  } else {
+    window._lastPropsHash = JSON.stringify(result.map(p => [p.id, p.updated_at, p.published]))
   }
 
   return result
@@ -759,9 +766,24 @@ async function renderPublic() {
     return
   }
 
+  // Skip render se filtered for IDÊNTICO ao último (evita flicker em re-renders inúteis)
+  const filteredHash = filtered.map(p => p.id).join(',')
+  if (gridContainer._lastFilteredHash === filteredHash) {
+    return // já está renderizado corretamente
+  }
+  gridContainer._lastFilteredHash = filteredHash
+  
   const _gridCarouselState = snapshotCarouselState(gridContainer)
   gridContainer.innerHTML = filtered.map(p => buildPropertyCard(p)).join('')
   restoreCarouselState(gridContainer, _gridCarouselState)
+  
+  // Preload das primeiras 12 imagens em background pra evitar flicker quando carrega
+  setTimeout(() => {
+    filtered.slice(0, 12).forEach(p => {
+      const imgs = p.images || (p.cover_image ? [p.cover_image] : [])
+      if (imgs[0]) _preloadImg(rewriteImageUrl(imgs[0]))
+    })
+  }, 50)
 
   // Event delegation no container — funciona mesmo após re-render
   const grid = document.getElementById('properties')
