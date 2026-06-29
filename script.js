@@ -9074,58 +9074,53 @@ function _dbRenderPortfolio(properties, leads) {
 // Expor openTarefaModal globalmente pro onclick inline dos cards
 if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaModal
 
-// ─── Chatbot IA — Qualifica visitante e cria lead no CRM automaticamente ───
+
+// ─── Chatbot SIMPLES — 7 perguntas hardcoded, zero IA na conversa ──────────
 ;(function(){
-  // Não inicializa em páginas admin/CRM ou se já existir
   const PATH = (typeof location !== 'undefined') ? location.pathname : ''
   if (/\/(admin|ios\.imobi)/i.test(PATH)) return
-  if (document.getElementById('cw-root')) return
+  if (typeof document === 'undefined' || document.getElementById('cw-root')) return
 
-  // CSS injection
+  // CSS
   const css = `
-  #cw-root { position:fixed; bottom:100px; right:28px; z-index:99998; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
-  #cw-toggle { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#b8962e 0%,#d4af3e 100%); border:none; cursor:pointer; box-shadow:0 8px 24px rgba(184,150,46,0.4),0 2px 8px rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center; transition:transform .2s; }
-  #cw-toggle:hover { transform:scale(1.08) }
-  #cw-toggle svg { width:30px; height:30px; color:#fff }
-  #cw-toggle.has-msg::after { content:''; position:absolute; top:6px; right:6px; width:14px; height:14px; background:#ef4444; border-radius:50%; border:2px solid #fff; animation:cw-pulse 1.8s infinite }
-  @keyframes cw-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
-  #cw-panel { display:none; position:absolute; bottom:80px; right:0; width:360px; max-width:calc(100vw - 40px); height:520px; max-height:calc(100vh - 120px); background:#fff; border-radius:16px; box-shadow:0 24px 60px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08); flex-direction:column; overflow:hidden; }
-  #cw-panel.open { display:flex }
-  #cw-header { background:linear-gradient(135deg,#0f1c2e 0%,#1a2f4a 100%); color:#fff; padding:16px 18px; display:flex; align-items:center; gap:12px; }
-  #cw-header-avatar { width:42px; height:42px; border-radius:50%; background:#b8962e; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:18px; font-weight:700; color:#0d1e36 }
-  #cw-header-info { flex:1; min-width:0 }
-  #cw-header-name { font-size:14px; font-weight:600; margin:0 0 2px }
-  #cw-header-status { font-size:11px; color:rgba(255,255,255,0.7); display:flex; align-items:center; gap:5px }
-  #cw-header-status::before { content:''; width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,0.25) }
-  #cw-close { background:transparent; border:none; color:#fff; cursor:pointer; padding:6px; opacity:.7; border-radius:6px; transition:opacity .15s }
-  #cw-close:hover { opacity:1; background:rgba(255,255,255,0.1) }
-  #cw-messages { flex:1; overflow-y:auto; padding:16px; background:#f8fafc; display:flex; flex-direction:column; gap:10px }
-  .cw-msg { max-width:80%; padding:10px 14px; border-radius:14px; font-size:13.5px; line-height:1.45; word-wrap:break-word; animation:cw-fade .3s }
-  @keyframes cw-fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-  .cw-msg.bot { background:#fff; border:1px solid #e2e8f0; align-self:flex-start; color:#0f172a }
-  .cw-msg.user { background:#b8962e; color:#fff; align-self:flex-end; border-bottom-right-radius:4px }
-  .cw-typing { background:#fff; border:1px solid #e2e8f0; padding:12px 16px; border-radius:14px; align-self:flex-start; display:inline-flex; gap:4px }
-  .cw-typing span { width:7px; height:7px; border-radius:50%; background:#94a3b8; animation:cw-bounce 1.4s infinite }
-  .cw-typing span:nth-child(2) { animation-delay:.2s }
-  .cw-typing span:nth-child(3) { animation-delay:.4s }
-  @keyframes cw-bounce { 0%,80%,100%{transform:translateY(0);opacity:.5} 40%{transform:translateY(-6px);opacity:1} }
-  #cw-input-area { border-top:1px solid #e2e8f0; padding:12px; background:#fff; display:flex; gap:8px }
-  #cw-input { flex:1; padding:10px 14px; border:1px solid #e2e8f0; border-radius:20px; font-size:13.5px; font-family:inherit; outline:none; transition:border-color .15s }
-  #cw-input:focus { border-color:#b8962e }
-  #cw-send { background:#b8962e; border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:transform .12s }
-  #cw-send:hover { transform:scale(1.08) }
-  #cw-send:disabled { opacity:.5; cursor:not-allowed; transform:none }
-  #cw-send svg { width:16px; height:16px }
-  @media (max-width:480px) {
-    #cw-root { bottom:96px; right:16px }  /* WhatsApp mobile fica em bottom:18 + 56 + 8 ≈ 82 */
-    #cw-toggle { width:52px; height:52px }
-    #cw-toggle svg { width:24px; height:24px }
-    #cw-panel { width:calc(100vw - 32px); height:calc(100vh - 180px); bottom:68px; max-height:480px }
+  #cw-root{position:fixed;bottom:100px;right:28px;z-index:99998;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  #cw-toggle{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#b8962e,#d4af3e);border:none;cursor:pointer;box-shadow:0 8px 24px rgba(184,150,46,.4);display:flex;align-items:center;justify-content:center;transition:transform .2s;position:relative}
+  #cw-toggle:hover{transform:scale(1.08)}
+  #cw-toggle svg{width:30px;height:30px;color:#fff}
+  #cw-toggle.has-msg::after{content:'';position:absolute;top:6px;right:6px;width:14px;height:14px;background:#ef4444;border-radius:50%;border:2px solid #fff;animation:cw-pulse 1.8s infinite}
+  @keyframes cw-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+  #cw-panel{display:none;position:absolute;bottom:80px;right:0;width:360px;max-width:calc(100vw - 40px);height:520px;max-height:calc(100vh - 200px);background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.18);flex-direction:column;overflow:hidden}
+  #cw-panel.open{display:flex}
+  #cw-header{background:linear-gradient(135deg,#0f1c2e,#1a2f4a);color:#fff;padding:16px 18px;display:flex;align-items:center;gap:12px}
+  #cw-header-avatar{width:42px;height:42px;border-radius:50%;background:#b8962e;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:700;color:#0d1e36}
+  #cw-header-info{flex:1;min-width:0}
+  #cw-header-name{font-size:14px;font-weight:600;margin:0 0 2px}
+  #cw-header-status{font-size:11px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:5px}
+  #cw-header-status::before{content:'';width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.25)}
+  #cw-close{background:transparent;border:none;color:#fff;cursor:pointer;padding:6px;opacity:.7;border-radius:6px}
+  #cw-close:hover{opacity:1;background:rgba(255,255,255,.1)}
+  #cw-messages{flex:1;overflow-y:auto;padding:16px;background:#f8fafc;display:flex;flex-direction:column;gap:10px}
+  .cw-msg{max-width:80%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.45;word-wrap:break-word}
+  .cw-msg.bot{background:#fff;border:1px solid #e2e8f0;align-self:flex-start;color:#0f172a}
+  .cw-msg.user{background:#b8962e;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  #cw-input-area{border-top:1px solid #e2e8f0;padding:12px;background:#fff;display:flex;gap:8px}
+  #cw-input{flex:1;padding:10px 14px;border:1px solid #e2e8f0;border-radius:20px;font-size:13.5px;font-family:inherit;outline:none}
+  #cw-input:focus{border-color:#b8962e}
+  #cw-send{background:#b8962e;border:none;color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  #cw-send svg{width:16px;height:16px}
+  #cw-send:disabled{opacity:.5;cursor:not-allowed}
+  .cw-quick{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 8px;background:#f8fafc}
+  .cw-quick button{background:#fff;border:1px solid #b8962e;color:#b8962e;padding:6px 12px;border-radius:16px;font-size:12px;cursor:pointer;font-family:inherit}
+  .cw-quick button:hover{background:#b8962e;color:#fff}
+  @media (max-width:480px){
+    #cw-root{bottom:96px;right:16px}
+    #cw-toggle{width:52px;height:52px}
+    #cw-toggle svg{width:24px;height:24px}
+    #cw-panel{width:calc(100vw - 32px);height:calc(100vh - 180px);bottom:68px;max-height:480px}
   }
   `
   const styleEl = document.createElement('style'); styleEl.textContent = css; document.head.appendChild(styleEl)
 
-  // HTML
   const root = document.createElement('div')
   root.id = 'cw-root'
   root.innerHTML = `
@@ -9134,15 +9129,16 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
         <div id="cw-header-avatar">I</div>
         <div id="cw-header-info">
           <div id="cw-header-name">Assistente Isaac Omar</div>
-          <div id="cw-header-status">Online · responde rápido</div>
+          <div id="cw-header-status">Online · resposta rápida</div>
         </div>
         <button id="cw-close" title="Fechar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div id="cw-messages"></div>
+      <div id="cw-quick" class="cw-quick"></div>
       <form id="cw-input-area">
-        <input id="cw-input" type="text" placeholder="Digite sua mensagem…" autocomplete="off"/>
+        <input id="cw-input" type="text" placeholder="Digite sua resposta…" autocomplete="off"/>
         <button id="cw-send" type="submit" title="Enviar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
@@ -9154,15 +9150,29 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
   `
   document.body.appendChild(root)
 
-  // Estado
-  const messagesEl = document.getElementById('cw-messages')
-  const inputEl    = document.getElementById('cw-input')
-  const sendBtn    = document.getElementById('cw-send')
-  const panel      = document.getElementById('cw-panel')
-  const toggle     = document.getElementById('cw-toggle')
-  const closeBtn   = document.getElementById('cw-close')
-  const inputForm  = document.getElementById('cw-input-area')
-  const history    = [] // {role:'user'|'model', text}
+  const $ = (id) => document.getElementById(id)
+  const messagesEl = $('cw-messages')
+  const quickEl    = $('cw-quick')
+  const inputEl    = $('cw-input')
+  const sendBtn    = $('cw-send')
+  const panel      = $('cw-panel')
+  const toggle     = $('cw-toggle')
+  const closeBtn   = $('cw-close')
+  const inputForm  = $('cw-input-area')
+
+  // ─── Estado: perguntas hardcoded ─────────────────────────────────────────
+  const QUESTIONS = [
+    { key:'intencao',    text:'Você quer COMPRAR ou ALUGAR? 🏠',                quick:['Comprar','Alugar'] },
+    { key:'tipo',        text:'Que tipo de imóvel procura?',                     quick:['Apartamento','Casa','Cobertura','Terreno'] },
+    { key:'cidade',      text:'Em qual cidade ou região?',                        quick:['Balneário Camboriú','Itapema','Itajaí','Florianópolis'] },
+    { key:'orcamento',   text:'Qual seu orçamento aproximado?',                  quick:['Até R$ 500k','R$ 500k–1M','R$ 1M–2M','Acima R$ 2M'] },
+    { key:'dormitorios', text:'Quantos dormitórios?',                             quick:['1','2','3','4+'] },
+    { key:'name',        text:'Show! Qual seu nome? 😊',                          quick:[] },
+    { key:'phone',       text:'Pra Isaac te chamar, qual seu WhatsApp com DDD?', quick:[] },
+  ]
+
+  const answers = {}
+  let qIdx = 0
   let leadCreated = false
 
   function addMsg(text, role) {
@@ -9171,133 +9181,86 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
     div.textContent = text
     messagesEl.appendChild(div)
     messagesEl.scrollTop = messagesEl.scrollHeight
-    return div
+  }
+  function showQuickReplies(opts) {
+    quickEl.innerHTML = ''
+    if (!opts || !opts.length) { quickEl.style.display = 'none'; return }
+    quickEl.style.display = 'flex'
+    opts.forEach(o => {
+      const b = document.createElement('button')
+      b.type = 'button'
+      b.textContent = o
+      b.onclick = () => handleAnswer(o)
+      quickEl.appendChild(b)
+    })
   }
 
-  function addTyping() {
-    const d = document.createElement('div')
-    d.className = 'cw-typing'
-    d.id = 'cw-typing'
-    d.innerHTML = '<span></span><span></span><span></span>'
-    messagesEl.appendChild(d)
-    messagesEl.scrollTop = messagesEl.scrollHeight
-    return d
-  }
-  function removeTyping() { document.getElementById('cw-typing')?.remove() }
-
-  // Toggle painel
-  toggle.addEventListener('click', () => {
-    panel.classList.add('open')
-    toggle.style.display = 'none'
-    toggle.classList.remove('has-msg')
-    inputEl.focus()
-    if (!history.length) startConversation()
-  })
-  closeBtn.addEventListener('click', () => {
-    panel.classList.remove('open')
-    toggle.style.display = 'flex'
-  })
-
-  async function startConversation() {
-    addMsg('Olá! 👋 Sou o assistente do corretor Isaac Omar. Em poucas perguntas eu vou entender o que você procura e o Isaac entra em contato. Posso começar?', 'bot')
-  }
-
-  async function sendToAI(userText) {
-    history.push({ role: 'user', text: userText })
-    addMsg(userText, 'user')
-    inputEl.value = ''
-    sendBtn.disabled = true
-    addTyping()
-
-    try {
-      // Constrói o prompt com histórico
-      const conversationContext = history.map(h => (h.role === 'user' ? 'Visitante: ' : 'Você: ') + h.text).join('\n')
-      const r = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'chat', prompt: conversationContext }),
-      })
-      const data = await r.json()
-      removeTyping()
-
-      if (!r.ok) {
-        // Auto-retry 1x antes de desistir
-        console.warn('[Chatbot] tentativa 1 falhou, retentando...', r.status)
-        const r2 = await fetch('/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'chat', prompt: conversationContext }),
-        })
-        const data2 = await r2.json().catch(() => ({}))
-        if (!r2.ok) {
-          console.error('[Chatbot] retry falhou:', data2)
-          addMsg('Tive uma instabilidade momentânea. Pode me repetir a última resposta? Se persistir, fala no whats: wa.me/5547999701743', 'bot')
-          return
-        }
-        // Sucesso no retry — usa data2
-        const botText2 = data2.text || ''
-        if (botText2.includes('PRONTO_PARA_CRIAR_LEAD')) {
-          const afterTrigger = botText2.split('PRONTO_PARA_CRIAR_LEAD').pop()
-          const jsonMatch = afterTrigger.match(/\{[\s\S]*?\}/)
-          let leadData = {}
-          if (jsonMatch) { try { leadData = JSON.parse(jsonMatch[0].replace(/```json|```/g,'').trim()) } catch(e) {} }
-          await createLead(leadData)
-          return
-        }
-        history.push({ role: 'model', text: botText2 })
-        addMsg(botText2, 'bot')
-        return
-      }
-
-      const botText = data.text || ''
-      
-      // Detectar trigger de criar lead
-      if (botText.includes('PRONTO_PARA_CRIAR_LEAD')) {
-        console.log('[Chatbot] Gemini retornou trigger. Texto bruto:', botText)
-        // Extrai só a parte DEPOIS do trigger pra evitar pegar JSON de respostas anteriores
-        const afterTrigger = botText.split('PRONTO_PARA_CRIAR_LEAD').pop()
-        // Pega o primeiro JSON válido (non-greedy)
-        const jsonMatch = afterTrigger.match(/\{[\s\S]*?\}/)
-        let leadData = {}
-        if (jsonMatch) {
-          try {
-            // Remove markdown ```json se houver
-            const clean = jsonMatch[0].replace(/```json|```/g, '').trim()
-            leadData = JSON.parse(clean)
-            console.log('[Chatbot] Lead parsed:', leadData)
-          } catch(e) {
-            console.error('[Chatbot] Falha ao parsear JSON:', e, jsonMatch[0])
-          }
-        } else {
-          console.warn('[Chatbot] Não achei JSON depois do trigger')
-        }
-        await createLead(leadData)
-        return
-      }
-
-      history.push({ role: 'model', text: botText })
-      addMsg(botText, 'bot')
-    } catch (e) {
-      removeTyping()
-      console.error('[Chatbot] catch:', e)
-      addMsg('Tive uma falha de conexão. Tenta enviar de novo ou chama: wa.me/5547999701743', 'bot')
-    } finally {
-      sendBtn.disabled = false
+  function nextQuestion() {
+    if (qIdx >= QUESTIONS.length) { finalize(); return }
+    const q = QUESTIONS[qIdx]
+    setTimeout(() => {
+      addMsg(q.text, 'bot')
+      showQuickReplies(q.quick)
+      inputEl.placeholder = q.key === 'phone' ? 'Ex: 47 99999-9999' : (q.key === 'name' ? 'Seu nome…' : 'Digite ou escolha…')
       inputEl.focus()
-    }
+    }, 400)
   }
 
-  async function createLead(d) {
+  function handleAnswer(text) {
+    text = String(text || '').trim()
+    if (!text) return
+    const q = QUESTIONS[qIdx]
+    if (!q) return
+    
+    // Validação leve do telefone
+    if (q.key === 'phone') {
+      const digits = text.replace(/\D/g,'')
+      if (digits.length < 10) {
+        addMsg(text, 'user')
+        setTimeout(() => addMsg('Hmm, esse número parece curto. Pode digitar com DDD? Ex: 47 99999-9999', 'bot'), 300)
+        inputEl.value = ''
+        return
+      }
+    }
+    
+    addMsg(text, 'user')
+    answers[q.key] = text
+    inputEl.value = ''
+    showQuickReplies([])
+    qIdx++
+    nextQuestion()
+  }
+
+  async function finalize() {
     if (leadCreated) return
     leadCreated = true
+    
+    inputEl.disabled = true
+    sendBtn.disabled = true
+    
+    setTimeout(() => addMsg('Anotando suas informações… ⏳', 'bot'), 300)
 
-    // Tracking — captura UTMs da URL atual
+    // Tracking UTMs/cookies
     const urlParams = new URLSearchParams(location.search)
     const getCookie = (n) => {
       const m = document.cookie.split('; ').find(c => c.startsWith(n + '='))
       return m ? m.split('=')[1] : null
     }
-    const utm = {
+    const summary = []
+    if (answers.intencao)    summary.push('Intenção: ' + answers.intencao)
+    if (answers.tipo)        summary.push('Tipo: ' + answers.tipo)
+    if (answers.cidade)      summary.push('Cidade: ' + answers.cidade)
+    if (answers.orcamento)   summary.push('Orçamento: ' + answers.orcamento)
+    if (answers.dormitorios) summary.push('Dormitórios: ' + answers.dormitorios)
+    const notes = summary.join('\n')
+
+    const row = {
+      name: answers.name || 'Lead via chat',
+      phone: answers.phone || '',
+      email: '',
+      source: 'Chat IA',
+      status: 'morno',
+      notes,
       utm_source: urlParams.get('utm_source'),
       utm_medium: urlParams.get('utm_medium'),
       utm_campaign: urlParams.get('utm_campaign'),
@@ -9311,54 +9274,48 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
       user_agent: navigator.userAgent,
     }
 
-    // Resumo do que o lead disse, pra colar em notes
-    const summary = []
-    if (d.intencao || d['intenção'] || d.tipo_negocio) summary.push('Intenção: ' + (d.intencao || d['intenção'] || d.tipo_negocio))
-    if (d.tipo || d.tipo_imovel) summary.push('Tipo: ' + (d.tipo || d.tipo_imovel))
-    if (d.cidade || d.bairro) summary.push('Local: ' + [d.cidade, d.bairro].filter(Boolean).join(' / '))
-    if (d.orcamento || d['orçamento'] || d.budget) summary.push('Orçamento: ' + (d.orcamento || d['orçamento'] || d.budget))
-    if (d.dormitorios || d['dormitórios'] || d.quartos) summary.push('Dorms: ' + (d.dormitorios || d['dormitórios'] || d.quartos))
-    const notes = summary.join('\n')
-
-    const row = {
-      name:    d.nome || d.name || 'Lead via chat',
-      phone:   d.telefone || d.phone || d.whatsapp || '',
-      email:   d.email || '',
-      source:  'Chat IA',
-      stage:   'Visita',
-      status:  'morno',
-      notes,
-      ...utm,
-    }
-
     try {
-      // Usa endpoint backend com service role (burla RLS pra visitante anônimo)
       const r = await fetch('/api/chatbot-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(row),
       })
       const result = await r.json().catch(() => ({}))
+      console.log('[Chatbot] resposta:', result)
       if (!r.ok) {
-        console.error('[Chatbot] erro:', result)
-        addMsg('Anotei suas informações! Mas tive um problema técnico de gravação. Por favor chama direto: wa.me/5547999701743', 'bot')
+        setTimeout(() => addMsg('⚠ Tive um problema técnico ao salvar, mas anotei aqui. Pode me chamar direto: wa.me/5547999701743', 'bot'), 600)
         return
       }
-      console.log('[Chatbot] lead criado:', result)
-      addMsg('🎉 Pronto! Recebi tudo. O Isaac já foi notificado e vai te chamar logo mais. Se preferir, pode falar direto: wa.me/5547999701743', 'bot')
-      // Meta Pixel — Lead
+      setTimeout(() => {
+        addMsg('🎉 Pronto, ' + (answers.name || '').split(' ')[0] + '! Isaac já foi notificado e vai te chamar logo. Pode também falar direto: wa.me/5547999701743', 'bot')
+      }, 600)
       if (typeof fbq === 'function') fbq('track', 'Lead')
     } catch (e) {
       console.error('[Chatbot]', e)
-      addMsg('Anotei aqui! O Isaac vai te chamar em breve. Pra garantir, pode chamar direto no WhatsApp: wa.me/5547999701743', 'bot')
+      setTimeout(() => addMsg('Tive uma instabilidade. Pra garantir, fala direto: wa.me/5547999701743', 'bot'), 600)
     }
   }
 
-  // Form submit
+  toggle.addEventListener('click', () => {
+    panel.classList.add('open')
+    toggle.style.display = 'none'
+    toggle.classList.remove('has-msg')
+    inputEl.focus()
+    if (qIdx === 0 && Object.keys(answers).length === 0) {
+      addMsg('Olá! 👋 Sou a assistente do Isaac Omar. Vou te fazer algumas perguntinhas rápidas pra entender o que procura.', 'bot')
+      qIdx = 0
+      nextQuestion()
+    }
+  })
+  closeBtn.addEventListener('click', () => {
+    panel.classList.remove('open')
+    toggle.style.display = 'flex'
+  })
+
   inputForm.addEventListener('submit', e => {
     e.preventDefault()
     const t = inputEl.value.trim()
     if (!t) return
-    sendToAI(t)
+    handleAnswer(t)
   })
 })()
