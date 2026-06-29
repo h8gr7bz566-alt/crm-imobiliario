@@ -31,6 +31,21 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Nenhum tenant encontrado no banco' })
     }
 
+    // Procura o funil "ISAAC" (case-insensitive). Se não achar, usa o primeiro.
+    let pipeline_id = null
+    let stageName = 'Novo Lead'
+    try {
+      const { data: pipes } = await sb.from('pipelines').select('id, name, stages').eq('tenant_id', tenant_id)
+      const isaac = (pipes || []).find(p => /isaac/i.test(p.name || '')) || (pipes || [])[0]
+      if (isaac) {
+        pipeline_id = isaac.id
+        // Procura a etapa "Novo Lead" no funil; se não achar, usa a primeira etapa
+        const stages = Array.isArray(isaac.stages) ? isaac.stages : []
+        const novoLead = stages.find(s => /novo\s*lead/i.test(s.name || '')) || stages[0]
+        if (novoLead?.name) stageName = novoLead.name
+      }
+    } catch (e) { /* segue sem pipeline */ }
+
     // Sanitiza nome/telefone/email
     const name  = String(data.name  || data.nome || 'Lead via chat').slice(0, 120).trim()
     const phone = String(data.phone || data.telefone || data.whatsapp || '').slice(0, 30).trim()
@@ -38,11 +53,12 @@ export default async function handler(req, res) {
 
     const row = {
       tenant_id,
+      pipeline_id,
       name,
       phone: phone || null,
       email: email || null,
       source: data.source || 'Chat IA',
-      stage:  data.stage  || 'Visita',
+      stage:  data.stage  || stageName,
       status: data.status || 'morno',
       notes:  data.notes  || null,
       utm_source:   data.utm_source   || null,
