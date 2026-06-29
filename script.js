@@ -9723,12 +9723,14 @@ document.addEventListener('click', function(e) {
 // ─── Apagar notificações ──────────────────────────────────────────
 let notifsDeleted = JSON.parse(localStorage.getItem('crm_notifs_deleted') || '[]')
 
+// Capture phase pra rodar ANTES dos handlers de dropdown que usam stopPropagation
 document.addEventListener('click', e => {
   // Botão "Apagar todas"
-  if (e.target.id === 'notif-clear-all') {
+  const clearAllBtn = e.target.closest('#notif-clear-all')
+  if (clearAllBtn) {
     e.stopPropagation()
+    e.preventDefault()
     if (!confirm('Apagar todas as notificações? Elas não aparecem mais aqui (mas os leads continuam no CRM).')) return
-    // Marca TODOS leads atuais como deletados das notificações
     const list = document.getElementById('notif-list')
     const items = list?.querySelectorAll('[data-id]') || []
     items.forEach(i => {
@@ -9738,18 +9740,21 @@ document.addEventListener('click', e => {
     localStorage.setItem('crm_notifs_deleted', JSON.stringify(notifsDeleted))
     if (typeof loadNotifications === 'function') loadNotifications()
     updateAppBadge(0)
+    console.log('[Notif] todas apagadas:', notifsDeleted.length)
     return
   }
-  // Botão "x" individual em cada notificação
+  // Botão "×" individual em cada notificação
   const closeBtn = e.target.closest('.notif-item-close')
   if (closeBtn) {
     e.stopPropagation()
+    e.preventDefault()
     const id = closeBtn.dataset.id
     if (id) {
       if (!notifsDeleted.includes(id)) notifsDeleted.push(id)
       localStorage.setItem('crm_notifs_deleted', JSON.stringify(notifsDeleted))
       closeBtn.closest('[data-id]')?.remove()
+      console.log('[Notif] apagada:', id)
       if (typeof loadNotifications === 'function') loadNotifications()
     }
   }
-})
+}, true) // ← capture phase: roda ANTES dos handlers que fazem stopPropagation
