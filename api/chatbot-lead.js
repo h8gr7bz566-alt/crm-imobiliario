@@ -99,6 +99,19 @@ export default async function handler(req, res) {
     if (error) {
       return res.status(500).json({ error: 'Falha ao inserir lead', detail: error.message, code: error.code })
     }
+    
+    // Dispara push notification pros admins do tenant (não-bloqueante)
+    try {
+      const { sendPushToUsers } = await import('./_push-helper.js')
+      sendPushToUsers({
+        tenantId: tenant_id,
+        roles: ['admin', 'super_admin', 'corretor'],
+        title: '🎯 Novo lead — Chat IA',
+        body: `${name}${phone ? ' • ' + phone : ''}${notes ? '\n' + notes.split('\n')[0] : ''}`,
+        url: `https://omarcorretor.com.br/ios.imobi#lead=${inserted.id}`,
+      }).then(r => console.log('[push]', r)).catch(e => console.warn('[push erro]', e))
+    } catch(e) { console.warn('[push falhou]', e) }
+    
     return res.status(200).json({ ok: true, leadId: inserted?.id, name, pipeline: pipelineDebug.chosen, row: { name, phone, email, stage: row.stage, pipeline_id } })
   } catch (e) {
     return res.status(500).json({ error: 'Erro inesperado', detail: e.message })

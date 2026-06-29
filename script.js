@@ -3375,11 +3375,17 @@ async function openLeadModal(lead = null) {
       } : {}),
     }
 
-    let error
+    let error, insertedId
     if (isNew) {
-      ;({ error } = await supabase.from('leads').insert(row))
+      const { data: ins, error: e } = await supabase.from('leads').insert(row).select().single()
+      error = e
+      insertedId = ins?.id
     } else {
       ;({ error } = await supabase.from('leads').update(row).eq('id', lead.id))
+    }
+    // Notifica em todos os devices admin (não-bloqueante)
+    if (!error && isNew && insertedId) {
+      _crmNotify('new_lead', { leadId: insertedId }).catch(()=>{})
     }
 
     btn.disabled = false; btn.textContent = '💾 Salvar'
