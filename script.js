@@ -9229,10 +9229,23 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
       
       // Detectar trigger de criar lead
       if (botText.includes('PRONTO_PARA_CRIAR_LEAD')) {
-        const jsonMatch = botText.match(/\{[\s\S]+\}/)
+        console.log('[Chatbot] Gemini retornou trigger. Texto bruto:', botText)
+        // Extrai só a parte DEPOIS do trigger pra evitar pegar JSON de respostas anteriores
+        const afterTrigger = botText.split('PRONTO_PARA_CRIAR_LEAD').pop()
+        // Pega o primeiro JSON válido (non-greedy)
+        const jsonMatch = afterTrigger.match(/\{[\s\S]*?\}/)
         let leadData = {}
         if (jsonMatch) {
-          try { leadData = JSON.parse(jsonMatch[0]) } catch(e) {}
+          try {
+            // Remove markdown ```json se houver
+            const clean = jsonMatch[0].replace(/```json|```/g, '').trim()
+            leadData = JSON.parse(clean)
+            console.log('[Chatbot] Lead parsed:', leadData)
+          } catch(e) {
+            console.error('[Chatbot] Falha ao parsear JSON:', e, jsonMatch[0])
+          }
+        } else {
+          console.warn('[Chatbot] Não achei JSON depois do trigger')
         }
         await createLead(leadData)
         return

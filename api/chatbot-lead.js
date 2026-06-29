@@ -31,20 +31,29 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Nenhum tenant encontrado no banco' })
     }
 
-    // Procura o funil "ISAAC" (case-insensitive). Se não achar, usa o primeiro.
+    // Procura o funil "ISAAC" em TODOS os tenants se necessário
     let pipeline_id = null
     let stageName = 'Novo Lead'
+    let pipelineDebug = { available: [], chosen: null }
     try {
-      const { data: pipes } = await sb.from('pipelines').select('id, name, stages').eq('tenant_id', tenant_id)
+      // Tenta primeiro no tenant atual, depois em qualquer
+      let { data: pipes } = await sb.from('pipelines').select('id, name, stages, tenant_id').eq('tenant_id', tenant_id)
+      if (!pipes || pipes.length === 0) {
+        const r = await sb.from('pipelines').select('id, name, stages, tenant_id')
+        pipes = r.data || []
+      }
+      pipelineDebug.available = (pipes || []).map(p => ({ id: p.id, name: p.name, stages: (p.stages || []).map(s => s.name) }))
       const isaac = (pipes || []).find(p => /isaac/i.test(p.name || '')) || (pipes || [])[0]
       if (isaac) {
         pipeline_id = isaac.id
-        // Procura a etapa "Novo Lead" no funil; se não achar, usa a primeira etapa
+        // Atualiza tenant_id para o do pipeline ISAAC se for outro
+        if (isaac.tenant_id) tenant_id = isaac.tenant_id
         const stages = Array.isArray(isaac.stages) ? isaac.stages : []
         const novoLead = stages.find(s => /novo\s*lead/i.test(s.name || '')) || stages[0]
         if (novoLead?.name) stageName = novoLead.name
+        pipelineDebug.chosen = { name: isaac.name, stageName, stages: stages.map(s => s.name) }
       }
-    } catch (e) { /* segue sem pipeline */ }
+    } catch (e) { pipelineDebug.error = e.message }
 
     // Sanitiza nome/telefone/email
     const name  = String(data.name  || data.nome || 'Lead via chat').slice(0, 120).trim()
@@ -78,7 +87,7 @@ export default async function handler(req, res) {
     if (error) {
       return res.status(500).json({ error: 'Falha ao inserir lead', detail: error.message, code: error.code })
     }
-    return res.status(200).json({ ok: true, leadId: inserted?.id, name })
+    return res.status(200).json({ ok: true, leadId: inserted?.id, name, pipeline: pipelineDebug.chosen, row: { name, phone, email, stage: row.stage, pipeline_id } })
   } catch (e) {
     return res.status(500).json({ error: 'Erro inesperado', detail: e.message })
   }
