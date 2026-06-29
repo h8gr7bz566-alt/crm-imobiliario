@@ -9112,11 +9112,49 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
   .cw-quick{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 8px;background:#f8fafc}
   .cw-quick button{background:#fff;border:1px solid #b8962e;color:#b8962e;padding:6px 12px;border-radius:16px;font-size:12px;cursor:pointer;font-family:inherit}
   .cw-quick button:hover{background:#b8962e;color:#fff}
-  @media (max-width:480px){
-    #cw-root{bottom:96px;right:16px}
-    #cw-toggle{width:52px;height:52px}
-    #cw-toggle svg{width:24px;height:24px}
-    #cw-panel{width:calc(100vw - 32px);height:calc(100vh - 180px);bottom:68px;max-height:480px}
+  /* TAP TARGETS acessíveis (44px+) — bom pra idosos */
+  .cw-quick button{min-height:44px;font-size:14px;padding:10px 16px}
+  #cw-send{min-width:44px;min-height:44px}
+  
+  @media (max-width:768px){
+    /* Em mobile: chatbot em tela cheia quando aberto — mais acessível */
+    #cw-root.is-open{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100dvh;z-index:99999}
+    #cw-root.is-open #cw-panel{
+      position:fixed;top:0;left:0;right:0;bottom:0;
+      width:100vw;
+      height:100dvh; /* dynamic viewport - se ajusta com teclado/barra */
+      max-height:none;
+      border-radius:0;
+      margin:0;
+    }
+    #cw-root.is-open #cw-toggle{display:none}
+    
+    /* Botão flutuante: maior e mais visível pra idosos */
+    #cw-root:not(.is-open) #cw-toggle{width:64px;height:64px;bottom:18px;right:16px}
+    #cw-root:not(.is-open) #cw-toggle svg{width:30px;height:30px}
+    
+    /* Header sticky */
+    #cw-header{padding:18px 20px;font-size:16px}
+    #cw-header-name{font-size:16px;font-weight:700}
+    #cw-close{width:44px;height:44px;font-size:24px}
+    
+    /* Input maior — font 16px IMPEDE auto-zoom do iOS Safari */
+    #cw-input{font-size:16px !important;padding:14px 18px;min-height:48px;border-radius:24px}
+    #cw-input-area{padding:14px 14px calc(14px + env(safe-area-inset-bottom,0)) 14px}
+    #cw-send{width:48px;height:48px;flex-shrink:0}
+    
+    /* Mensagens: maior, mais legível */
+    .cw-msg{font-size:15px;line-height:1.5;padding:12px 16px;max-width:85%}
+    #cw-messages{padding:18px 14px}
+    
+    /* Quick replies: botões grandes, fáceis de tocar */
+    .cw-quick{padding:6px 14px 12px}
+    .cw-quick button{min-height:48px;font-size:15px;padding:12px 18px;border-radius:24px;font-weight:600}
+  }
+  
+  /* iOS specific: respeitar safe-area + sem auto-zoom */
+  @supports (padding: max(0px)) {
+    #cw-input-area { padding-bottom: max(14px, env(safe-area-inset-bottom)) }
   }
   `
   const styleEl = document.createElement('style'); styleEl.textContent = css; document.head.appendChild(styleEl)
@@ -9296,20 +9334,63 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
     }
   }
 
-  toggle.addEventListener('click', () => {
+  // Detecta se é mobile
+  const isMobile = () => window.innerWidth <= 768 || /Mobi|Android|iPhone/.test(navigator.userAgent)
+
+  function openChat() {
     panel.classList.add('open')
-    toggle.style.display = 'none'
+    root.classList.add('is-open')
     toggle.classList.remove('has-msg')
-    inputEl.focus()
+    // Em mobile: trava scroll do body
+    if (isMobile()) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+    }
+    // Foco só após animação (no mobile, focar imediato pode abrir teclado em cima do panel ainda fechado)
+    setTimeout(() => inputEl.focus(), isMobile() ? 350 : 100)
     if (qIdx === 0 && Object.keys(answers).length === 0) {
       addMsg('Olá! 👋 Sou a assistente do Isaac Omar. Vou te fazer algumas perguntinhas rápidas pra entender o que procura.', 'bot')
       qIdx = 0
       nextQuestion()
     }
-  })
-  closeBtn.addEventListener('click', () => {
+  }
+  function closeChat() {
     panel.classList.remove('open')
-    toggle.style.display = 'flex'
+    root.classList.remove('is-open')
+    document.body.style.overflow = ''
+    document.body.style.position = ''
+    document.body.style.width = ''
+    inputEl.blur()
+  }
+
+  toggle.addEventListener('click', openChat)
+  closeBtn.addEventListener('click', closeChat)
+
+  // ── Lidar com teclado mobile usando visualViewport ────────────────────────
+  // Quando o teclado aparece, ajusta altura do painel pra não cortar nada
+  if (window.visualViewport) {
+    const adjustForKeyboard = () => {
+      if (!root.classList.contains('is-open')) return
+      const vh = window.visualViewport.height
+      // Reduz altura do panel pra acomodar teclado
+      panel.style.height = vh + 'px'
+      // Scroll messages pro final
+      messagesEl.scrollTop = messagesEl.scrollHeight
+    }
+    window.visualViewport.addEventListener('resize', adjustForKeyboard)
+    window.visualViewport.addEventListener('scroll', adjustForKeyboard)
+  }
+
+  // Quando focar no input em mobile, scroll mensagens pro final após teclado abrir
+  inputEl.addEventListener('focus', () => {
+    if (isMobile()) {
+      setTimeout(() => {
+        messagesEl.scrollTop = messagesEl.scrollHeight
+        // Scroll input pra view (caso teclado tenha empurrado pra fora)
+        inputEl.scrollIntoView({ block: 'end', behavior: 'smooth' })
+      }, 300)
+    }
   })
 
   inputForm.addEventListener('submit', e => {
