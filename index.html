@@ -540,7 +540,7 @@ function setLang(lang){
       })
       const data = await r.json()
       if (!r.ok) {
-        status.innerHTML = '⚠ Erro do servidor: ' + (data.error || r.status) + (data.detail ? ' — ' + String(data.detail).slice(0,100) : '')
+        status.innerHTML = '⚠ Erro do servidor: ' + (data.error || r.status) + (data.detail ? ' — ' + (typeof data.detail === 'object' ? JSON.stringify(data.detail).slice(0,300) : String(data.detail).slice(0,300)) : '')
         return
       }
       if (!data.parsed) {

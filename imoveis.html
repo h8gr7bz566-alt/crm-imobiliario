@@ -418,7 +418,7 @@ function closeMobileNav(){
         })
         const data = await r.json().catch(() => ({error:'resposta nao-JSON'}))
         if (!r.ok) {
-          status.innerHTML = '⚠ Erro servidor (HTTP ' + r.status + '): ' + (data.error || '') + (data.detail ? ' — ' + String(data.detail).slice(0,120) : '')
+          status.innerHTML = '⚠ Erro servidor (HTTP ' + r.status + '): ' + (data.error || '') + (data.detail ? ' — ' + (typeof data.detail === 'object' ? JSON.stringify(data.detail).slice(0,300) : String(data.detail).slice(0,300)) : '')
           return
         }
         if (!data.parsed) {
