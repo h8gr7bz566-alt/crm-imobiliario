@@ -9130,8 +9130,9 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
     #cw-root.is-open #cw-toggle{display:none}
     
     /* Botão flutuante: maior e mais visível pra idosos */
-    #cw-root:not(.is-open) #cw-toggle{width:64px;height:64px;bottom:18px;right:16px}
-    #cw-root:not(.is-open) #cw-toggle svg{width:30px;height:30px}
+    #cw-root:not(.is-open) {bottom:82px; right:16px}
+    #cw-root:not(.is-open) #cw-toggle{width:56px;height:56px}
+    #cw-root:not(.is-open) #cw-toggle svg{width:28px;height:28px}
     
     /* Header sticky */
     #cw-header{padding:18px 20px;font-size:16px}
@@ -9160,13 +9161,18 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
   /* ── Balão teaser que chama atenção ────────────────────── */
   #cw-teaser {
     position:absolute; bottom:78px; right:0;
-    background:#fff; padding:12px 18px; border-radius:16px 16px 4px 16px;
-    box-shadow:0 8px 24px rgba(0,0,0,.15), 0 2px 6px rgba(0,0,0,.08);
-    font-size:13.5px; color:#0f172a; max-width:240px; line-height:1.4;
-    cursor:pointer; display:flex; align-items:center; gap:10px;
+    background:#fff; padding:14px 38px 14px 16px; border-radius:18px 18px 4px 18px;
+    box-shadow:0 12px 32px rgba(15,28,46,.18), 0 2px 8px rgba(0,0,0,.08);
+    font-size:13.5px; color:#0f172a; width:260px; max-width:calc(100vw - 90px); line-height:1.4;
+    cursor:pointer; display:flex; align-items:flex-start; gap:10px; white-space:normal;
     animation:cw-bounce-in .5s cubic-bezier(.4,1.8,.6,.9), cw-attention 2s ease-in-out 1.5s infinite;
     z-index:1;
+    border-left:4px solid #b8962e;
   }
+  #cw-teaser-title { font-weight:700; font-size:14px; display:block; margin-bottom:2px; color:#0d1e36 }
+  #cw-teaser-sub { color:#64748b; font-size:12.5px; font-weight:400 }
+  #cw-teaser-wave { font-size:22px; flex-shrink:0; animation:cw-wave 1s ease-in-out 2s infinite }
+  @keyframes cw-wave { 0%,60%,100%{transform:rotate(0)} 10%,30%{transform:rotate(-15deg)} 20%{transform:rotate(15deg)} }
   #cw-teaser::after { content:''; position:absolute; bottom:-8px; right:24px; width:0; height:0;
     border-left:8px solid transparent; border-right:8px solid transparent; border-top:8px solid #fff; }
   #cw-teaser-close { position:absolute; top:-6px; right:-6px; width:22px; height:22px;
@@ -9205,7 +9211,11 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </button>
     <div id="cw-teaser" style="display:none">
-      👋 <span><strong>Posso te ajudar?</strong><br><span style="color:#64748b;font-size:12px">Encontre seu imóvel ideal em 1 minuto</span></span>
+      <div id="cw-teaser-wave">👋</div>
+      <div style="flex:1">
+        <span id="cw-teaser-title">Posso te ajudar?</span>
+        <span id="cw-teaser-sub">Encontre seu imóvel ideal em 1 minuto</span>
+      </div>
       <button id="cw-teaser-close" title="Fechar">×</button>
     </div>
   `
