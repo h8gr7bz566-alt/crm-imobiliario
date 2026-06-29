@@ -15,7 +15,11 @@ self.addEventListener('push', event => {
     badge: '/logo.png',
     data: { url: data.url || '/ios.imobi' },
     requireInteraction: true,
-    vibrate: [200, 100, 200],
+    vibrate: [200, 100, 200, 100, 200],
+    tag: data.tag || ('lead-' + Date.now()),
+    renotify: true,
+    silent: false,
+    sound: 'default',
   }
   event.waitUntil((async () => {
     await self.registration.showNotification(title, options)

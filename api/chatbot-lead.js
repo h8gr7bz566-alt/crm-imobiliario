@@ -100,19 +100,24 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Falha ao inserir lead', detail: error.message, code: error.code })
     }
     
-    // Dispara push notification pros admins do tenant (não-bloqueante)
+    // Dispara push notification pros admins do tenant (BLOQUEANTE pra retornar status)
+    let pushResult = null
     try {
-      const { sendPushToUsers } = await import('./_push-helper.js')
-      sendPushToUsers({
+      const { sendPushToUsers } = await import('./push-helper.js')
+      pushResult = await sendPushToUsers({
         tenantId: tenant_id,
         roles: ['admin', 'super_admin', 'corretor'],
         title: '🎯 Novo lead — Chat IA',
-        body: `${name}${phone ? ' • ' + phone : ''}${notes ? '\n' + notes.split('\n')[0] : ''}`,
+        body: `${name}${phone ? ' • ' + phone : ''}${notes ? ' • ' + notes.split('\n')[0] : ''}`,
         url: `https://omarcorretor.com.br/ios.imobi#lead=${inserted.id}`,
-      }).then(r => console.log('[push]', r)).catch(e => console.warn('[push erro]', e))
-    } catch(e) { console.warn('[push falhou]', e) }
+      })
+      console.log('[push chatbot]', pushResult)
+    } catch(e) {
+      console.error('[push falhou]', e)
+      pushResult = { error: e.message }
+    }
     
-    return res.status(200).json({ ok: true, leadId: inserted?.id, name, pipeline: pipelineDebug.chosen, row: { name, phone, email, stage: row.stage, pipeline_id } })
+    return res.status(200).json({ ok: true, leadId: inserted?.id, name, pipeline: pipelineDebug.chosen, push: pushResult })
   } catch (e) {
     return res.status(500).json({ error: 'Erro inesperado', detail: e.message })
   }

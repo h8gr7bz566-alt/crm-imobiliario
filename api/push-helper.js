@@ -62,6 +62,8 @@ export async function sendPushToUsers(opts) {
     body: opts.body,
     url: opts.url || 'https://omarcorretor.com.br/ios.imobi',
     icon: opts.icon || '/logo.png',
+    tag: opts.tag || ('lead-' + Date.now()), // único pra não suprimir
+    renotify: true, // re-toca som mesmo se tag for igual
   })
 
   let sent = 0

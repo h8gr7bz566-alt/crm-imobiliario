@@ -1,6 +1,6 @@
 // /api/notify - Endpoint genérico pra disparar push notifications de eventos do CRM
 // Body: { event, leadId, taskId, title?, body?, url? }
-import { sendPushToUsers } from './_push-helper.js'
+import { sendPushToUsers } from './push-helper.js'
 import { createClient } from '@supabase/supabase-js'
 
 const ALLOWED = ['https://omarcorretor.com.br', 'https://www.omarcorretor.com.br']
