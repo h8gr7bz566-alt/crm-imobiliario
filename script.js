@@ -9474,3 +9474,96 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
     handleAnswer(t)
   })
 })()
+
+
+// ─── Card de status push no dropdown de notificações ──────────────────
+async function updatePushStatusCard() {
+  const card = document.getElementById('push-status-card')
+  if (!card) return
+  const iconEl  = document.getElementById('push-status-icon')
+  const titleEl = document.getElementById('push-status-title')
+  const subEl   = document.getElementById('push-status-sub')
+  const activateBtn = document.getElementById('push-activate-btn')
+  const testBtn = document.getElementById('push-test-btn')
+  
+  // Detecta suporte
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    iconEl.textContent = '⚠'
+    titleEl.textContent = 'Não suportado'
+    subEl.textContent = 'Use Chrome ou Safari 16.4+ via PWA'
+    return
+  }
+  
+  // Verifica permissão atual
+  const perm = Notification.permission
+  
+  if (perm === 'denied') {
+    iconEl.textContent = '🔕'
+    titleEl.textContent = 'Notificações bloqueadas'
+    subEl.textContent = 'Permita nas configurações do navegador/sistema'
+    return
+  }
+  
+  // Verifica se tem subscription
+  let sub = null
+  try {
+    const reg = await navigator.serviceWorker.getRegistration()
+    if (reg) sub = await reg.pushManager.getSubscription()
+  } catch(e) {}
+  
+  if (perm === 'granted' && sub) {
+    iconEl.textContent = '🔔'
+    titleEl.textContent = 'Ativas neste aparelho ✓'
+    subEl.textContent = navigator.userAgent.includes('iPhone') ? 'iPhone PWA' : (navigator.userAgent.includes('Mac') ? 'Mac' : 'Browser')
+    activateBtn.style.display = 'none'
+    testBtn.style.display = 'block'
+  } else {
+    iconEl.textContent = '🔕'
+    titleEl.textContent = 'Não ativas neste aparelho'
+    subEl.textContent = 'Toque pra ativar e receber alertas'
+    activateBtn.style.display = 'block'
+    testBtn.style.display = 'none'
+  }
+}
+
+function wirePushStatusCard() {
+  const activateBtn = document.getElementById('push-activate-btn')
+  const testBtn = document.getElementById('push-test-btn')
+  
+  activateBtn?.addEventListener('click', async () => {
+    activateBtn.disabled = true; activateBtn.textContent = 'Ativando…'
+    const ok = await window.enablePushNotifications?.()
+    activateBtn.disabled = false
+    activateBtn.textContent = '🔔 Ativar nesse aparelho'
+    if (ok) updatePushStatusCard()
+  })
+  
+  testBtn?.addEventListener('click', async () => {
+    testBtn.disabled = true; testBtn.textContent = 'Enviando…'
+    try {
+      // Dispara push pra todos do tenant (pra testar o pipeline real)
+      await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: currentProfile?.tenant_id,
+          title: '🧪 Teste IOS Imobi',
+          body: 'Push notifications funcionam! Você receberá alertas de leads e tarefas.',
+          url: 'https://omarcorretor.com.br/ios.imobi',
+        })
+      })
+    } finally {
+      setTimeout(() => { testBtn.disabled = false; testBtn.textContent = '🧪 Enviar notificação de teste' }, 1500)
+    }
+  })
+}
+
+// Hook: chama quando dropdown abre
+const _origNotifBtn = document.getElementById('btn-notif')
+if (_origNotifBtn && !_origNotifBtn._pushWired) {
+  _origNotifBtn._pushWired = true
+  _origNotifBtn.addEventListener('click', () => setTimeout(() => { updatePushStatusCard(); wirePushStatusCard() }, 50))
+}
+
+// Também chama no load
+setTimeout(() => { updatePushStatusCard(); wirePushStatusCard() }, 1500)

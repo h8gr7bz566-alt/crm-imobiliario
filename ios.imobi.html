@@ -367,6 +367,24 @@
               <span>Notificações</span>
               <button class="notif-mark-all" id="notif-mark-all">Marcar lidas</button>
             </div>
+            
+            <!-- ── Push notifications status (este aparelho) ────── -->
+            <div id="push-status-card" style="margin:8px 12px;padding:12px;background:#f1f5f9;border-radius:10px;border:1px solid #e2e8f0;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span id="push-status-icon" style="font-size:18px;">🔕</span>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:600;color:#0f172a;" id="push-status-title">Notificações deste aparelho</div>
+                  <div style="font-size:11px;color:#64748b;" id="push-status-sub">Verificando…</div>
+                </div>
+              </div>
+              <button id="push-activate-btn" style="width:100%;padding:9px;background:#06b6d4;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:none;">
+                🔔 Ativar nesse aparelho
+              </button>
+              <button id="push-test-btn" style="width:100%;padding:9px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;cursor:pointer;display:none;margin-top:6px;">
+                🧪 Enviar notificação de teste
+              </button>
+            </div>
+            
             <div class="notif-list" id="notif-list">
               <div class="notif-empty">Carregando…</div>
             </div>
