@@ -686,6 +686,9 @@ function renderCollections(all) {
   }
 }
 
+
+// Expor renderPublic globalmente (usado pela busca IA)
+if (typeof window !== 'undefined') setTimeout(() => { window.renderPublic = renderPublic }, 0)
 async function renderPublic() {
   const vendasCarousel = document.getElementById('vendas-carousel')   // homepage
   const gridContainer  = document.getElementById('properties')         // imoveis.html

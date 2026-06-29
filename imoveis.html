@@ -371,7 +371,6 @@ function closeMobileNav(){
     function applyFilter(id, value) {
       const el = document.getElementById(id)
       if (!el || value == null || value === '') return
-      // Cria option se não existir
       if (!el.querySelector(`option[value="${value}"]`)) {
         const opt = document.createElement('option')
         opt.value = value
@@ -379,8 +378,7 @@ function closeMobileNav(){
         el.appendChild(opt)
       }
       el.value = value
-      // Dispara change pra recarregar os imóveis
-      el.dispatchEvent(new Event('change', { bubbles: true }))
+      // NÃO dispara change aqui — fazer 1x ao final pra evitar múltiplos re-renders
     }
 
     function applyPriceRange(min, max) {
@@ -399,7 +397,7 @@ function closeMobileNav(){
       }
       if (bestMatch) {
         sel.value = bestMatch
-        sel.dispatchEvent(new Event('change', { bubbles: true }))
+        // dispatch é feito após todos os filtros aplicados
       }
     }
 
@@ -436,12 +434,14 @@ function closeMobileNav(){
         if (f.price_max) summary.push('até R$ ' + (f.price_max).toLocaleString('pt-BR'))
         status.innerHTML = '✓ Filtrando por: <strong style="color:#b8962e">' + (summary.join(' · ') || 'todos os imóveis') + '</strong>'
 
-        // Aplica filtros nos selects existentes
+        // Aplica filtros nos selects existentes (sem dispatchar individualmente)
         applyFilter('city-filter', f.city || '')
         applyFilter('neighborhood-filter', f.neighborhood || '')
         applyFilter('bedrooms-filter', f.bedrooms_min ? (f.bedrooms_min >= 4 ? '4+' : String(f.bedrooms_min)) : '')
         applyFilter('parking-filter', f.parking_min ? (f.parking_min >= 4 ? '4+' : String(f.parking_min)) : '')
         if (f.price_max) applyPriceRange(f.price_min || 0, f.price_max)
+        // Re-renderiza UMA única vez ao final
+        if (typeof window.renderPublic === 'function') window.renderPublic()
       } catch (err) {
         status.textContent = '⚠ Erro: ' + err.message
       } finally {
