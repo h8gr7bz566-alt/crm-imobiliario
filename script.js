@@ -9156,6 +9156,25 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
   @supports (padding: max(0px)) {
     #cw-input-area { padding-bottom: max(14px, env(safe-area-inset-bottom)) }
   }
+  
+  /* ── Balão teaser que chama atenção ────────────────────── */
+  #cw-teaser {
+    position:absolute; bottom:78px; right:0;
+    background:#fff; padding:12px 18px; border-radius:16px 16px 4px 16px;
+    box-shadow:0 8px 24px rgba(0,0,0,.15), 0 2px 6px rgba(0,0,0,.08);
+    font-size:13.5px; color:#0f172a; max-width:240px; line-height:1.4;
+    cursor:pointer; display:flex; align-items:center; gap:10px;
+    animation:cw-bounce-in .5s cubic-bezier(.4,1.8,.6,.9), cw-attention 2s ease-in-out 1.5s infinite;
+    z-index:1;
+  }
+  #cw-teaser::after { content:''; position:absolute; bottom:-8px; right:24px; width:0; height:0;
+    border-left:8px solid transparent; border-right:8px solid transparent; border-top:8px solid #fff; }
+  #cw-teaser-close { position:absolute; top:-6px; right:-6px; width:22px; height:22px;
+    background:#ef4444; border:2px solid #fff; border-radius:50%; color:#fff; font-size:14px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; padding:0; }
+  @keyframes cw-bounce-in { from{transform:scale(.3) translateY(20px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
+  @keyframes cw-attention { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+  @media (max-width:480px) { #cw-teaser { max-width:200px; font-size:12.5px; padding:10px 14px; bottom:72px } }
   `
   const styleEl = document.createElement('style'); styleEl.textContent = css; document.head.appendChild(styleEl)
 
@@ -9185,6 +9204,10 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
     <button id="cw-toggle" title="Falar com Isaac" class="has-msg">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </button>
+    <div id="cw-teaser" style="display:none">
+      👋 <span><strong>Posso te ajudar?</strong><br><span style="color:#64748b;font-size:12px">Encontre seu imóvel ideal em 1 minuto</span></span>
+      <button id="cw-teaser-close" title="Fechar">×</button>
+    </div>
   `
   document.body.appendChild(root)
 
@@ -9202,7 +9225,7 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
   const QUESTIONS = [
     { key:'intencao',    text:'Você quer COMPRAR ou ALUGAR? 🏠',                quick:['Comprar','Alugar'] },
     { key:'tipo',        text:'Que tipo de imóvel procura?',                     quick:['Apartamento','Casa','Cobertura','Terreno'] },
-    { key:'cidade',      text:'Em qual cidade ou região?',                        quick:['Balneário Camboriú','Itapema','Itajaí','Florianópolis'] },
+    { key:'cidade',      text:'Em qual cidade ou região?',                        quick:['Balneário Camboriú','Itapema','Itajaí','Florianópolis'] }, // será atualizado dinamicamente
     { key:'orcamento',   text:'Qual seu orçamento aproximado?',                  quick:['Até R$ 500k','R$ 500k–1M','R$ 1M–2M','Acima R$ 2M'] },
     { key:'dormitorios', text:'Quantos dormitórios?',                             quick:['1','2','3','4+'] },
     { key:'name',        text:'Show! Qual seu nome? 😊',                          quick:[] },
@@ -9212,6 +9235,21 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
   const answers = {}
   let qIdx = 0
   let leadCreated = false
+
+  // Carrega cidades reais do banco (sempre atualizado quando admin adiciona imóveis novos)
+  ;(async function loadCidadesDinamicas(){
+    try {
+      const sb = window.supabase
+      if (!sb) return
+      const { data } = await sb.from('properties').select('city').eq('published', true).not('city', 'is', null)
+      const cidades = [...new Set((data||[]).map(p => (p.city||'').trim()).filter(Boolean))].sort()
+      if (cidades.length) {
+        const cidadeQ = QUESTIONS.find(q => q.key === 'cidade')
+        if (cidadeQ) cidadeQ.quick = cidades.slice(0, 8) // até 8 cidades visíveis
+        console.log('[Chatbot] cidades carregadas:', cidades)
+      }
+    } catch(e) { console.warn('[Chatbot] cidades fallback', e) }
+  })()
 
   function addMsg(text, role) {
     const div = document.createElement('div')
@@ -9364,8 +9402,28 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
     inputEl.blur()
   }
 
-  toggle.addEventListener('click', openChat)
+  toggle.addEventListener('click', () => { document.getElementById('cw-teaser')?.remove(); openChat() })
   closeBtn.addEventListener('click', closeChat)
+
+  // Teaser que chama atenção após alguns segundos
+  if (!localStorage.getItem('cw-teaser-dismissed')) {
+    setTimeout(() => {
+      const teaser = document.getElementById('cw-teaser')
+      if (teaser && !panel.classList.contains('open')) {
+        teaser.style.display = 'flex'
+        // Clica no teaser abre o chat
+        teaser.addEventListener('click', e => {
+          if (e.target.id === 'cw-teaser-close') return
+          teaser.remove(); openChat()
+        })
+        document.getElementById('cw-teaser-close')?.addEventListener('click', e => {
+          e.stopPropagation()
+          teaser.remove()
+          localStorage.setItem('cw-teaser-dismissed', '1')
+        })
+      }
+    }, 4000)
+  }
 
   // ── Lidar com teclado mobile usando visualViewport ────────────────────────
   // Quando o teclado aparece, ajusta altura do painel pra não cortar nada
