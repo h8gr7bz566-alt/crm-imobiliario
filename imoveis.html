@@ -148,6 +148,32 @@ function closeMobileNav(){
     <p style="font-size:15px;color:rgba(255,255,255,0.65);margin:0;">Use os filtros abaixo para encontrar o imóvel ideal.</p>
   </div>
 
+  <!-- ── Busca IA conversacional ─────────────────────────────────────── -->
+  <div style="background:linear-gradient(135deg,#0f1c2e 0%,#1a2f4a 100%);padding:0 24px 32px;text-align:center;">
+    <div style="max-width:760px;margin:0 auto;">
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:10px;color:#b8962e;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2L9.5 8.5L3 11l6.5 2.5L12 20l2.5-6.5L21 11l-6.5-2.5z"/></svg>
+        Busca inteligente
+      </div>
+      <form id="ai-search-form" style="display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;">
+        <input id="ai-search-input" type="text" placeholder="Ex: apto 3 quartos na Barra Sul até 800 mil"
+          style="flex:1 1 320px;min-width:0;padding:14px 18px;border-radius:10px;border:2px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:15px;outline:none;transition:border-color .15s;"
+          onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'"/>
+        <button type="submit" id="ai-search-btn"
+          style="padding:14px 24px;background:#b8962e;border:none;border-radius:10px;color:#0d1e36;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:0.04em;transition:transform .12s;"
+          onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+          Buscar com IA
+        </button>
+      </form>
+      <div id="ai-search-status" style="margin-top:10px;font-size:13px;color:rgba(255,255,255,0.6);min-height:18px;"></div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.75);padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;">2 dormitórios em Itapema</button>
+        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.75);padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;">apartamento até 600 mil</button>
+        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.75);padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;">cobertura com 3+ vagas</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Filtros ──────────────────────────────────────────────────────── -->
   <div style="background:#0d1e36;border-bottom:1px solid rgba(255,255,255,0.08);padding:20px 24px;">
     <div style="max-width:1200px;margin:0 auto;">
@@ -327,5 +353,99 @@ function closeMobileNav(){
   <a href="https://wa.me/5547999701743" target="_blank" rel="noopener" class="wa-float" aria-label="WhatsApp" onclick="fbq('track', 'Contact')">
     <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
   </a>
+
+  <!-- ── Lógica da busca IA ─────────────────────────────────────────── -->
+  <script>
+  (function(){
+    const form  = document.getElementById('ai-search-form')
+    const input = document.getElementById('ai-search-input')
+    const btn   = document.getElementById('ai-search-btn')
+    const status= document.getElementById('ai-search-status')
+    if (!form || !input) return
+
+    // Sugestões clicáveis
+    document.querySelectorAll('.ai-search-suggest').forEach(s => {
+      s.addEventListener('click', () => { input.value = s.textContent; form.requestSubmit() })
+    })
+
+    function applyFilter(id, value) {
+      const el = document.getElementById(id)
+      if (!el || value == null || value === '') return
+      // Cria option se não existir
+      if (!el.querySelector(`option[value="${value}"]`)) {
+        const opt = document.createElement('option')
+        opt.value = value
+        opt.textContent = value
+        el.appendChild(opt)
+      }
+      el.value = value
+      // Dispara change pra recarregar os imóveis
+      el.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+
+    function applyPriceRange(min, max) {
+      const sel = document.getElementById('price-range')
+      if (!sel) return
+      const v = (min || 0) + '-' + (max || '')
+      // Tenta achar uma opção existente que se aproxime
+      let bestMatch = ''
+      for (const opt of sel.options) {
+        if (opt.value === '') continue
+        const [omin, omax] = opt.value.split('-').map(n => Number(n) || null)
+        if ((max && omax && Math.abs(omax - max) < omax * 0.2) || (min && omin && omin === min)) {
+          bestMatch = opt.value
+          break
+        }
+      }
+      if (bestMatch) {
+        sel.value = bestMatch
+        sel.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    }
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault()
+      const prompt = input.value.trim()
+      if (!prompt) return
+      btn.disabled = true; btn.textContent = 'Pensando…'
+      status.textContent = '🤖 IA interpretando seu pedido…'
+
+      try {
+        const r = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'search', prompt }),
+        })
+        const data = await r.json()
+        if (!r.ok || !data.parsed) {
+          status.textContent = '⚠ Não consegui entender. Tenta de novo ou use os filtros abaixo.'
+          return
+        }
+        const f = data.parsed
+        // Mostra o que a IA entendeu
+        const summary = []
+        if (f.category) summary.push(f.category)
+        if (f.bedrooms_min) summary.push(f.bedrooms_min + ' dorm+')
+        if (f.parking_min) summary.push(f.parking_min + ' vagas+')
+        if (f.neighborhood) summary.push(f.neighborhood)
+        if (f.city) summary.push(f.city)
+        if (f.price_max) summary.push('até R$ ' + (f.price_max).toLocaleString('pt-BR'))
+        status.innerHTML = '✓ Filtrando por: <strong style="color:#b8962e">' + (summary.join(' · ') || 'todos os imóveis') + '</strong>'
+
+        // Aplica filtros nos selects existentes
+        applyFilter('city-filter', f.city || '')
+        applyFilter('neighborhood-filter', f.neighborhood || '')
+        applyFilter('bedrooms-filter', f.bedrooms_min ? (f.bedrooms_min >= 4 ? '4+' : String(f.bedrooms_min)) : '')
+        applyFilter('parking-filter', f.parking_min ? (f.parking_min >= 4 ? '4+' : String(f.parking_min)) : '')
+        if (f.price_max) applyPriceRange(f.price_min || 0, f.price_max)
+      } catch (err) {
+        status.textContent = '⚠ Erro: ' + err.message
+      } finally {
+        btn.disabled = false; btn.textContent = 'Buscar com IA'
+      }
+    })
+  })()
+  </script>
+
 </body>
 </html>
