@@ -9695,3 +9695,26 @@ if (_origNotifBtn && !_origNotifBtn._pushWired) {
 
 // Também chama no load
 setTimeout(() => { updatePushStatusCard(); wirePushStatusCard() }, 1500)
+
+
+// ─── Mobile hamburger menu toggle ──────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const hamburger = document.getElementById('topnav-hamburger')
+  const links = document.getElementById('topnav-links')
+  if (hamburger && links) {
+    hamburger.addEventListener('click', e => {
+      e.stopPropagation()
+      links.classList.toggle('open')
+    })
+    // Fecha menu ao clicar em qualquer link
+    links.addEventListener('click', e => {
+      if (e.target.closest('.topnav-link')) links.classList.remove('open')
+    })
+    // Fecha ao clicar fora
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#topnav-links') && !e.target.closest('#topnav-hamburger')) {
+        links.classList.remove('open')
+      }
+    })
+  }
+})
