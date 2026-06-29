@@ -3862,6 +3862,30 @@ async function runSearch(q) {
 // NOTIFICAÇÕES
 // ═══════════════════════════════════════════════════════════════════
 
+
+
+// ─── App Badge (iOS PWA / macOS / Android) ─────────────────────────────
+async function updateAppBadge(count) {
+  try {
+    if ('setAppBadge' in navigator) {
+      if (count > 0) await navigator.setAppBadge(count)
+      else await navigator.clearAppBadge()
+    }
+    // Sincroniza com Service Worker (caso app esteja fechado e SW receba push)
+    const reg = await navigator.serviceWorker?.getRegistration()
+    reg?.active?.postMessage({ type: 'set-badge', count })
+  } catch(e) { /* navegadores antigos */ }
+}
+
+// Quando SW manda 'push-received', recarrega lista de leads pra atualizar badge
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener?.('message', e => {
+    if (e.data?.type === 'push-received') {
+      if (typeof loadNotifications === 'function') loadNotifications().catch(()=>{})
+    }
+  })
+}
+
 let notifsRead = JSON.parse(localStorage.getItem('crm_notifs_read') || '[]')
 
 async function loadNotifications() {
@@ -3881,6 +3905,8 @@ async function loadNotifications() {
     badge.textContent = unread.length
     unread.length > 0 ? badge.classList.remove('hidden') : badge.classList.add('hidden')
   }
+  // Atualiza badge do app icon (PWA iOS/Mac)
+  updateAppBadge(unread.length)
 
   if (!leads.length) {
     list.innerHTML = '<div class="notif-empty">Nenhuma notificação.</div>'

@@ -17,7 +17,34 @@ self.addEventListener('push', event => {
     requireInteraction: true,
     vibrate: [200, 100, 200],
   }
-  event.waitUntil(self.registration.showNotification(title, options))
+  event.waitUntil((async () => {
+    await self.registration.showNotification(title, options)
+    // Incrementa badge do app (iOS/macOS PWA + Chrome)
+    try {
+      if (navigator.setAppBadge) {
+        // Lê count salvo no IndexedDB simples (cookie não funciona em SW)
+        const all = await self.clients.matchAll({ includeUncontrolled: true })
+        // Tenta pedir pro client/cliente que enviou pra atualizar a contagem
+        all.forEach(c => c.postMessage({ type: 'push-received' }))
+        // Fallback: incrementa direto no SW se cliente não tá vivo
+        const cur = parseInt(self._badgeCount || 0) + 1
+        self._badgeCount = cur
+        await navigator.setAppBadge(cur)
+      }
+    } catch(e) { /* ignore */ }
+  })())
+})
+
+// Listener pra cliente pedir pra zerar badge
+self.addEventListener('message', event => {
+  if (event.data?.type === 'clear-badge') {
+    self._badgeCount = 0
+    try { navigator.clearAppBadge?.() } catch(e) {}
+  } else if (event.data?.type === 'set-badge') {
+    const n = Number(event.data.count) || 0
+    self._badgeCount = n
+    try { if (n > 0) navigator.setAppBadge?.(n); else navigator.clearAppBadge?.() } catch(e) {}
+  }
 })
 
 // Click → abre o CRM na tarefa
