@@ -416,9 +416,13 @@ function closeMobileNav(){
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'search', prompt }),
         })
-        const data = await r.json()
-        if (!r.ok || !data.parsed) {
-          status.textContent = '⚠ Não consegui entender. Tenta de novo ou use os filtros abaixo.'
+        const data = await r.json().catch(() => ({error:'resposta nao-JSON'}))
+        if (!r.ok) {
+          status.innerHTML = '⚠ Erro servidor (HTTP ' + r.status + '): ' + (data.error || '') + (data.detail ? ' — ' + String(data.detail).slice(0,120) : '')
+          return
+        }
+        if (!data.parsed) {
+          status.innerHTML = '⚠ IA respondeu mas resposta inválida: <em>' + String(data.text || '').slice(0,140) + '</em>'
           return
         }
         const f = data.parsed

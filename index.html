@@ -179,6 +179,24 @@ fbq('track', 'PageView');
     <p class="hero-v2-sub" data-i18n="hero.subtitle">Curadoria exclusiva de imóveis de alto padrão nas regiões mais valorizadas do sul do Brasil.</p>
   </div>
 
+  <!-- ── Busca com IA ─────────────────────────────────────────────── -->
+  <div class="hero-ai-search" style="max-width:760px;margin:0 auto 18px;padding:0 24px;position:relative;z-index:2;">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:10px;color:#b8962e;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2L9.5 8.5L3 11l6.5 2.5L12 20l2.5-6.5L21 11l-6.5-2.5z"/></svg>
+      Busca inteligente · Pergunte em linguagem natural
+    </div>
+    <form id="ai-home-form" style="display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;">
+      <input id="ai-home-input" type="text" placeholder="Ex: apto 3 quartos em BC até 800 mil"
+        style="flex:1 1 320px;min-width:0;padding:14px 18px;border-radius:10px;border:2px solid rgba(255,255,255,0.18);background:rgba(13,30,54,0.85);backdrop-filter:blur(8px);color:#fff;font-size:15px;outline:none;"
+        onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='rgba(255,255,255,0.18)'"/>
+      <button type="submit" id="ai-home-btn"
+        style="padding:14px 24px;background:#b8962e;border:none;border-radius:10px;color:#0d1e36;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:0.04em;">
+        Buscar com IA
+      </button>
+    </form>
+    <div id="ai-home-status" style="margin-top:8px;font-size:13px;color:rgba(255,255,255,0.7);min-height:18px;text-align:center;"></div>
+  </div>
+
   <!-- Search box -->
   <div class="hero-v2-search">
     <div class="hero-v2-search-inner">
@@ -498,5 +516,72 @@ function setLang(lang){
 ;(function(){let s='pt';try{s=localStorage.getItem('lang')||'pt'}catch(e){}setLang(s)})()
 </script>
 <script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js")})}</script>
+
+<script>
+(function(){
+  const form  = document.getElementById('ai-home-form')
+  const input = document.getElementById('ai-home-input')
+  const btn   = document.getElementById('ai-home-btn')
+  const status= document.getElementById('ai-home-status')
+  if (!form) return
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault()
+    const prompt = input.value.trim()
+    if (!prompt) return
+    btn.disabled = true; btn.textContent = 'Pensando…'
+    status.innerHTML = '🤖 IA interpretando seu pedido…'
+
+    try {
+      const r = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'search', prompt }),
+      })
+      const data = await r.json()
+      if (!r.ok) {
+        status.innerHTML = '⚠ Erro do servidor: ' + (data.error || r.status) + (data.detail ? ' — ' + String(data.detail).slice(0,100) : '')
+        return
+      }
+      if (!data.parsed) {
+        // Mostra texto bruto pra diagnosticar
+        status.innerHTML = '⚠ IA respondeu mas não consegui parsear. Resposta: <em>' + String(data.text || '').slice(0,120) + '</em>'
+        return
+      }
+      const f = data.parsed
+      // Constrói URL pra página /imoveis com filtros
+      const params = new URLSearchParams()
+      if (f.city) params.set('city', f.city)
+      if (f.neighborhood) params.set('neighborhood', f.neighborhood)
+      if (f.bedrooms_min) params.set('bedrooms', f.bedrooms_min >= 4 ? '4+' : String(f.bedrooms_min))
+      if (f.parking_min) params.set('parking', f.parking_min >= 4 ? '4+' : String(f.parking_min))
+      if (f.price_max) {
+        // Aproxima pra opção mais próxima
+        const max = f.price_max
+        let range = ''
+        if (max <= 500000) range = '0-500000'
+        else if (max <= 1000000) range = '500000-1000000'
+        else if (max <= 2000000) range = '1000000-2000000'
+        else if (max <= 3000000) range = '2000000-3000000'
+        else range = '3000000-'
+        params.set('price_range', range)
+      }
+      const summary = []
+      if (f.category) summary.push(f.category)
+      if (f.bedrooms_min) summary.push(f.bedrooms_min + ' dorm+')
+      if (f.neighborhood) summary.push(f.neighborhood)
+      if (f.city) summary.push(f.city)
+      if (f.price_max) summary.push('até R$ ' + (f.price_max).toLocaleString('pt-BR'))
+      status.innerHTML = '✓ Levando você pra: <strong style="color:#b8962e">' + (summary.join(' · ') || 'todos imóveis') + '</strong>'
+      setTimeout(() => { window.location.href = '/imoveis.html?' + params.toString() }, 700)
+    } catch (err) {
+      status.innerHTML = '⚠ Erro de rede: ' + err.message + ' — verifique se o /api/ai está deployado.'
+    } finally {
+      setTimeout(() => { btn.disabled = false; btn.textContent = 'Buscar com IA' }, 1500)
+    }
+  })
+})()
+</script>
+
 </body>
 </html>
