@@ -9221,7 +9221,31 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
       removeTyping()
 
       if (!r.ok) {
-        addMsg('Desculpa, tive um probleminha técnico. Pode falar direto no WhatsApp (47) 99970-1743?', 'bot')
+        // Auto-retry 1x antes de desistir
+        console.warn('[Chatbot] tentativa 1 falhou, retentando...', r.status)
+        const r2 = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'chat', prompt: conversationContext }),
+        })
+        const data2 = await r2.json().catch(() => ({}))
+        if (!r2.ok) {
+          console.error('[Chatbot] retry falhou:', data2)
+          addMsg('Tive uma instabilidade momentânea. Pode me repetir a última resposta? Se persistir, fala no whats: wa.me/5547999701743', 'bot')
+          return
+        }
+        // Sucesso no retry — usa data2
+        const botText2 = data2.text || ''
+        if (botText2.includes('PRONTO_PARA_CRIAR_LEAD')) {
+          const afterTrigger = botText2.split('PRONTO_PARA_CRIAR_LEAD').pop()
+          const jsonMatch = afterTrigger.match(/\{[\s\S]*?\}/)
+          let leadData = {}
+          if (jsonMatch) { try { leadData = JSON.parse(jsonMatch[0].replace(/```json|```/g,'').trim()) } catch(e) {} }
+          await createLead(leadData)
+          return
+        }
+        history.push({ role: 'model', text: botText2 })
+        addMsg(botText2, 'bot')
         return
       }
 
@@ -9255,7 +9279,8 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
       addMsg(botText, 'bot')
     } catch (e) {
       removeTyping()
-      addMsg('Tive um problema de conexão. Tenta de novo ou chama no WhatsApp: (47) 99970-1743', 'bot')
+      console.error('[Chatbot] catch:', e)
+      addMsg('Tive uma falha de conexão. Tenta enviar de novo ou chama: wa.me/5547999701743', 'bot')
     } finally {
       sendBtn.disabled = false
       inputEl.focus()

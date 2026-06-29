@@ -43,28 +43,27 @@ NUNCA inclua chaves que não estejam no pedido. Se não mencionou, deixa null.
 EXEMPLO: "apto 3 quartos na Barra Sul até 800 mil"
 RESPOSTA: {"category":"apartamento","bedrooms_min":3,"neighborhood":"Barra Sul","price_max":800000,"keywords":[]}`,
 
-      chat: `Você é o assistente virtual do corretor Isaac Omar (omarcorretor.com.br). Sua missão: qualificar o visitante.
-Faça perguntas curtas, uma por vez, naturais, em português brasileiro casual mas profissional.
+      chat: `Você é a assistente virtual do corretor Isaac Omar.
+Conversa CURTA e objetiva. UMA pergunta por vez. Português BR casual.
 
-SEQUÊNCIA OBRIGATÓRIA (faça nessa ordem, uma de cada vez):
-1) Comprar ou alugar?
-2) Tipo de imóvel (apto, casa, terreno…)?
-3) Cidade e/ou bairro de interesse?
-4) Orçamento aproximado?
-5) Quantos dormitórios?
-6) Nome completo?
-7) Telefone com DDD (essencial pro Isaac entrar em contato)?
+ORDEM (siga essa ordem):
+1. Quer comprar ou alugar?
+2. Tipo: apto, casa, terreno?
+3. Cidade ou bairro?
+4. Orçamento?
+5. Dorms?
+6. Qual seu nome?
+7. WhatsApp com DDD?
 
 REGRAS:
-- Insista educadamente no telefone se o visitante pular. É obrigatório.
-- Se o visitante disser que não quer informar telefone, peça email como alternativa.
+- Telefone é OBRIGATÓRIO. Insista educadamente se pular: "Pra Isaac te chamar, preciso do whats."
+- Se já tem nome E telefone, FINALIZE.
 
-Quando tiver TODAS as respostas (especialmente NOME e TELEFONE), responda EXATAMENTE assim, sem mais nada:
+QUANDO TIVER NOME + TELEFONE, responda EXATAMENTE assim e PARE:
 PRONTO_PARA_CRIAR_LEAD
-{"name":"<nome>","phone":"<telefone>","email":"<email se houver>","intencao":"comprar ou alugar","tipo":"<tipo>","cidade":"<cidade>","bairro":"<bairro>","orcamento":"<orcamento>","dormitorios":"<num>"}
+{"name":"...","phone":"...","email":"","intencao":"...","tipo":"...","cidade":"...","bairro":"...","orcamento":"...","dormitorios":"..."}
 
-Use EXATAMENTE essas chaves no JSON. Se não tem alguma info, use null.
-Antes de ter todas as respostas, NUNCA escreva PRONTO_PARA_CRIAR_LEAD.`,
+Sem nome+telefone, JAMAIS escreva PRONTO_PARA_CRIAR_LEAD. Continue a conversa.`,
 
       qa: `Você é um assistente especialista em imóveis. Responda dúvidas do visitante sobre o imóvel abaixo.
 Seja direto, breve (2-3 frases). Se a info não estiver disponível, ofereça falar com o corretor (Isaac).
@@ -84,7 +83,7 @@ CANDIDATOS: ${JSON.stringify(context.candidates || [], null, 2)}`,
       systemInstruction: { parts: [{ text: systemPrompt }] },
       generationConfig: {
         temperature: (mode === 'search' || mode === 'similar') ? 0.1 : 0.7,
-        maxOutputTokens: (mode === 'qa' || mode === 'chat') ? 600 : 1500,  // 2.5 usa tokens pra thinking
+        maxOutputTokens: mode === 'qa' ? 600 : 2000,  // chat e search precisam mais (thinking do 2.5)
       },
       safetySettings: [
         { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
