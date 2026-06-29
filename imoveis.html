@@ -338,6 +338,19 @@ function closeMobileNav(){
         const sel = document.getElementById('price-range')
         if (sel) sel.value = priceRange
       }
+      // Lê filtros IA da URL e aplica como _aiExtraFilter
+      const aiCategory = params.get('ai_category')
+      const aiState    = params.get('ai_state')
+      const aiKeywords = params.get('ai_keywords')
+      const aiAreaMin  = params.get('ai_area_min')
+      if (aiCategory || aiState || aiKeywords || aiAreaMin) {
+        window._aiExtraFilter = {
+          category: aiCategory || null,
+          state: aiState || null,
+          keywords: aiKeywords ? aiKeywords.split(',').filter(Boolean) : [],
+          area_min: aiAreaMin ? Number(aiAreaMin) : null,
+        }
+      }
     }
 
     // Restaura idioma salvo
@@ -442,6 +455,13 @@ function closeMobileNav(){
         if (f.price_max) summary.push('até R$ ' + (f.price_max).toLocaleString('pt-BR'))
         status.innerHTML = '✓ Filtrando por: <strong style="color:#b8962e">' + (summary.join(' · ') || 'todos os imóveis') + '</strong>'
 
+        // Salva filtros extras (categoria, keywords, area) pro renderPublic usar
+        window._aiExtraFilter = {
+          category: f.category || null,
+          state: f.state || null,
+          keywords: Array.isArray(f.keywords) ? f.keywords : [],
+          area_min: f.area_min || null,
+        }
         // Aplica filtros nos selects existentes (sem dispatchar individualmente)
         applyFilter('city-filter', f.city || '')
         applyFilter('neighborhood-filter', f.neighborhood || '')

@@ -559,6 +559,11 @@ function setLang(lang){
       const f = data.parsed
       // Constrói URL pra página /imoveis com filtros
       const params = new URLSearchParams()
+      // Filtros extras IA (passados via URL)
+      if (f.category) params.set('ai_category', f.category)
+      if (f.state) params.set('ai_state', f.state)
+      if (Array.isArray(f.keywords) && f.keywords.length) params.set('ai_keywords', f.keywords.join(','))
+      if (f.area_min) params.set('ai_area_min', String(f.area_min))
       if (f.city) params.set('city', f.city)
       if (f.neighborhood) params.set('neighborhood', f.neighborhood)
       if (f.bedrooms_min) params.set('bedrooms', f.bedrooms_min >= 4 ? '4+' : String(f.bedrooms_min))

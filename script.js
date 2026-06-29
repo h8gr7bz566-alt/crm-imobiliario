@@ -708,6 +708,9 @@ async function renderPublic() {
   const construction = document.getElementById('construction-filter')?.value || ''
   const { min: priceMin, max: priceMax } = getPriceRange()
 
+  // Filtros adicionais da busca IA (categoria, palavras-chave, área, etc.)
+  const aiF = window._aiExtraFilter || null
+  const normalize = (s) => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim()
   const filtered = all.filter(p => {
     if (city && p.city !== city) return false
     if (neighborhood && p.neighborhood !== neighborhood) return false
@@ -724,6 +727,22 @@ async function renderPublic() {
     const price = parseInt(priceStr, 10) || 0
     if (price < priceMin) return false
     if (priceMax !== Infinity && price > priceMax) return false
+    
+    // Filtros extras da IA
+    if (aiF) {
+      if (aiF.category) {
+        const cat = normalize(p.category || p.tipo || p.property_type || '')
+        const want = normalize(aiF.category)
+        if (cat && want && !cat.includes(want) && !want.includes(cat)) return false
+      }
+      if (aiF.state && p.state && normalize(p.state) !== normalize(aiF.state)) return false
+      if (Array.isArray(aiF.keywords) && aiF.keywords.length) {
+        const haystack = normalize([p.title, p.description, p.neighborhood, p.city].filter(Boolean).join(' '))
+        const allWordsFound = aiF.keywords.every(kw => haystack.includes(normalize(kw)))
+        if (!allWordsFound) return false
+      }
+      if (aiF.area_min && Number(p.area) < Number(aiF.area_min)) return false
+    }
     return true
   })
 
@@ -790,6 +809,16 @@ window.filterByStatus = function(status) {
 }
 
 // ─── Avança/volta no carrossel de um card ─────────────────────────────────
+// Cache de imagens pré-carregadas (preload pra evitar flicker)
+const _imgPreloadCache = new Set()
+function _preloadImg(src) {
+  if (!src || _imgPreloadCache.has(src)) return
+  _imgPreloadCache.add(src)
+  const i = new Image()
+  i.decoding = 'async'
+  i.src = src
+}
+
 function _advanceWrap(wrap, dir) {
   const total = parseInt(wrap.dataset.total, 10)
   if (!total || total < 2) return
@@ -802,8 +831,21 @@ function _advanceWrap(wrap, dir) {
       const src = rewriteImageUrl(images[idx])
       const fg = wrap.querySelector('.carousel-img')
       const bg = wrap.querySelector('.carousel-img-bg')
-      if (fg) fg.src = src
-      if (bg) bg.src = src
+      // Preload da imagem antes de trocar — só mostra quando estiver carregada
+      const tmp = new Image()
+      tmp.decoding = 'async'
+      tmp.onload = () => {
+        if (fg) fg.src = src
+        if (bg) bg.src = src
+      }
+      tmp.onerror = () => { // fallback: troca mesmo se erro
+        if (fg) fg.src = src
+        if (bg) bg.src = src
+      }
+      tmp.src = src
+      // Preload da próxima também
+      const nextIdx = (idx + 1) % total
+      if (images[nextIdx]) _preloadImg(rewriteImageUrl(images[nextIdx]))
     }
   } catch(err) {
     const prop = cachedProperties.find(x => String(x.id) === String(wrap.dataset.pid))
