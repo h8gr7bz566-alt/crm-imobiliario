@@ -31,27 +31,39 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Nenhum tenant encontrado no banco' })
     }
 
-    // Procura o funil "ISAAC" em TODOS os tenants se necessário
+    // Procura o funil "ISAAC" e a etapa "Novo Lead"
+    // Tabelas reais: crm_pipelines + crm_stages (com pipeline_id)
     let pipeline_id = null
     let stageName = 'Novo Lead'
     let pipelineDebug = { available: [], chosen: null }
     try {
-      // Tenta primeiro no tenant atual, depois em qualquer
-      let { data: pipes } = await sb.from('pipelines').select('id, name, stages, tenant_id').eq('tenant_id', tenant_id)
-      if (!pipes || pipes.length === 0) {
-        const r = await sb.from('pipelines').select('id, name, stages, tenant_id')
-        pipes = r.data || []
-      }
-      pipelineDebug.available = (pipes || []).map(p => ({ id: p.id, name: p.name, stages: (p.stages || []).map(s => s.name) }))
-      const isaac = (pipes || []).find(p => /isaac/i.test(p.name || '')) || (pipes || [])[0]
+      // 1) Busca todos os pipelines (independente de tenant — site pode estar em outro)
+      const { data: pipes } = await sb.from('crm_pipelines').select('id, name, tenant_id, is_default').order('sort_order', { nullsFirst: false })
+      pipelineDebug.available = (pipes || []).map(p => ({ id: p.id, name: p.name, tenant_id: p.tenant_id }))
+      
+      // Tenta encontrar "ISAAC" (case-insensitive), senão pega o default ou o primeiro
+      const isaac = (pipes || []).find(p => /isaac/i.test(p.name || ''))
+                || (pipes || []).find(p => p.is_default)
+                || (pipes || [])[0]
+      
       if (isaac) {
         pipeline_id = isaac.id
-        // Atualiza tenant_id para o do pipeline ISAAC se for outro
-        if (isaac.tenant_id) tenant_id = isaac.tenant_id
-        const stages = Array.isArray(isaac.stages) ? isaac.stages : []
-        const novoLead = stages.find(s => /novo\s*lead/i.test(s.name || '')) || stages[0]
+        if (isaac.tenant_id) tenant_id = isaac.tenant_id // alinha tenant_id ao pipeline
+        
+        // 2) Busca as stages desse pipeline em crm_stages
+        const { data: stages } = await sb.from('crm_stages').select('id, name, sort_order').eq('pipeline_id', isaac.id).order('sort_order', { nullsFirst: false })
+        const stagesList = stages || []
+        
+        // Procura "Novo Lead" (case + acento insensitive), senão usa a primeira
+        const normalize = (s) => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim()
+        const novoLead = stagesList.find(s => normalize(s.name) === 'novo lead')
+                     || stagesList.find(s => /novo\s*lead/i.test(s.name || ''))
+                     || stagesList[0]
+        
         if (novoLead?.name) stageName = novoLead.name
-        pipelineDebug.chosen = { name: isaac.name, stageName, stages: stages.map(s => s.name) }
+        pipelineDebug.chosen = { name: isaac.name, stageName, allStages: stagesList.map(s => s.name) }
+      } else {
+        pipelineDebug.chosen = 'nenhum pipeline encontrado'
       }
     } catch (e) { pipelineDebug.error = e.message }
 
