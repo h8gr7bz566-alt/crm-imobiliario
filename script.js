@@ -9083,7 +9083,7 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
 
   // CSS injection
   const css = `
-  #cw-root { position:fixed; bottom:24px; right:24px; z-index:99998; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  #cw-root { position:fixed; bottom:100px; right:28px; z-index:99998; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
   #cw-toggle { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#b8962e 0%,#d4af3e 100%); border:none; cursor:pointer; box-shadow:0 8px 24px rgba(184,150,46,0.4),0 2px 8px rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center; transition:transform .2s; }
   #cw-toggle:hover { transform:scale(1.08) }
   #cw-toggle svg { width:30px; height:30px; color:#fff }
@@ -9117,10 +9117,10 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
   #cw-send:disabled { opacity:.5; cursor:not-allowed; transform:none }
   #cw-send svg { width:16px; height:16px }
   @media (max-width:480px) {
-    #cw-root { bottom:16px; right:16px }
-    #cw-toggle { width:56px; height:56px }
-    #cw-toggle svg { width:26px; height:26px }
-    #cw-panel { width:calc(100vw - 32px); height:calc(100vh - 100px); bottom:72px }
+    #cw-root { bottom:96px; right:16px }  /* WhatsApp mobile fica em bottom:18 + 56 + 8 ≈ 82 */
+    #cw-toggle { width:52px; height:52px }
+    #cw-toggle svg { width:24px; height:24px }
+    #cw-panel { width:calc(100vw - 32px); height:calc(100vh - 180px); bottom:68px; max-height:480px }
   }
   `
   const styleEl = document.createElement('style'); styleEl.textContent = css; document.head.appendChild(styleEl)

@@ -995,3 +995,10 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
     scroll-snap-stop: always;
   }
 }
+
+
+/* WhatsApp float: ajuste mobile pra não conflitar com chatbot */
+@media (max-width: 480px) {
+  .wa-float { bottom: 18px; right: 16px; width: 52px; height: 52px; }
+  .wa-float svg { width: 26px !important; height: 26px !important; }
+}

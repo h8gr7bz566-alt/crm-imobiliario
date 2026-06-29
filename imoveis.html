@@ -49,7 +49,15 @@ fbq('track', 'PageView');
     gtag('config', 'G-YG0CJHPW7D');
   </script>
   <!-- End Google Analytics -->
-</head>
+<style id="ai-search-mobile">
+  @media (max-width: 600px) {
+    #ai-home-form, #ai-search-form { flex-wrap: wrap !important; }
+    #ai-home-input, #ai-search-input { flex: 1 1 100% !important; }
+    #ai-home-btn, #ai-search-btn { width: 100%; flex: 1 1 100% !important; }
+    .hero-ai-search { margin-bottom: 24px !important; }
+  }
+  </style>
+  </head>
 <body>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=660044113549849&ev=PageView&noscript=1"/></noscript>
 
