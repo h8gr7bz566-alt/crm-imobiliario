@@ -4,7 +4,7 @@
 // Modes: 'search', 'chat', 'qa', 'similar'
 
 const ALLOWED = ['https://omarcorretor.com.br', 'https://www.omarcorretor.com.br', 'http://localhost:5173']
-const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-flash-latest']
+const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest']  // só os que confirmadamente funcionam
 
 export default async function handler(req, res) {
   // CORS
@@ -67,7 +67,7 @@ CANDIDATOS: ${JSON.stringify(context.candidates || [], null, 2)}`,
       systemInstruction: { parts: [{ text: systemPrompt }] },
       generationConfig: {
         temperature: (mode === 'search' || mode === 'similar') ? 0.1 : 0.7,
-        maxOutputTokens: (mode === 'qa' || mode === 'chat') ? 300 : 800,
+        maxOutputTokens: (mode === 'qa' || mode === 'chat') ? 600 : 1500,  // 2.5 usa tokens pra thinking
       },
       safetySettings: [
         { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
