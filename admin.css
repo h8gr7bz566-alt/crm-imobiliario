@@ -4766,16 +4766,21 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   .topnav-user-info { display: none !important; }
   .topnav-avatar-circle { width: 36px !important; height: 36px !important; }
   
-  /* Menu hamburguer */
+  /* Menu hamburguer — overrides explícitos pra vencer regras antigas */
   .topnav-links { 
-    position: fixed; top: 56px; left: 0; right: 0;
-    background: #fff; flex-direction: column; align-items: stretch;
-    padding: 8px; gap: 4px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.1);
+    display: flex !important;
+    position: fixed !important; top: 56px !important; left: 0 !important; right: 0 !important;
+    background: #fff !important; flex-direction: column !important; align-items: stretch !important;
+    padding: 8px !important; gap: 4px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,.1) !important;
     transform: translateY(-120%); transition: transform 0.25s;
-    z-index: 9000;
+    z-index: 9000 !important;
+    visibility: hidden;
   }
-  .topnav-links.open { transform: translateY(0); }
+  .topnav-links.open { 
+    transform: translateY(0) !important;
+    visibility: visible !important;
+  }
   .topnav-link { width: 100%; text-align: left; padding: 12px 14px !important; font-size: 14px !important; }
   
   /* ── Dashboard: KPIs em grid 2 colunas ─────────────────────────── */

@@ -3897,7 +3897,7 @@ async function loadNotifications() {
   if (currentProfile?.tenant_id) query = query.eq('tenant_id', currentProfile.tenant_id)
 
   const { data } = await query
-  const leads = data || []
+  const leads = (data || []).filter(l => !notifsDeleted.includes(String(l.id)))
 
   const unread = leads.filter(l => !notifsRead.includes(String(l.id)))
   const badge = document.getElementById('notif-badge')
@@ -3917,12 +3917,13 @@ async function loadNotifications() {
     const ago = timeAgo(l.created_at)
     const isUnread = !notifsRead.includes(String(l.id))
     return `
-      <div class="notif-item${isUnread ? ' unread' : ''}" data-id="${l.id}">
+      <div class="notif-item${isUnread ? ' unread' : ''}" data-id="${l.id}" style="position:relative">
         <div class="notif-item-icon">👤</div>
         <div class="notif-item-body">
           <div class="notif-item-title">Novo lead: ${escapeHTML(l.name || '—')}</div>
           <div class="notif-item-sub">${escapeHTML(l.phone || l.source || '')} · ${ago}</div>
         </div>
+        <button class="notif-item-close" data-id="${l.id}" title="Apagar" style="position:absolute;top:8px;right:8px;background:transparent;border:none;color:#94a3b8;cursor:pointer;width:24px;height:24px;border-radius:4px;font-size:16px;line-height:1;padding:0">×</button>
       </div>`
   }).join('')
 
@@ -9697,24 +9698,58 @@ if (_origNotifBtn && !_origNotifBtn._pushWired) {
 setTimeout(() => { updatePushStatusCard(); wirePushStatusCard() }, 1500)
 
 
-// ─── Mobile hamburger menu toggle ──────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  const hamburger = document.getElementById('topnav-hamburger')
-  const links = document.getElementById('topnav-links')
-  if (hamburger && links) {
-    hamburger.addEventListener('click', e => {
-      e.stopPropagation()
-      links.classList.toggle('open')
+// ─── Hamburger mobile: event delegation (sempre funciona, qualquer momento) ──
+document.addEventListener('click', function(e) {
+  // Clique no hamburger
+  if (e.target.closest('#topnav-hamburger')) {
+    e.preventDefault()
+    e.stopPropagation()
+    const links = document.getElementById('topnav-links')
+    links?.classList.toggle('open')
+    return
+  }
+  // Clique em link do menu — fecha
+  if (e.target.closest('#topnav-links .topnav-link')) {
+    document.getElementById('topnav-links')?.classList.remove('open')
+    return
+  }
+  // Clique fora do menu — fecha
+  if (!e.target.closest('#topnav-links') && !e.target.closest('#topnav-hamburger')) {
+    document.getElementById('topnav-links')?.classList.remove('open')
+  }
+}, true)
+
+
+// ─── Apagar notificações ──────────────────────────────────────────
+let notifsDeleted = JSON.parse(localStorage.getItem('crm_notifs_deleted') || '[]')
+
+document.addEventListener('click', e => {
+  // Botão "Apagar todas"
+  if (e.target.id === 'notif-clear-all') {
+    e.stopPropagation()
+    if (!confirm('Apagar todas as notificações? Elas não aparecem mais aqui (mas os leads continuam no CRM).')) return
+    // Marca TODOS leads atuais como deletados das notificações
+    const list = document.getElementById('notif-list')
+    const items = list?.querySelectorAll('[data-id]') || []
+    items.forEach(i => {
+      const id = i.dataset.id
+      if (id && !notifsDeleted.includes(id)) notifsDeleted.push(id)
     })
-    // Fecha menu ao clicar em qualquer link
-    links.addEventListener('click', e => {
-      if (e.target.closest('.topnav-link')) links.classList.remove('open')
-    })
-    // Fecha ao clicar fora
-    document.addEventListener('click', e => {
-      if (!e.target.closest('#topnav-links') && !e.target.closest('#topnav-hamburger')) {
-        links.classList.remove('open')
-      }
-    })
+    localStorage.setItem('crm_notifs_deleted', JSON.stringify(notifsDeleted))
+    if (typeof loadNotifications === 'function') loadNotifications()
+    updateAppBadge(0)
+    return
+  }
+  // Botão "x" individual em cada notificação
+  const closeBtn = e.target.closest('.notif-item-close')
+  if (closeBtn) {
+    e.stopPropagation()
+    const id = closeBtn.dataset.id
+    if (id) {
+      if (!notifsDeleted.includes(id)) notifsDeleted.push(id)
+      localStorage.setItem('crm_notifs_deleted', JSON.stringify(notifsDeleted))
+      closeBtn.closest('[data-id]')?.remove()
+      if (typeof loadNotifications === 'function') loadNotifications()
+    }
   }
 })
