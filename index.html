@@ -180,17 +180,17 @@ fbq('track', 'PageView');
   </div>
 
   <!-- ── Busca com IA ─────────────────────────────────────────────── -->
-  <div class="hero-ai-search" style="max-width:760px;margin:0 auto 18px;padding:0 24px;position:relative;z-index:2;">
+  <div class="hero-ai-search" style="max-width:760px;margin:0 auto 40px;padding:0 24px;position:relative;z-index:2;">
     <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:10px;color:#b8962e;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
       <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2L9.5 8.5L3 11l6.5 2.5L12 20l2.5-6.5L21 11l-6.5-2.5z"/></svg>
       Busca inteligente · Pergunte em linguagem natural
     </div>
-    <form id="ai-home-form" style="display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;">
+    <form id="ai-home-form" style="display:flex;gap:10px;flex-wrap:nowrap;align-items:stretch;">
       <input id="ai-home-input" type="text" placeholder="Ex: apto 3 quartos em BC até 800 mil"
-        style="flex:1 1 320px;min-width:0;padding:14px 18px;border-radius:10px;border:2px solid rgba(255,255,255,0.18);background:rgba(13,30,54,0.85);backdrop-filter:blur(8px);color:#fff;font-size:15px;outline:none;"
+        style="flex:1 1 auto;min-width:0;padding:14px 18px;border-radius:10px;border:2px solid rgba(255,255,255,0.18);background:rgba(13,30,54,0.85);backdrop-filter:blur(8px);color:#fff;font-size:15px;outline:none;"
         onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='rgba(255,255,255,0.18)'"/>
       <button type="submit" id="ai-home-btn"
-        style="padding:14px 24px;background:#b8962e;border:none;border-radius:10px;color:#0d1e36;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:0.04em;">
+        style="flex-shrink:0;padding:14px 24px;background:#b8962e;border:none;border-radius:10px;color:#0d1e36;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:0.04em;white-space:nowrap;">
         Buscar com IA
       </button>
     </form>
