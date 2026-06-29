@@ -1,5 +1,6 @@
 // script.js — Supabase Integration
 import { supabase } from './lib/supabase.js'
+if (typeof window !== 'undefined') window.supabase = supabase
 import {
   loadAllSettings, getSetting, getContent,
   saveMultipleSettings, saveSetting, saveContent, saveIntegration,
@@ -9072,3 +9073,257 @@ function _dbRenderPortfolio(properties, leads) {
 
 // Expor openTarefaModal globalmente pro onclick inline dos cards
 if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaModal
+
+// ─── Chatbot IA — Qualifica visitante e cria lead no CRM automaticamente ───
+;(function(){
+  // Não inicializa em páginas admin/CRM ou se já existir
+  const PATH = (typeof location !== 'undefined') ? location.pathname : ''
+  if (/\/(admin|ios\.imobi)/i.test(PATH)) return
+  if (document.getElementById('cw-root')) return
+
+  // CSS injection
+  const css = `
+  #cw-root { position:fixed; bottom:24px; right:24px; z-index:99998; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  #cw-toggle { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#b8962e 0%,#d4af3e 100%); border:none; cursor:pointer; box-shadow:0 8px 24px rgba(184,150,46,0.4),0 2px 8px rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center; transition:transform .2s; }
+  #cw-toggle:hover { transform:scale(1.08) }
+  #cw-toggle svg { width:30px; height:30px; color:#fff }
+  #cw-toggle.has-msg::after { content:''; position:absolute; top:6px; right:6px; width:14px; height:14px; background:#ef4444; border-radius:50%; border:2px solid #fff; animation:cw-pulse 1.8s infinite }
+  @keyframes cw-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+  #cw-panel { display:none; position:absolute; bottom:80px; right:0; width:360px; max-width:calc(100vw - 40px); height:520px; max-height:calc(100vh - 120px); background:#fff; border-radius:16px; box-shadow:0 24px 60px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08); flex-direction:column; overflow:hidden; }
+  #cw-panel.open { display:flex }
+  #cw-header { background:linear-gradient(135deg,#0f1c2e 0%,#1a2f4a 100%); color:#fff; padding:16px 18px; display:flex; align-items:center; gap:12px; }
+  #cw-header-avatar { width:42px; height:42px; border-radius:50%; background:#b8962e; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:18px; font-weight:700; color:#0d1e36 }
+  #cw-header-info { flex:1; min-width:0 }
+  #cw-header-name { font-size:14px; font-weight:600; margin:0 0 2px }
+  #cw-header-status { font-size:11px; color:rgba(255,255,255,0.7); display:flex; align-items:center; gap:5px }
+  #cw-header-status::before { content:''; width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,0.25) }
+  #cw-close { background:transparent; border:none; color:#fff; cursor:pointer; padding:6px; opacity:.7; border-radius:6px; transition:opacity .15s }
+  #cw-close:hover { opacity:1; background:rgba(255,255,255,0.1) }
+  #cw-messages { flex:1; overflow-y:auto; padding:16px; background:#f8fafc; display:flex; flex-direction:column; gap:10px }
+  .cw-msg { max-width:80%; padding:10px 14px; border-radius:14px; font-size:13.5px; line-height:1.45; word-wrap:break-word; animation:cw-fade .3s }
+  @keyframes cw-fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .cw-msg.bot { background:#fff; border:1px solid #e2e8f0; align-self:flex-start; color:#0f172a }
+  .cw-msg.user { background:#b8962e; color:#fff; align-self:flex-end; border-bottom-right-radius:4px }
+  .cw-typing { background:#fff; border:1px solid #e2e8f0; padding:12px 16px; border-radius:14px; align-self:flex-start; display:inline-flex; gap:4px }
+  .cw-typing span { width:7px; height:7px; border-radius:50%; background:#94a3b8; animation:cw-bounce 1.4s infinite }
+  .cw-typing span:nth-child(2) { animation-delay:.2s }
+  .cw-typing span:nth-child(3) { animation-delay:.4s }
+  @keyframes cw-bounce { 0%,80%,100%{transform:translateY(0);opacity:.5} 40%{transform:translateY(-6px);opacity:1} }
+  #cw-input-area { border-top:1px solid #e2e8f0; padding:12px; background:#fff; display:flex; gap:8px }
+  #cw-input { flex:1; padding:10px 14px; border:1px solid #e2e8f0; border-radius:20px; font-size:13.5px; font-family:inherit; outline:none; transition:border-color .15s }
+  #cw-input:focus { border-color:#b8962e }
+  #cw-send { background:#b8962e; border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:transform .12s }
+  #cw-send:hover { transform:scale(1.08) }
+  #cw-send:disabled { opacity:.5; cursor:not-allowed; transform:none }
+  #cw-send svg { width:16px; height:16px }
+  @media (max-width:480px) {
+    #cw-root { bottom:16px; right:16px }
+    #cw-toggle { width:56px; height:56px }
+    #cw-toggle svg { width:26px; height:26px }
+    #cw-panel { width:calc(100vw - 32px); height:calc(100vh - 100px); bottom:72px }
+  }
+  `
+  const styleEl = document.createElement('style'); styleEl.textContent = css; document.head.appendChild(styleEl)
+
+  // HTML
+  const root = document.createElement('div')
+  root.id = 'cw-root'
+  root.innerHTML = `
+    <div id="cw-panel">
+      <div id="cw-header">
+        <div id="cw-header-avatar">I</div>
+        <div id="cw-header-info">
+          <div id="cw-header-name">Assistente Isaac Omar</div>
+          <div id="cw-header-status">Online · responde rápido</div>
+        </div>
+        <button id="cw-close" title="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="cw-messages"></div>
+      <form id="cw-input-area">
+        <input id="cw-input" type="text" placeholder="Digite sua mensagem…" autocomplete="off"/>
+        <button id="cw-send" type="submit" title="Enviar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </form>
+    </div>
+    <button id="cw-toggle" title="Falar com Isaac" class="has-msg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </button>
+  `
+  document.body.appendChild(root)
+
+  // Estado
+  const messagesEl = document.getElementById('cw-messages')
+  const inputEl    = document.getElementById('cw-input')
+  const sendBtn    = document.getElementById('cw-send')
+  const panel      = document.getElementById('cw-panel')
+  const toggle     = document.getElementById('cw-toggle')
+  const closeBtn   = document.getElementById('cw-close')
+  const inputForm  = document.getElementById('cw-input-area')
+  const history    = [] // {role:'user'|'model', text}
+  let leadCreated = false
+
+  function addMsg(text, role) {
+    const div = document.createElement('div')
+    div.className = 'cw-msg ' + (role === 'user' ? 'user' : 'bot')
+    div.textContent = text
+    messagesEl.appendChild(div)
+    messagesEl.scrollTop = messagesEl.scrollHeight
+    return div
+  }
+
+  function addTyping() {
+    const d = document.createElement('div')
+    d.className = 'cw-typing'
+    d.id = 'cw-typing'
+    d.innerHTML = '<span></span><span></span><span></span>'
+    messagesEl.appendChild(d)
+    messagesEl.scrollTop = messagesEl.scrollHeight
+    return d
+  }
+  function removeTyping() { document.getElementById('cw-typing')?.remove() }
+
+  // Toggle painel
+  toggle.addEventListener('click', () => {
+    panel.classList.add('open')
+    toggle.style.display = 'none'
+    toggle.classList.remove('has-msg')
+    inputEl.focus()
+    if (!history.length) startConversation()
+  })
+  closeBtn.addEventListener('click', () => {
+    panel.classList.remove('open')
+    toggle.style.display = 'flex'
+  })
+
+  async function startConversation() {
+    addMsg('Olá! 👋 Sou o assistente do corretor Isaac Omar. Em poucas perguntas eu vou entender o que você procura e o Isaac entra em contato. Posso começar?', 'bot')
+  }
+
+  async function sendToAI(userText) {
+    history.push({ role: 'user', text: userText })
+    addMsg(userText, 'user')
+    inputEl.value = ''
+    sendBtn.disabled = true
+    addTyping()
+
+    try {
+      // Constrói o prompt com histórico
+      const conversationContext = history.map(h => (h.role === 'user' ? 'Visitante: ' : 'Você: ') + h.text).join('\n')
+      const r = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'chat', prompt: conversationContext }),
+      })
+      const data = await r.json()
+      removeTyping()
+
+      if (!r.ok) {
+        addMsg('Desculpa, tive um probleminha técnico. Pode falar direto no WhatsApp (47) 99970-1743?', 'bot')
+        return
+      }
+
+      const botText = data.text || ''
+      
+      // Detectar trigger de criar lead
+      if (botText.includes('PRONTO_PARA_CRIAR_LEAD')) {
+        const jsonMatch = botText.match(/\{[\s\S]+\}/)
+        let leadData = {}
+        if (jsonMatch) {
+          try { leadData = JSON.parse(jsonMatch[0]) } catch(e) {}
+        }
+        await createLead(leadData)
+        return
+      }
+
+      history.push({ role: 'model', text: botText })
+      addMsg(botText, 'bot')
+    } catch (e) {
+      removeTyping()
+      addMsg('Tive um problema de conexão. Tenta de novo ou chama no WhatsApp: (47) 99970-1743', 'bot')
+    } finally {
+      sendBtn.disabled = false
+      inputEl.focus()
+    }
+  }
+
+  async function createLead(d) {
+    if (leadCreated) return
+    leadCreated = true
+
+    // Tracking — captura UTMs da URL atual
+    const urlParams = new URLSearchParams(location.search)
+    const getCookie = (n) => {
+      const m = document.cookie.split('; ').find(c => c.startsWith(n + '='))
+      return m ? m.split('=')[1] : null
+    }
+    const utm = {
+      utm_source: urlParams.get('utm_source'),
+      utm_medium: urlParams.get('utm_medium'),
+      utm_campaign: urlParams.get('utm_campaign'),
+      utm_content: urlParams.get('utm_content'),
+      utm_term: urlParams.get('utm_term'),
+      fbclid: urlParams.get('fbclid'),
+      gclid: urlParams.get('gclid'),
+      fbp: getCookie('_fbp'),
+      fbc: getCookie('_fbc'),
+      landing_url: location.href,
+      user_agent: navigator.userAgent,
+    }
+
+    // Resumo do que o lead disse, pra colar em notes
+    const summary = []
+    if (d.intencao || d['intenção'] || d.tipo_negocio) summary.push('Intenção: ' + (d.intencao || d['intenção'] || d.tipo_negocio))
+    if (d.tipo || d.tipo_imovel) summary.push('Tipo: ' + (d.tipo || d.tipo_imovel))
+    if (d.cidade || d.bairro) summary.push('Local: ' + [d.cidade, d.bairro].filter(Boolean).join(' / '))
+    if (d.orcamento || d['orçamento'] || d.budget) summary.push('Orçamento: ' + (d.orcamento || d['orçamento'] || d.budget))
+    if (d.dormitorios || d['dormitórios'] || d.quartos) summary.push('Dorms: ' + (d.dormitorios || d['dormitórios'] || d.quartos))
+    const notes = summary.join('\n')
+
+    const row = {
+      name:    d.nome || d.name || 'Lead via chat',
+      phone:   d.telefone || d.phone || d.whatsapp || '',
+      email:   d.email || '',
+      source:  'Chat IA',
+      stage:   'Visita',
+      status:  'morno',
+      notes,
+      ...utm,
+    }
+
+    try {
+      // Usa a supabase global se disponível (script.js a importa)
+      if (typeof window.supabase === 'undefined' && typeof supabase !== 'undefined') {
+        window.supabase = supabase
+      }
+      const sb = window.supabase || (typeof supabase !== 'undefined' ? supabase : null)
+      if (!sb) {
+        addMsg('Pronto! 🎉 Anotei tudo aqui. O Isaac entra em contato em breve.', 'bot')
+        return
+      }
+      const { error } = await sb.from('leads').insert(row)
+      if (error) {
+        console.error('[Chatbot] erro ao criar lead:', error)
+        addMsg('Pronto! Anotei suas informações. O Isaac entra em contato em breve no WhatsApp.', 'bot')
+        return
+      }
+      // Sucesso
+      addMsg('🎉 Pronto! Recebi tudo. O Isaac já foi notificado e vai te chamar logo mais. Se preferir, pode falar direto: wa.me/5547999701743', 'bot')
+      // Meta Pixel — Lead
+      if (typeof fbq === 'function') fbq('track', 'Lead')
+    } catch (e) {
+      console.error('[Chatbot]', e)
+      addMsg('Anotei aqui! O Isaac vai te chamar em breve.', 'bot')
+    }
+  }
+
+  // Form submit
+  inputForm.addEventListener('submit', e => {
+    e.preventDefault()
+    const t = inputEl.value.trim()
+    if (!t) return
+    sendToAI(t)
+  })
+})()
