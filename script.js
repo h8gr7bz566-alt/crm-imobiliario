@@ -9294,28 +9294,25 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
     }
 
     try {
-      // Usa a supabase global se disponível (script.js a importa)
-      if (typeof window.supabase === 'undefined' && typeof supabase !== 'undefined') {
-        window.supabase = supabase
-      }
-      const sb = window.supabase || (typeof supabase !== 'undefined' ? supabase : null)
-      if (!sb) {
-        addMsg('Pronto! 🎉 Anotei tudo aqui. O Isaac entra em contato em breve.', 'bot')
+      // Usa endpoint backend com service role (burla RLS pra visitante anônimo)
+      const r = await fetch('/api/chatbot-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(row),
+      })
+      const result = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        console.error('[Chatbot] erro:', result)
+        addMsg('Anotei suas informações! Mas tive um problema técnico de gravação. Por favor chama direto: wa.me/5547999701743', 'bot')
         return
       }
-      const { error } = await sb.from('leads').insert(row)
-      if (error) {
-        console.error('[Chatbot] erro ao criar lead:', error)
-        addMsg('Pronto! Anotei suas informações. O Isaac entra em contato em breve no WhatsApp.', 'bot')
-        return
-      }
-      // Sucesso
+      console.log('[Chatbot] lead criado:', result)
       addMsg('🎉 Pronto! Recebi tudo. O Isaac já foi notificado e vai te chamar logo mais. Se preferir, pode falar direto: wa.me/5547999701743', 'bot')
       // Meta Pixel — Lead
       if (typeof fbq === 'function') fbq('track', 'Lead')
     } catch (e) {
       console.error('[Chatbot]', e)
-      addMsg('Anotei aqui! O Isaac vai te chamar em breve.', 'bot')
+      addMsg('Anotei aqui! O Isaac vai te chamar em breve. Pra garantir, pode chamar direto no WhatsApp: wa.me/5547999701743', 'bot')
     }
   }
 
