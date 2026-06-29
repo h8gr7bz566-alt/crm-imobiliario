@@ -4,7 +4,7 @@
 // Modes: 'search' (parsa busca natural), 'chat' (conversa qualificadora), 'qa' (Q&A sobre imóvel), 'similar' (recomendações)
 
 const ALLOWED = ['https://omarcorretor.com.br', 'https://www.omarcorretor.com.br', 'http://localhost:5173']
-const MODEL = 'gemini-2.0-flash'
+const MODELS = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash']
 
 export default async function handler(req, res) {
   // CORS
@@ -62,7 +62,6 @@ LISTA DE CANDIDATOS: ${JSON.stringify(context.candidates || [], null, 2)}`,
 
   const systemPrompt = systems[mode] || systems.chat
   
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`
   const body = {
     contents: [
       { role: 'user', parts: [{ text: prompt }] }
@@ -78,18 +77,34 @@ LISTA DE CANDIDATOS: ${JSON.stringify(context.candidates || [], null, 2)}`,
     ],
   }
 
-  try {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    if (!r.ok) {
+  // Tenta cada modelo até um funcionar (lida com 429/quota)
+  let r, text, lastErr
+  for (const model of MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+    try {
+      r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (r.ok) {
+        const data = await r.json()
+        text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+        break
+      }
       const txt = await r.text()
-      return res.status(r.status).json({ error: 'Gemini error', detail: txt })
+      lastErr = { status: r.status, detail: txt, model }
+      // Se for 429 (quota) ou 503 (overloaded), tenta próximo modelo
+      if (r.status !== 429 && r.status !== 503) {
+        return res.status(r.status).json({ error: 'Gemini error', detail: txt, model })
+      }
+    } catch (e) {
+      lastErr = { status: 0, detail: e.message, model }
     }
-    const data = await r.json()
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  }
+  if (!text) {
+    return res.status(429).json({ error: 'Todos os modelos esgotados ou em sobrecarga', detail: lastErr })
+  }
     
     // Tentar parsear JSON se for modo search ou similar
     let parsed = null
