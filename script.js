@@ -9540,20 +9540,58 @@ function wirePushStatusCard() {
   
   testBtn?.addEventListener('click', async () => {
     testBtn.disabled = true; testBtn.textContent = 'Enviando…'
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
+    
+    // Mostra mensagem ANTES de enviar (iOS suprime quando app está em foreground)
+    const subEl = document.getElementById('push-status-sub')
+    const origSub = subEl?.textContent || ''
+    
+    if (isIOS) {
+      if (subEl) subEl.innerHTML = '<strong style="color:#06b6d4">⏰ Feche o app agora!</strong><br><span style="font-size:10px">A notificação chega em 5s. Volte pra tela inicial pra ver.</span>'
+    }
+    
     try {
-      // Dispara push pra todos do tenant (pra testar o pipeline real)
-      await fetch('/api/notify', {
+      const r = await fetch('/api/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantId: currentProfile?.tenant_id,
           title: '🧪 Teste IOS Imobi',
-          body: 'Push notifications funcionam! Você receberá alertas de leads e tarefas.',
+          body: 'Funciona! Você vai receber assim alertas de leads e tarefas.',
           url: 'https://omarcorretor.com.br/ios.imobi',
         })
       })
+      const data = await r.json().catch(() => ({}))
+      console.log('[push test]', data)
+      
+      // Mostra resultado
+      if (subEl) {
+        if (data.ok && data.sent > 0) {
+          subEl.innerHTML = `<strong style="color:#16a34a">✓ Enviado pra ${data.sent} aparelho${data.sent > 1 ? 's' : ''}</strong>` + (isIOS ? '<br><span style="font-size:10px">Se não viu, feche o app e tente de novo</span>' : '')
+        } else {
+          subEl.innerHTML = `<strong style="color:#ef4444">⚠ Não enviou (${data.errors?.length || 0} erros)</strong><br><span style="font-size:10px">${(data.errors?.[0]?.msg || data.error || 'sem subs').slice(0,60)}</span>`
+        }
+      }
+      
+      // Se for o próprio aparelho, mostra notificação local também como fallback iOS
+      if (data.ok && data.sent > 0 && 'serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.getRegistration()
+          if (reg && Notification.permission === 'granted') {
+            await reg.showNotification('🧪 Teste IOS Imobi', {
+              body: 'Funciona! Você vai receber assim alertas de leads e tarefas.',
+              icon: '/logo.png',
+              badge: '/logo.png',
+              requireInteraction: true,
+            })
+          }
+        } catch(e) { console.warn('[local notif]', e) }
+      }
+    } catch (e) {
+      if (subEl) subEl.innerHTML = '<strong style="color:#ef4444">⚠ Erro de rede</strong>'
     } finally {
-      setTimeout(() => { testBtn.disabled = false; testBtn.textContent = '🧪 Enviar notificação de teste' }, 1500)
+      setTimeout(() => { testBtn.disabled = false; testBtn.textContent = '🧪 Enviar notificação de teste' }, 3000)
+      setTimeout(() => { if (subEl) subEl.textContent = origSub }, 15000)
     }
   })
 }
