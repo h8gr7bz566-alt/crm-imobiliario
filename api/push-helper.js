@@ -14,6 +14,8 @@ function sb() {
 }
 
 let _vapidSet = false
+
+
 function ensureVapid() {
   if (_vapidSet) return
   webpush.setVapidDetails(
