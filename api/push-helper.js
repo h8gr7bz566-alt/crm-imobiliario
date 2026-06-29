@@ -16,6 +16,32 @@ function sb() {
 let _vapidSet = false
 
 
+
+// ─── Email notification via Resend (bulletproof — iPhone Mail entrega sempre) ──
+async function sendEmail(title, body, url) {
+  const apiKey = process.env.RESEND_API_KEY
+  const to     = process.env.NOTIFY_EMAIL || 'isaacomar11@icloud.com'
+  const from   = process.env.RESEND_FROM || 'IOS Imobi <onboarding@resend.dev>'
+  if (!apiKey) return { skipped: 'no RESEND_API_KEY' }
+  try {
+    const html = `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:560px;margin:0 auto;padding:20px;background:#f8fafc;border-radius:12px">
+        <h2 style="color:#0f1c2e;margin:0 0 12px;font-size:20px">${title}</h2>
+        <p style="color:#475569;font-size:15px;line-height:1.6;white-space:pre-wrap">${body.replace(/</g,'&lt;')}</p>
+        ${url ? `<a href="${url}" style="display:inline-block;margin-top:14px;padding:12px 24px;background:#b8962e;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Abrir no CRM</a>` : ''}
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
+        <p style="color:#94a3b8;font-size:12px">Você recebeu este email porque é admin do IOS Imobi.</p>
+      </div>`
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to, subject: title, html, text: body + (url ? '\n' + url : '') }),
+    })
+    const data = await r.json()
+    return { ok: !!data.id, id: data.id, error: data.message }
+  } catch (e) { return { error: e.message } }
+}
+
 function ensureVapid() {
   if (_vapidSet) return
   webpush.setVapidDetails(
@@ -57,7 +83,10 @@ export async function sendPushToUsers(opts) {
     .select('endpoint, p256dh, auth, user_id')
     .in('user_id', targetUserIds)
 
-  if (!subs || subs.length === 0) return { sent: 0, errors: ['no subscriptions for users'], userIds: targetUserIds }
+  if (!subs || subs.length === 0) {
+    const email = await sendEmail(opts.title, opts.body, opts.url)
+    return { sent: 0, errors: ['no subscriptions for users'], userIds: targetUserIds, email }
+  }
 
   const payload = JSON.stringify({
     title: opts.title,
@@ -85,5 +114,7 @@ export async function sendPushToUsers(opts) {
       errors.push({ endpoint: sub.endpoint.slice(0, 40), status: e.statusCode, msg: e.message?.slice(0, 100) })
     }
   }
-  return { sent, errors, totalSubs: subs.length }
+  // Email em paralelo (sempre dispara, garantido)
+  const email = await sendEmail(opts.title, opts.body, opts.url)
+  return { sent, errors, totalSubs: subs.length, email }
 }
