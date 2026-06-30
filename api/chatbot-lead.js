@@ -100,21 +100,40 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Falha ao inserir lead', detail: error.message, code: error.code })
     }
     
-    // Dispara push notification pros admins do tenant (BLOQUEANTE pra retornar status)
-    let pushResult = null
+    // BRUTAL DIRECT: envia pra TODAS as subscriptions (mesma lógica do /api/push-debug?send=1 que funciona)
+    let pushResult = { sent: 0, errors: [], totalSubs: 0 }
     try {
-      const { sendPushToUsers } = await import('./push-helper.js')
-      pushResult = await sendPushToUsers({
-        tenantId: tenant_id,
-        roles: ['admin', 'super_admin', 'corretor'],
+      const webpush = (await import('web-push')).default
+      webpush.setVapidDetails(
+        'mailto:isaacomar11@icloud.com',
+        process.env.VAPID_PUBLIC,
+        process.env.VAPID_PRIVATE
+      )
+      const { data: allSubs } = await sb.from('push_subscriptions').select('*')
+      pushResult.totalSubs = allSubs?.length || 0
+      const payload = JSON.stringify({
         title: '🎯 Novo lead — Chat IA',
         body: `${name}${phone ? ' • ' + phone : ''}${notes ? ' • ' + notes.split('\n')[0] : ''}`,
         url: `https://omarcorretor.com.br/ios.imobi#lead=${inserted.id}`,
       })
+      for (const sub of (allSubs || [])) {
+        try {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload
+          )
+          pushResult.sent++
+        } catch (e) {
+          pushResult.errors.push({ status: e.statusCode, msg: e.message?.slice(0, 100) })
+          if (e.statusCode === 410 || e.statusCode === 404) {
+            await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+          }
+        }
+      }
       console.log('[push chatbot]', pushResult)
     } catch(e) {
-      console.error('[push falhou]', e)
-      pushResult = { error: e.message }
+      console.error('[push erro]', e)
+      pushResult.error = e.message
     }
     
     return res.status(200).json({ ok: true, leadId: inserted?.id, name, pipeline: pipelineDebug.chosen, push: pushResult })
