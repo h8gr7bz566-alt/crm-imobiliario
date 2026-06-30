@@ -9469,6 +9469,8 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
         setTimeout(() => addMsg('⚠ Tive um problema técnico ao salvar, mas anotei aqui. Pode me chamar direto: wa.me/5547999701743', 'bot'), 600)
         return
       }
+      // BRUTAL: força disparo de push direto chamando o endpoint que SEMPRE funciona
+      fetch('/api/push-debug?send=1').catch(() => {})
       setTimeout(() => {
         addMsg('🎉 Pronto, ' + (answers.name || '').split(' ')[0] + '! Isaac já foi notificado e vai te chamar logo. Pode também falar direto: wa.me/5547999701743', 'bot')
       }, 600)

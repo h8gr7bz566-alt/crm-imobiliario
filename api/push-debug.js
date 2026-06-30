@@ -55,9 +55,9 @@ export default async function handler(req, res) {
           await webpush.sendNotification(
             { endpoint: full.endpoint, keys: { p256dh: full.p256dh, auth: full.auth } },
             JSON.stringify({
-              title: '🧪 Teste IOS Imobi',
-              body: 'Se você está vendo isso, push funciona!',
-              url: 'https://omarcorretor.com.br/ios.imobi',
+              title: req.query?.title || '🎯 Novo lead!',
+              body: req.query?.body || 'Acesse o CRM pra ver detalhes',
+              url: req.query?.url || 'https://omarcorretor.com.br/ios.imobi',
             })
           )
           results.push({ id: sub.id, status: 'sent', user_agent: sub.user_agent?.slice(0, 50) })
