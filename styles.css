@@ -1028,3 +1028,353 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   IMOVEIS PAGE — PLAY-STYLE REDESIGN
+   Cards horizontais · Filtros em pills · Mapa Leaflet
+════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Page background ─────────────────────────────────────────── */
+.imoveis-dark-page { background: #f0f2f5; }
+
+/* ── Pill filter bar ─────────────────────────────────────────── */
+.im-pill-bar {
+  background: #111827;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 80;
+}
+.im-pill-bar-left  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
+.im-pill-bar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.im-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.im-pill select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #1e2535;
+  border: 1.5px solid #2e3a52;
+  border-radius: 20px;
+  padding: 7px 30px 7px 14px;
+  color: #c9d4e8;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 90px;
+  transition: border-color .2s, background .2s;
+  outline: none;
+  font-family: inherit;
+}
+.im-pill select:hover,
+.im-pill select:focus { border-color: #c9a84c; background: #232d42; }
+.im-pill select option { background: #1e2535; color: #c9d4e8; }
+.im-pill-chev {
+  position: absolute;
+  right: 10px;
+  pointer-events: none;
+  color: #6b7fa3;
+  font-size: 10px;
+  line-height: 1;
+}
+.im-pill-label {
+  font-size: 10px;
+  color: #6b7fa3;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 600;
+  padding: 0 4px 0 12px;
+  display: none; /* hidden — label is shown inside select as first option */
+}
+
+/* Count badge next to filter bar */
+.im-count {
+  font-size: 12px;
+  color: rgba(255,255,255,.4);
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+/* Map toggle button */
+.im-map-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1e2535;
+  border: 1.5px solid #2e3a52;
+  border-radius: 20px;
+  padding: 7px 16px;
+  color: #c9d4e8;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.im-map-toggle:hover { border-color: #c9a84c; background: #232d42; }
+.im-map-toggle.active { border-color: #c9a84c; background: rgba(201,168,76,.12); color: #c9a84c; }
+.im-map-switch {
+  width: 32px; height: 16px;
+  background: #2e3a52;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  transition: background .2s;
+}
+.im-map-switch::after {
+  content: '';
+  width: 12px; height: 12px;
+  background: #6b7fa3;
+  border-radius: 50%;
+  transition: transform .2s, background .2s;
+}
+.im-map-toggle.active .im-map-switch { background: rgba(201,168,76,.3); }
+.im-map-toggle.active .im-map-switch::after { transform: translateX(16px); background: #c9a84c; }
+
+/* ── Split layout (list + map) ───────────────────────────────── */
+.im-split-wrap {
+  display: flex;
+  min-height: calc(100vh - 140px);
+}
+.im-list-col {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: #f0f2f5;
+}
+.im-map-col {
+  width: 45%;
+  flex-shrink: 0;
+  position: sticky;
+  top: 54px;
+  height: calc(100vh - 54px);
+  display: none;
+  background: #e8ecf0;
+}
+.im-map-col.visible { display: block; }
+#im-leaflet-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Horizontal card ─────────────────────────────────────────── */
+.imovel-card-h {
+  display: flex;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.05);
+  transition: transform .18s, box-shadow .18s;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+.imovel-card-h:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+}
+
+/* Image side */
+.icard-h-img-wrap {
+  width: 260px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  background: #1f2937;
+}
+.icard-h-img-wrap .icard-img-bg {
+  position: absolute;
+  inset: -20px;
+  width: calc(100% + 40px);
+  height: calc(100% + 40px);
+  object-fit: cover;
+  filter: blur(28px) brightness(0.65);
+  z-index: 0;
+}
+.icard-h-img-wrap .icard-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  display: block;
+  transition: transform .4s;
+}
+.imovel-card-h:hover .icard-h-img-wrap .icard-img { transform: scale(1.04); }
+
+/* Carousel buttons on horizontal card */
+.icard-h-img-wrap .icard-prev { left: 8px; z-index: 5; }
+.icard-h-img-wrap .icard-next { right: 8px; z-index: 5; }
+
+/* Top-left badge on image */
+.icard-h-img-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 4;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+
+/* Content side */
+.icard-h-body {
+  flex: 1;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.icard-h-cat {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.icard-h-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: .01em;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.icard-h-loc {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+.icard-h-ref {
+  display: inline-block;
+  background: rgba(13,33,68,.08);
+  color: #0d2144;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  letter-spacing: .04em;
+  align-self: flex-start;
+  margin: 2px 0;
+}
+.icard-h-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 8px;
+}
+.icard-h-price {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.icard-h-wa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  background: rgba(37,211,102,.1);
+  border-radius: 50%;
+  color: #16a34a;
+  transition: background .2s;
+  text-decoration: none;
+}
+.icard-h-wa:hover { background: rgba(37,211,102,.22); }
+.icard-h-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 4px;
+}
+.icard-h-spec {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #475569;
+}
+.icard-h-spec svg { color: #94a3b8; flex-shrink: 0; }
+
+/* Grid for horizontal cards */
+.imoveis-grid-h {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.imoveis-grid-h .imovel-card-h {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid #e8ecf1;
+  border-right: 1px solid #e8ecf1;
+}
+.imoveis-grid-h .imovel-card-h:nth-child(2n) { border-right: none; }
+.imoveis-grid-h .imovel-card-h:hover { transform: none; box-shadow: none; background: #f8faff; }
+
+/* Map marker popup */
+.im-marker-bubble {
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  border: 2px solid #c9a84c;
+  cursor: pointer;
+}
+.im-marker-bubble.im-marker-hl {
+  background: #c9a84c;
+  color: #0a1628;
+  border-color: #c9a84c;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .imoveis-grid-h { grid-template-columns: 1fr; }
+  .imoveis-grid-h .imovel-card-h { border-right: none; }
+  .icard-h-img-wrap { width: 200px; }
+  .im-map-col { display: none !important; }
+  .im-split-wrap { flex-direction: column; }
+  .im-list-col { padding: 12px; }
+}
+@media (max-width: 600px) {
+  .imovel-card-h { flex-direction: column; }
+  .icard-h-img-wrap { width: 100%; height: 200px; }
+  .im-pill-bar { padding: 10px 16px; gap: 6px; }
+  .im-pill select { font-size: 11.5px; padding: 6px 26px 6px 11px; }
+}

@@ -13,6 +13,7 @@
   <meta property="og:description" content="Casas, apartamentos, terrenos e lançamentos no Sul do Brasil — Isaac Omar Corretor CRECI 69965F.">
   <meta property="og:image" content="https://omarcorretor.com.br/logo.png">
   <meta property="og:locale" content="pt_BR">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="styles.css">
   <script type="module" src="./script.js"></script>
   <link rel="shortcut icon" href="/favicon.ico?v=5">
@@ -57,7 +58,8 @@ fbq('track', 'PageView');
     .hero-ai-search { margin-bottom: 24px !important; }
   }
   </style>
-  </head>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
 <body>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=660044113549849&ev=PageView&noscript=1"/></noscript>
 
@@ -149,101 +151,115 @@ function closeMobileNav(){
 </script>
 
 
-  <!-- ── Banner da página ─────────────────────────────────────────────── -->
-  <div style="background:linear-gradient(135deg,#0f1c2e 0%,#1a2f4a 100%);padding:56px 24px 40px;text-align:center;">
-    <p style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#b8962e;margin:0 0 10px;">Portfólio completo</p>
-    <h1 style="font-size:36px;font-weight:700;color:#fff;margin:0 0 10px;line-height:1.2;">Todos os Imóveis Disponíveis</h1>
-    <p style="font-size:15px;color:rgba(255,255,255,0.65);margin:0;">Use os filtros abaixo para encontrar o imóvel ideal.</p>
+  <!-- ── Banner compacto ──────────────────────────────────────────────── -->
+  <div style="background:#0d1e36;padding:28px 24px 20px;">
+    <div style="max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div>
+        <p style="font-size:10.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#b8962e;margin:0 0 4px;">Portfólio</p>
+        <h1 style="font-size:22px;font-weight:800;color:#fff;margin:0;line-height:1.2;">Imóveis Disponíveis</h1>
+      </div>
+      <p id="im-total-count" style="font-size:13px;color:rgba(255,255,255,0.45);margin:0;"></p>
+    </div>
   </div>
 
-  <!-- ── Busca IA conversacional ─────────────────────────────────────── -->
-  <div style="background:linear-gradient(135deg,#0f1c2e 0%,#1a2f4a 100%);padding:0 24px 32px;text-align:center;">
-    <div style="max-width:760px;margin:0 auto;">
-      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:10px;color:#b8962e;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2L9.5 8.5L3 11l6.5 2.5L12 20l2.5-6.5L21 11l-6.5-2.5z"/></svg>
-        Busca inteligente
-      </div>
-      <form id="ai-search-form" style="display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;">
-        <input id="ai-search-input" type="text" placeholder="Ex: apto 3 quartos na Barra Sul até 800 mil"
-          style="flex:1 1 320px;min-width:0;padding:14px 18px;border-radius:10px;border:2px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:15px;outline:none;transition:border-color .15s;"
+  <!-- ── Busca IA (mantida, oculta visualmente mas funcional) ─────────── -->
+  <div id="ai-search-wrap" style="background:#0d1e36;padding:0 24px 16px;">
+    <div style="max-width:1280px;margin:0 auto;">
+      <form id="ai-search-form" style="display:flex;gap:10px;align-items:stretch;">
+        <input id="ai-search-input" type="text" placeholder="&#x1F50D; Busca inteligente — ex: apto 3 quartos até 600 mil"
+          style="flex:1;padding:10px 16px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;transition:border-color .15s;"
           onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'"/>
         <button type="submit" id="ai-search-btn"
-          style="padding:14px 24px;background:#b8962e;border:none;border-radius:10px;color:#0d1e36;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:0.04em;transition:transform .12s;"
-          onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
-          Buscar com IA
+          style="padding:10px 20px;background:#b8962e;border:none;border-radius:8px;color:#0d1e36;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;">
+          Buscar
         </button>
       </form>
-      <div id="ai-search-status" style="margin-top:10px;font-size:13px;color:rgba(255,255,255,0.6);min-height:18px;"></div>
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.75);padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;">2 dormitórios em Itapema</button>
-        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.75);padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;">apartamento até 600 mil</button>
-        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.75);padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;">cobertura com 3+ vagas</button>
+      <div id="ai-search-status" style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.5);min-height:16px;"></div>
+      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.65);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;">2 dorms em Itapema</button>
+        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.65);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;">apê até 600 mil</button>
+        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.65);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;">cobertura 3+ vagas</button>
       </div>
     </div>
   </div>
 
-  <!-- ── Filtros ──────────────────────────────────────────────────────── -->
-  <div style="background:#0d1e36;border-bottom:1px solid rgba(255,255,255,0.08);padding:20px 24px;">
-    <div style="max-width:1200px;margin:0 auto;">
-      <div class="fly-like-filters" style="background:transparent;backdrop-filter:none;border:none;box-shadow:none;padding:0;">
-        <label>Cidade
-          <select id="city-filter">
-            <option value="">Todas as cidades</option>
-          </select>
-        </label>
-        <label>Bairro
-          <select id="neighborhood-filter">
-            <option value="">Todos os bairros</option>
-          </select>
-        </label>
-        <label>Dormitórios
-          <select id="bedrooms-filter">
-            <option value="">Todos</option>
-            <option value="1">1 dormitório</option>
-            <option value="2">2 dormitórios</option>
-            <option value="3">3 dormitórios</option>
-            <option value="4+">4+ dormitórios</option>
-          </select>
-        </label>
-        <label>Vagas
-          <select id="parking-filter">
-            <option value="">Todas</option>
-            <option value="1">1 vaga</option>
-            <option value="2">2 vagas</option>
-            <option value="3">3 vagas</option>
-            <option value="4+">4+ vagas</option>
-          </select>
-        </label>
-        <label>Status da Obra
-          <select id="construction-filter">
-            <option value="">Todos</option>
-            <option value="pronto">Pronto</option>
-            <option value="pre-lancamento">Pré-lançamento</option>
-            <option value="lancamento">Lançamento</option>
-            <option value="em-obra">Em obra</option>
-          </select>
-        </label>
-        <label class="price-slider-label" style="grid-column:span 2">
-          <span style="display:block;margin-bottom:4px;font-size:12px;color:rgba(245,248,255,0.8);">Faixa de Preço</span>
-          <select id="price-range">
-            <option value="">Todos os valores</option>
-            <option value="0-500000">Até R$ 500.000</option>
-            <option value="500000-750000">R$ 500.000 ↔ R$ 750.000</option>
-            <option value="750000-1000000">R$ 750.000 ↔ R$ 1.000.000</option>
-            <option value="1000000-1500000">R$ 1.000.000 ↔ R$ 1.500.000</option>
-            <option value="1500000-2000000">R$ 1.500.000 ↔ R$ 2.000.000</option>
-            <option value="2000000-3000000">R$ 2.000.000 ↔ R$ 3.000.000</option>
-            <option value="3000000-">A partir de R$ 3.000.000</option>
-          </select>
-        </label>
+  <!-- ── Filtros em pills ───────────────────────────────────────────────── -->
+  <div class="im-pill-bar">
+    <div class="im-pill-bar-left">
+      <div class="im-pill">
+        <select id="city-filter">
+          <option value="">Cidade</option>
+        </select>
+        <span class="im-pill-chev">▾</span>
       </div>
+      <div class="im-pill">
+        <select id="neighborhood-filter">
+          <option value="">Bairro</option>
+        </select>
+        <span class="im-pill-chev">▾</span>
+      </div>
+      <div class="im-pill">
+        <select id="bedrooms-filter">
+          <option value="">Quartos</option>
+          <option value="1">1 quarto</option>
+          <option value="2">2 quartos</option>
+          <option value="3">3 quartos</option>
+          <option value="4+">4+ quartos</option>
+        </select>
+        <span class="im-pill-chev">▾</span>
+      </div>
+      <div class="im-pill">
+        <select id="parking-filter">
+          <option value="">Vagas</option>
+          <option value="1">1 vaga</option>
+          <option value="2">2 vagas</option>
+          <option value="3">3 vagas</option>
+          <option value="4+">4+ vagas</option>
+        </select>
+        <span class="im-pill-chev">▾</span>
+      </div>
+      <div class="im-pill">
+        <select id="construction-filter">
+          <option value="">Status</option>
+          <option value="pronto">Pronto</option>
+          <option value="pre-lancamento">Pré-lançamento</option>
+          <option value="lancamento">Lançamento</option>
+          <option value="em-obra">Em obra</option>
+        </select>
+        <span class="im-pill-chev">▾</span>
+      </div>
+      <div class="im-pill">
+        <select id="price-range">
+          <option value="">Preço</option>
+          <option value="0-500000">Até R$ 500k</option>
+          <option value="500000-750000">R$ 500k – 750k</option>
+          <option value="750000-1000000">R$ 750k – 1M</option>
+          <option value="1000000-1500000">R$ 1M – 1,5M</option>
+          <option value="1500000-2000000">R$ 1,5M – 2M</option>
+          <option value="2000000-3000000">R$ 2M – 3M</option>
+          <option value="3000000-">Acima de R$ 3M</option>
+        </select>
+        <span class="im-pill-chev">▾</span>
+      </div>
+    </div>
+    <div class="im-pill-bar-right">
+      <button class="im-map-toggle" id="im-map-btn" onclick="toggleImMap(this)" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        Mapa
+        <span class="im-map-switch"></span>
+      </button>
     </div>
   </div>
 
-  <!-- ── Grid de imóveis ─────────────────────────────────────────────── -->
-  <main class="listings" style="padding-top:32px;">
-    <div id="properties" class="grid"></div>
-  </main>
+  <!-- ── Split: lista + mapa ──────────────────────────────────────────── -->
+  <div class="im-split-wrap">
+    <div class="im-list-col" id="im-list-col">
+      <div id="properties" class="imoveis-grid-h"></div>
+    </div>
+    <div class="im-map-col" id="im-map-col">
+      <div id="im-leaflet-map"></div>
+    </div>
+  </div>
 
   <footer class="footer-v2">
   <div class="footer-v2-top">
