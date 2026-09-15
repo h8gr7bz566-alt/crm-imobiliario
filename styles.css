@@ -1377,15 +1377,22 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
   .im-split-wrap { flex-direction: column; }
   .im-list-col { padding: 12px; }
 
-  /* Mapa no mobile: oculto por padrão, aparece full-width ACIMA da lista */
-  .im-map-col {
-    display: none;          /* sem !important — .visible consegue sobrescrever */
-    width: 100%;
-    height: 52vw;
-    max-height: 300px;
+  /* Pill bar: sem sticky no mobile para não sobrepor o mapa */
+  .im-pill-bar {
     position: relative;
     top: unset;
-    order: -1;              /* fica acima da lista quando aberto */
+    z-index: 10;
+  }
+
+  /* Mapa no mobile: oculto por padrão, abre full-width entre pill bar e lista */
+  .im-map-col {
+    display: none;
+    width: 100%;
+    height: 56vw;
+    max-height: 320px;
+    position: relative;
+    top: unset;
+    z-index: 5;
   }
   .im-map-col.visible { display: block; }
   #im-leaflet-map { width: 100%; height: 100%; }
