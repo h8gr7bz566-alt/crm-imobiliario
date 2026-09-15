@@ -13,7 +13,9 @@
   <meta property="og:image" content="https://omarcorretor.com.br/logo.png">
   <meta property="og:locale" content="pt_BR">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"RealEstateAgent","name":"Isaac Omar Corretor de Imóveis","url":"https://omarcorretor.com.br","logo":"https://omarcorretor.com.br/logo.png","hasCredential":"CRECI 69965-F","areaServed":"Litoral Catarinense"}</script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="./script.js"></script>
   <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png?v=6">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=6">
@@ -205,122 +207,124 @@ fbq('track', 'PageView');
     <div id="ai-home-status" style="margin-top:8px;font-size:13px;color:rgba(255,255,255,0.7);min-height:18px;text-align:center;"></div>
   </div>
 
-  <!-- Search box -->
-  <div class="hero-v2-search">
-    <div class="hero-v2-search-inner">
-      <div class="search-field">
-        <label>Cidade</label>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     IMÓVEIS — LAYOUT PLAY-STYLE (filtros + cards horizontais)
+════════════════════════════════════════════════════════════ -->
+<section id="vendas-section" style="background:#f0f2f5;">
+
+  <!-- Banner compacto -->
+  <div style="background:#0d1e36;padding:24px 24px 16px;">
+    <div style="max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div>
+        <p style="font-size:10.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#b8962e;margin:0 0 4px;">Portfólio</p>
+        <h2 style="font-size:22px;font-weight:800;color:#fff;margin:0;line-height:1.2;">Imóveis Disponíveis</h2>
+      </div>
+      <p id="im-total-count" style="font-size:13px;color:rgba(255,255,255,0.45);margin:0;"></p>
+    </div>
+  </div>
+
+  <!-- Busca IA -->
+  <div id="ai-search-wrap" style="background:#0d1e36;padding:0 24px 16px;">
+    <div style="max-width:1280px;margin:0 auto;">
+      <form id="ai-search-form" style="display:flex;gap:10px;align-items:stretch;">
+        <input id="ai-search-input" type="text" placeholder="&#x1F50D; Busca inteligente — ex: apto 3 quartos até 600 mil"
+          style="flex:1;padding:10px 16px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;transition:border-color .15s;"
+          onfocus="this.style.borderColor='#b8962e'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'"/>
+        <button type="submit" id="ai-search-btn"
+          style="padding:10px 20px;background:#b8962e;border:none;border-radius:8px;color:#0d1e36;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;">
+          Buscar
+        </button>
+      </form>
+      <div id="ai-search-status" style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.5);min-height:16px;"></div>
+      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.65);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;">2 dorms em Itapema</button>
+        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.65);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;">apê até 600 mil</button>
+        <button type="button" class="ai-search-suggest" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.65);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;">cobertura 3+ vagas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros em pills -->
+  <div class="im-pill-bar">
+    <div class="im-pill-bar-left">
+      <div class="im-pill">
         <select id="city-filter">
-          <option value="">Todas as cidades</option>
+          <option value="">Cidade</option>
         </select>
+        <span class="im-pill-chev">▾</span>
       </div>
-      <div class="search-field">
-        <label>Bairro</label>
+      <div class="im-pill">
         <select id="neighborhood-filter">
-          <option value="">Todos os bairros</option>
+          <option value="">Bairro</option>
         </select>
+        <span class="im-pill-chev">▾</span>
       </div>
-      <div class="search-field">
-        <label>Dormitórios</label>
+      <div class="im-pill">
         <select id="bedrooms-filter">
-          <option value="">Todos</option>
-          <option value="1">1 dormitório</option>
-          <option value="2">2 dormitórios</option>
-          <option value="3">3 dormitórios</option>
-          <option value="4+">4+ dormitórios</option>
+          <option value="">Quartos</option>
+          <option value="1">1 quarto</option>
+          <option value="2">2 quartos</option>
+          <option value="3">3 quartos</option>
+          <option value="4+">4+ quartos</option>
         </select>
+        <span class="im-pill-chev">▾</span>
       </div>
-      <div class="search-field">
-        <label>Faixa de Preço</label>
-        <select id="price-range">
-          <option value="">Todos os valores</option>
-          <option value="0-500000">Até R$ 500.000</option>
-          <option value="500000-1000000">R$ 500k ↔ R$ 1M</option>
-          <option value="1000000-2000000">R$ 1M ↔ R$ 2M</option>
-          <option value="2000000-3000000">R$ 2M ↔ R$ 3M</option>
-          <option value="3000000-">A partir de R$ 3M</option>
+      <div class="im-pill">
+        <select id="parking-filter">
+          <option value="">Vagas</option>
+          <option value="1">1 vaga</option>
+          <option value="2">2 vagas</option>
+          <option value="3">3 vagas</option>
+          <option value="4+">4+ vagas</option>
         </select>
+        <span class="im-pill-chev">▾</span>
       </div>
-      <div class="search-field">
-        <label>Status</label>
+      <div class="im-pill">
         <select id="construction-filter">
-          <option value="">Todos</option>
-          <option value="pronto">Pronto para morar</option>
+          <option value="">Status</option>
+          <option value="pronto">Pronto</option>
           <option value="pre-lancamento">Pré-lançamento</option>
           <option value="lancamento">Lançamento</option>
           <option value="em-obra">Em obra</option>
         </select>
+        <span class="im-pill-chev">▾</span>
       </div>
-      <div class="search-field search-field-hidden">
-        <label>&nbsp;</label>
-        <select id="parking-filter" style="display:none">
-          <option value="">Todas</option>
-          <option value="1">1 vaga</option>
-          <option value="2">2 vagas</option>
-          <option value="3">3+ vagas</option>
+      <div class="im-pill">
+        <select id="price-range">
+          <option value="">Preço</option>
+          <option value="0-500000">Até R$ 500k</option>
+          <option value="500000-750000">R$ 500k – 750k</option>
+          <option value="750000-1000000">R$ 750k – 1M</option>
+          <option value="1000000-1500000">R$ 1M – 1,5M</option>
+          <option value="1500000-2000000">R$ 1,5M – 2M</option>
+          <option value="2000000-3000000">R$ 2M – 3M</option>
+          <option value="3000000-">Acima de R$ 3M</option>
         </select>
+        <span class="im-pill-chev">▾</span>
       </div>
-      <button onclick="buscarImoveis()" class="search-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        Buscar Imóveis
+    </div>
+    <div class="im-pill-bar-right">
+      <button class="im-map-toggle" id="im-map-btn" onclick="toggleImMap(this)" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        Mapa
+        <span class="im-map-switch"></span>
       </button>
     </div>
   </div>
-</section>
-<script>
-  function buscarImoveis(){
-    const params=new URLSearchParams()
-    const city=document.getElementById('city-filter')?.value
-    const neighborhood=document.getElementById('neighborhood-filter')?.value
-    const bedrooms=document.getElementById('bedrooms-filter')?.value
-    const parking=document.getElementById('parking-filter')?.value
-    const construction=document.getElementById('construction-filter')?.value
-    const priceRange=document.getElementById('price-range')?.value
-    if(city)params.set('city',city)
-    if(neighborhood)params.set('neighborhood',neighborhood)
-    if(bedrooms)params.set('bedrooms',bedrooms)
-    if(parking)params.set('parking',parking)
-    if(construction)params.set('construction',construction)
-    if(priceRange)params.set('price_range',priceRange)
-    const qs=params.toString()
-    window.location.href='imoveis.html'+(qs?'?'+qs:'')
-  }
-</script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     IMÓVEIS — CARROSSEL
-════════════════════════════════════════════════════════════ -->
-<section class="prop-section" id="vendas-section">
-  <div class="prop-section-header">
-    <div>
-      <p class="section-eyebrow">Portfólio</p>
-      <h2 class="section-title dark">Imóveis Disponíveis</h2>
-      <p class="section-sub dark">Navegue pelos imóveis ou veja todos com filtros completos.</p>
+  <!-- Split: lista + mapa -->
+  <div class="im-split-wrap">
+    <div class="im-list-col" id="im-list-col">
+      <div id="properties" class="imoveis-grid-h"></div>
     </div>
-    <a href="imoveis.html" class="btn-gold">Ver todos os imóveis</a>
+    <div class="im-map-col" id="im-map-col">
+      <div id="im-leaflet-map"></div>
+    </div>
   </div>
 
-  <!-- Category tabs -->
-  <div class="prop-tabs" id="prop-tabs">
-    <button class="prop-tab active" onclick="filterCarousel('')" data-filter="">Todos</button>
-    <button class="prop-tab" onclick="filterCarousel('lancamento')" data-filter="lancamento">Lançamentos</button>
-    <button class="prop-tab" onclick="filterCarousel('pre-lancamento')" data-filter="pre-lancamento">Pré-lançamento</button>
-    <button class="prop-tab" onclick="filterCarousel('pronto')" data-filter="pronto">Prontos para morar</button>
-    <button class="prop-tab" onclick="filterCarousel('em-obra')" data-filter="em-obra">Em obra</button>
-  </div>
-
-  <div id="collections-wrap"></div>
-  <!-- Mantém vendas-carousel como referência para renderPublic detectar homepage -->
-  <div id="vendas-carousel" style="display:none"></div>
 </section>
-<script>
-  function filterCarousel(status){
-    document.querySelectorAll('.prop-tab').forEach(function(b){b.classList.toggle('active',b.dataset.filter===status)})
-    const params=new URLSearchParams()
-    if(status)params.set('construction',status)
-    window.location.href='imoveis.html'+(status?'?'+params.toString():'')
-  }
-</script>
 
 <!-- ═══════════════════════════════════════════════════════════
      SOBRE O CORRETOR
