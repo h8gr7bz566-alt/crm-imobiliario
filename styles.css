@@ -1374,13 +1374,41 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
   .imoveis-grid-h { grid-template-columns: 1fr; }
   .imoveis-grid-h .imovel-card-h { border-right: none; }
   .icard-h-img-wrap { width: 200px; }
-  .im-map-col { display: none !important; }
   .im-split-wrap { flex-direction: column; }
   .im-list-col { padding: 12px; }
+
+  /* Mapa no mobile: oculto por padrão, aparece full-width ACIMA da lista */
+  .im-map-col {
+    display: none;          /* sem !important — .visible consegue sobrescrever */
+    width: 100%;
+    height: 52vw;
+    max-height: 300px;
+    position: relative;
+    top: unset;
+    order: -1;              /* fica acima da lista quando aberto */
+  }
+  .im-map-col.visible { display: block; }
+  #im-leaflet-map { width: 100%; height: 100%; }
 }
 @media (max-width: 600px) {
   .imovel-card-h { flex-direction: column; }
   .icard-h-img-wrap { width: 100%; height: 200px; }
-  .im-pill-bar { padding: 10px 16px; gap: 6px; }
-  .im-pill select { font-size: 11.5px; padding: 6px 26px 6px 11px; }
+
+  /* Pill bar mobile: scroll horizontal, sem quebrar linha */
+  .im-pill-bar {
+    padding: 10px 12px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+  }
+  .im-pill-bar::-webkit-scrollbar { display: none; }
+  .im-pill-bar-left {
+    flex-wrap: nowrap;
+    gap: 6px;
+    min-width: 0;
+  }
+  .im-pill-bar-right { flex-shrink: 0; }
+  .im-pill select { font-size: 11.5px; padding: 6px 24px 6px 10px; }
+  .im-pill { min-width: fit-content; }
 }
