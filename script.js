@@ -9846,23 +9846,36 @@ window._imMarkers = []
 const GEO_CACHE = {}
 
 async function geocodeProperty(p) {
-  // Cache por cidade+estado (nível cidade é suficiente e mais confiável)
-  const key = `${p.city||''},${p.state||''}`
+  // Remove sufixo "(SC)"/"(PR)" etc. que vem no campo city
+  const cleanCity = (p.city || '').replace(/\s*\([^)]*\)\s*$/, '').trim()
+  const state = (p.state || '').trim()
+  const neighborhood = (p.neighborhood || '').trim()
+
+  // Cache por bairro+cidade+estado
+  const key = `${neighborhood},${cleanCity},${state}`
   if (GEO_CACHE[key]) return GEO_CACHE[key]
+
   try {
-    const cacheKey = 'geo3:' + key // novo prefixo para ignorar cache antigo
+    const cacheKey = 'geo4:' + key // prefixo novo para ignorar caches antigos
     const stored = sessionStorage.getItem(cacheKey)
     if (stored) { const r = JSON.parse(stored); GEO_CACHE[key] = r; return r }
-    // Usa p.state em vez de hardcoded "Santa Catarina"
-    const q = [p.city, p.state, 'Brasil'].filter(Boolean).join(', ')
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(q)}`
-    const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } })
-    const data = await res.json()
-    if (data && data[0]) {
-      const r = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
-      GEO_CACHE[key] = r
-      try { sessionStorage.setItem(cacheKey, JSON.stringify(r)) } catch(e) {}
-      return r
+
+    // Tenta bairro+cidade+estado; se falhar, só cidade+estado
+    const queries = [
+      [neighborhood, cleanCity, state, 'Brasil'].filter(Boolean).join(', '),
+      [cleanCity, state, 'Brasil'].filter(Boolean).join(', ')
+    ]
+    for (const q of queries) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(q)}`
+      const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } })
+      const data = await res.json()
+      if (data && data[0]) {
+        const r = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+        GEO_CACHE[key] = r
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(r)) } catch(e) {}
+        return r
+      }
+      await new Promise(res => setTimeout(res, 200))
     }
   } catch(e) {}
   return null
@@ -9911,19 +9924,15 @@ async function renderMap(properties) {
 
     const priceLabel = formatPriceBubble(p.price)
     const icon = L.divIcon({
-      className: '',
+      className: 'im-marker-wrap',
       html: `<div class="im-marker-bubble">${priceLabel}</div>`,
-      iconAnchor: [28, 16]
+      iconSize: [1, 1],
+      iconAnchor: [0, 0]
     })
     const marker = L.marker([coord.lat, coord.lng], { icon })
       .addTo(window._imMap)
       .on('click', () => {
-        const card = document.querySelector(`.imovel-card-h[data-pid="${p.id}"]`)
-        if (card) {
-          card.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          card.style.outline = '2px solid #c9a84c'
-          setTimeout(() => { card.style.outline = '' }, 2000)
-        }
+        window.location.href = '/imovel/' + p.id
       })
     window._imMarkers.push(marker)
     bounds.push([coord.lat, coord.lng])

@@ -1345,6 +1345,9 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
 .imoveis-grid-h .imovel-card-h:hover { transform: none; box-shadow: none; background: #f8faff; }
 
 /* Map marker popup */
+.im-marker-wrap {
+  overflow: visible !important;
+}
 .im-marker-bubble {
   background: #111827;
   color: #fff;
@@ -1353,9 +1356,12 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
   padding: 5px 12px;
   border-radius: 20px;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
   border: 2px solid #c9a84c;
   cursor: pointer;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  line-height: 1.2;
 }
 .im-marker-bubble.im-marker-hl {
   background: #c9a84c;
