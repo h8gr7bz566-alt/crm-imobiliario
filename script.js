@@ -9845,37 +9845,62 @@ window._imMap = null
 window._imMarkers = []
 const GEO_CACHE = {}
 
+// ── Lookup instantâneo de coordenadas por bairro/cidade ─────────────────────
+// Evita chamadas lentas ao Nominatim para cidades conhecidas.
+const GEO_LOOKUP = {
+  // Itapema SC
+  'meia praia,itapema':        { lat: -26.9426, lng: -48.6200 },
+  'centro,itapema':            { lat: -26.9073, lng: -48.6142 },
+  'morretes,itapema':          { lat: -26.8868, lng: -48.6028 },
+  'tabuleiro,itapema':         { lat: -26.8840, lng: -48.5970 },
+  ',itapema':                  { lat: -26.9075, lng: -48.6145 },
+  // Balneário Camboriú SC
+  'barra sul,balneário camboriú': { lat: -26.9950, lng: -48.6338 },
+  'centro,balneário camboriú': { lat: -26.9867, lng: -48.6374 },
+  ',balneário camboriú':       { lat: -26.9906, lng: -48.6348 },
+  // Ponta Grossa PR
+  'uvaranas,ponta grossa':     { lat: -25.0855, lng: -50.1371 },
+  'centro,ponta grossa':       { lat: -25.0945, lng: -50.1633 },
+  ',ponta grossa':             { lat: -25.0945, lng: -50.1633 },
+  // Carambeí PR
+  'centro,carambeí':           { lat: -24.9154, lng: -50.0956 },
+  ',carambeí':                 { lat: -24.9154, lng: -50.0956 },
+  // Porto Belo SC
+  'centro,porto belo':         { lat: -27.1556, lng: -48.5522 },
+  ',porto belo':               { lat: -27.1556, lng: -48.5522 },
+}
+
 async function geocodeProperty(p) {
-  // Remove sufixo "(SC)"/"(PR)" etc. que vem no campo city
-  const cleanCity = (p.city || '').replace(/\s*\([^)]*\)\s*$/, '').trim()
-  const state = (p.state || '').trim()
-  const neighborhood = (p.neighborhood || '').trim()
+  // Normaliza city: remove sufixo "(SC)"/"(PR)" etc.
+  const cleanCity = (p.city || '').replace(/\s*\([^)]*\)\s*$/, '').trim().toLowerCase()
+  const neighborhood = (p.neighborhood || '').trim().toLowerCase()
 
-  // Cache por bairro+cidade+estado
-  const key = `${neighborhood},${cleanCity},${state}`
-  if (GEO_CACHE[key]) return GEO_CACHE[key]
+  const lookupKey = `${neighborhood},${cleanCity}`
+  const fallbackKey = `,${cleanCity}`
 
+  // 1) Lookup instantâneo — sem chamada de rede
+  const instant = GEO_LOOKUP[lookupKey] || GEO_LOOKUP[fallbackKey]
+  if (instant) {
+    // Adiciona pequeno jitter para não empilhar markers do mesmo bairro
+    return {
+      lat: instant.lat + (Math.random() - 0.5) * 0.003,
+      lng: instant.lng + (Math.random() - 0.5) * 0.003
+    }
+  }
+
+  // 2) Fallback Nominatim para cidades desconhecidas (usa cache de sessão)
+  const cacheKey = 'geo5:' + lookupKey
   try {
-    const cacheKey = 'geo4:' + key // prefixo novo para ignorar caches antigos
     const stored = sessionStorage.getItem(cacheKey)
-    if (stored) { const r = JSON.parse(stored); GEO_CACHE[key] = r; return r }
-
-    // Tenta bairro+cidade+estado; se falhar, só cidade+estado
-    const queries = [
-      [neighborhood, cleanCity, state, 'Brasil'].filter(Boolean).join(', '),
-      [cleanCity, state, 'Brasil'].filter(Boolean).join(', ')
-    ]
-    for (const q of queries) {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(q)}`
-      const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } })
-      const data = await res.json()
-      if (data && data[0]) {
-        const r = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
-        GEO_CACHE[key] = r
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(r)) } catch(e) {}
-        return r
-      }
-      await new Promise(res => setTimeout(res, 200))
+    if (stored) return JSON.parse(stored)
+    const q = [neighborhood, cleanCity, (p.state || ''), 'Brasil'].filter(Boolean).join(', ')
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(q)}`
+    const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' }, signal: AbortSignal.timeout(4000) })
+    const data = await res.json()
+    if (data && data[0]) {
+      const r = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(r)) } catch(e) {}
+      return r
     }
   } catch(e) {}
   return null
@@ -9918,7 +9943,6 @@ async function renderMap(properties) {
   // Geocode and add markers (throttled)
   const bounds = []
   for (const p of properties.slice(0, 30)) {
-    await new Promise(r => setTimeout(r, 100)) // throttle
     const coord = await geocodeProperty(p)
     if (!coord) continue
 
@@ -9932,7 +9956,7 @@ async function renderMap(properties) {
     const marker = L.marker([coord.lat, coord.lng], { icon })
       .addTo(window._imMap)
       .on('click', () => {
-        window.location.href = '/imovel/' + p.id
+        window.location.href = '/property.html?id=' + p.id
       })
     window._imMarkers.push(marker)
     bounds.push([coord.lat, coord.lng])
