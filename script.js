@@ -9846,14 +9846,16 @@ window._imMarkers = []
 const GEO_CACHE = {}
 
 async function geocodeProperty(p) {
-  const key = `${p.neighborhood||''},${p.city||''}`
+  // Cache por cidade+estado (nível cidade é suficiente e mais confiável)
+  const key = `${p.city||''},${p.state||''}`
   if (GEO_CACHE[key]) return GEO_CACHE[key]
   try {
-    const cacheKey = 'geo:' + key
+    const cacheKey = 'geo3:' + key // novo prefixo para ignorar cache antigo
     const stored = sessionStorage.getItem(cacheKey)
     if (stored) { const r = JSON.parse(stored); GEO_CACHE[key] = r; return r }
-    const q = [p.rua, p.neighborhood, p.city, 'Santa Catarina', 'Brasil'].filter(Boolean).join(', ')
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`
+    // Usa p.state em vez de hardcoded "Santa Catarina"
+    const q = [p.city, p.state, 'Brasil'].filter(Boolean).join(', ')
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(q)}`
     const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } })
     const data = await res.json()
     if (data && data[0]) {
@@ -9867,9 +9869,16 @@ async function geocodeProperty(p) {
 }
 
 function formatPriceBubble(price) {
-  const str = String(price || '').replace(/[^0-9]/g, '')
-  const n = parseInt(str, 10)
-  if (!n) return 'Ver'
+  // Reutiliza a mesma lógica de parseamento do formatPrice para evitar bug com formato BR
+  const str = String(price || '').trim()
+  let n
+  if (str.includes(',') && str.lastIndexOf(',') > str.lastIndexOf('.')) {
+    // Formato BR: ponto = milhar, vírgula = decimal (ex: "1.590.000,00")
+    n = parseFloat(str.replace(/\./g, '').replace(',', '.'))
+  } else {
+    n = parseFloat(str.replace(/[^\d.]/g, ''))
+  }
+  if (!n || isNaN(n)) return 'Ver'
   if (n >= 1000000) return 'R$' + (n / 1000000).toFixed(1).replace('.0','') + 'M'
   if (n >= 1000) return 'R$' + Math.round(n / 1000) + 'K'
   return 'R$' + n
