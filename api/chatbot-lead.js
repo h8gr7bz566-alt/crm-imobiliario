@@ -1,7 +1,7 @@
 // /api/chatbot-lead - Cria lead via chatbot anônimo (usa service role pra burlar RLS)
 import { createClient } from '@supabase/supabase-js'
 
-const ALLOWED = ['https://omarcorretor.com.br', 'https://www.omarcorretor.com.br', 'http://localhost:5173']
+const ALLOWED = ['https://omarcorretor.com.br', 'https://www.omarcorretor.com.br', 'https://apartamentonocentro.netlify.app', 'http://localhost:5173']
 
 export default async function handler(req, res) {
   const origin = req.headers.origin || ''
@@ -112,8 +112,8 @@ export default async function handler(req, res) {
       const { data: allSubs } = await sb.from('push_subscriptions').select('*')
       pushResult.totalSubs = allSubs?.length || 0
       const payload = JSON.stringify({
-        title: '🎯 Novo lead — Chat IA',
-        body: `${name}${phone ? ' • ' + phone : ''}${notes ? ' • ' + notes.split('\n')[0] : ''}`,
+        title: `🎯 Novo lead — ${data.source || 'Chat IA'}`,
+        body: `${name}${phone ? ' • ' + phone : ''}${data.notes ? ' • ' + String(data.notes).split('\n')[0] : ''}`,
         url: `https://omarcorretor.com.br/ios.imobi#lead=${inserted.id}`,
       })
       for (const sub of (allSubs || [])) {
