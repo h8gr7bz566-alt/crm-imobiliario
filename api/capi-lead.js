@@ -6,9 +6,9 @@ const crypto = require('crypto')
 
 const PIXEL_ID = '660044113549849'
 // Token configurado em Vercel → Settings → Environment Variables
-// Variable: META_CAPI_ACCESS_TOKEN  (NÃO usar prefixo VITE_ pra não vazar no client)
-// Fallback hardcoded (caso a env var não esteja setada). Remover em produção sensível.
-const FALLBACK_TOKEN = 'EAAU2CB11ZCmkBR2eivNuBCIQIgMMpiEVCNl08wt7V7nZAjZAVFzQZCzfW1zYrxZC9PM53EgJgBRZBKdzIynLARbHa6faSfsraMAZBYKZB9Q8mcC8TrQGva4FbnTpT35n1dhEYZBNQbZCVbmKTqX4etc6EY2tfFheBuR3lZAlja6y3ZAi5o2HZB7ZB3uf3taq8aNfEwmgZDZD'
+// Variable: META_CAPI_ACCESS_TOKEN  (NAO usar prefixo VITE_ pra nao vazar no client)
+// Nao ha fallback hardcoded de proposito: um token direto no codigo fica exposto pra
+// qualquer pessoa que ver este repositorio (ele e publico). Configure a env var no Vercel.
 
 function sha256(value) {
   if (!value) return null
@@ -48,7 +48,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
 
-  const TOKEN = process.env.META_CAPI_ACCESS_TOKEN || FALLBACK_TOKEN
+  const TOKEN = process.env.META_CAPI_ACCESS_TOKEN
   if (!TOKEN) return res.status(500).json({ error: 'token_not_configured' })
 
   let body = req.body
