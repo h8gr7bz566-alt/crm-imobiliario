@@ -1221,6 +1221,11 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 @media (max-width: 768px) {
   * { box-sizing: border-box; }
 
+  /* Botões (<button>) podem herdar "white-space: nowrap" do navegador,
+     o que corta o texto quando o botão é mais largo que a tela — afeta
+     qualquer seção do app (Tarefas, Contatos, Negociação, etc). */
+  button { white-space: normal !important; word-break: break-word; max-width: 100%; }
+
   #admin-root, .admin-main, .admin-section,
   .section-topbar, .stats-row, .filter-bar,
   .prop-table, .prop-table-wrap {
@@ -4865,7 +4870,7 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   }
   
   /* ── Página completa do lead ──────────────────────────────────── */
-  #section-lead-detail { overflow-x: hidden; max-width: 100vw; }
+  #section-lead-detail { overflow-x: hidden; max-width: 100vw; padding: 16px !important; }
   .rd-leadpage-stages { overflow-x: auto !important; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
   .rd-leadpage-stage { min-width: 100px !important; padding: 10px 14px !important; font-size: 11px !important; }
   .rd-leadpage-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
@@ -4880,7 +4885,42 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   .rd-leadpage-field-row { flex-direction: column !important; align-items: flex-start !important; gap: 2px !important; }
   .rd-leadpage-field-label { min-width: 0 !important; }
   .rd-leadpage-field-value { text-align: left !important; }
-  .rd-leadpage-more-menu { right: 0 !important; left: auto !important; }
+  .rd-leadpage-more-wrap { position: static !important; }
+  .rd-leadpage-more-menu {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 16px !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    z-index: 9999 !important;
+  }
+  .rd-leadpage-more-menu button { padding: 14px !important; font-size: 15px !important; }
+
+  /* Correção geral: botões e textos dentro da página de negociação não
+     podem ultrapassar a largura da tela — <button> tem "white-space: nowrap"
+     por padrão em alguns navegadores, o que cortava textos como
+     "+ Adicionar empresa" e "+ Criar tarefa" no mobile. */
+  #section-lead-detail button,
+  #section-lead-detail .rd-leadpage-empty-text,
+  #section-lead-detail .rd-leadpage-card-body p,
+  #section-lead-detail .rd-leadpage-btn-add,
+  #section-lead-detail .rd-leadpage-add-link {
+    white-space: normal !important;
+    word-break: break-word !important;
+    max-width: 100% !important;
+    text-align: left !important;
+  }
+  #section-lead-detail .rd-leadpage-card-body,
+  #section-lead-detail .rd-leadpage-empty,
+  #section-lead-detail .rd-leadpage-tab-content {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
   
   /* ── Seção properties (CRM): grid 1 coluna ────────────────────── */
   #properties-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
