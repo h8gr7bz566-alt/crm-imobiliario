@@ -2461,6 +2461,33 @@ window.openLeadDetailPage = async function(leadId) {
     if (typeof loadKanbanLeads === 'function') loadKanbanLeads().catch(()=>{})
   }
 
+  // ── Menu "Mais opções" (⋮) — excluir negociação ─────────────────────
+  const moreBtn  = document.getElementById('rd-lp-more-btn')
+  const moreMenu = document.getElementById('rd-lp-more-menu')
+  if (moreBtn && moreMenu) {
+    moreBtn.onclick = (ev) => {
+      ev.stopPropagation()
+      moreMenu.classList.toggle('hidden')
+    }
+    document.addEventListener('click', (ev) => {
+      if (!moreMenu.classList.contains('hidden') && !moreMenu.contains(ev.target) && ev.target !== moreBtn) {
+        moreMenu.classList.add('hidden')
+      }
+    })
+  }
+  const deleteBtn = document.getElementById('rd-lp-delete')
+  if (deleteBtn) {
+    deleteBtn.onclick = async () => {
+      moreMenu?.classList.add('hidden')
+      if (!confirm(`Excluir a negociação "${lead.name || ''}" permanentemente? Essa ação não pode ser desfeita.`)) return
+      const { error } = await supabase.from('leads').delete().eq('id', lead.id)
+      if (error) return alert('Erro ao excluir: ' + error.message)
+      if (typeof toast === 'function') toast('Negociação excluída', 'success'); else alert('Negociação excluída')
+      window.closeLeadDetailPage()
+      if (typeof loadKanbanLeads === 'function') loadKanbanLeads().catch(()=>{})
+    }
+  }
+
   // ── Botão de criar tarefa / anotação (placeholder) ──────────────────
   // Wireia botão Criar tarefa (pode estar sumido se _lpLoadTasks recriou o conteúdo)
   const _addTaskBtn = document.getElementById('rd-lp-add-task')

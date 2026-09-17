@@ -806,9 +806,14 @@
             <div class="rd-leadpage-tags" id="rd-lp-tags"></div>
           </div>
           <div class="rd-leadpage-actions">
-            <button class="rd-leadpage-icon-btn" title="Mais opções">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="18" height="18"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-            </button>
+            <div class="rd-leadpage-more-wrap" style="position:relative">
+              <button class="rd-leadpage-icon-btn" id="rd-lp-more-btn" title="Mais opções">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="18" height="18"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+              <div class="rd-leadpage-more-menu hidden" id="rd-lp-more-menu" style="position:absolute;top:44px;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:50;overflow:hidden">
+                <button id="rd-lp-delete" style="display:block;width:100%;text-align:left;padding:10px 14px;background:transparent;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#b91c1c">🗑️ Excluir negociação</button>
+              </div>
+            </div>
             <button class="rd-leadpage-icon-btn" title="Reativar lead">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             </button>
