@@ -1,7 +1,7 @@
 // /api/chatbot-lead - Cria lead via chatbot anônimo (usa service role pra burlar RLS)
 import { createClient } from '@supabase/supabase-js'
 
-const ALLOWED = ['https://omarcorretor.com.br', 'https://www.omarcorretor.com.br', 'https://apartamentonocentro.netlify.app', 'http://localhost:5173']
+const ALLOWED = ['https://omarcorretor.com.br', 'https://www.omarcorretor.com.br', 'https://apartamentonocentro.netlify.app', 'https://meiapraiaitapemasc.netlify.app', 'http://localhost:5173']
 
 export default async function handler(req, res) {
   const origin = req.headers.origin || ''
