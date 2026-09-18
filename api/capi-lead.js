@@ -35,6 +35,8 @@ module.exports = async function handler(req, res) {
   const ALLOWED_ORIGINS = [
     'https://omarcorretor.com.br',
     'https://www.omarcorretor.com.br',
+    'https://apartamentonocentro.netlify.app',
+    'https://meiapraiaitapemasc.netlify.app',
     'http://localhost:5173',
     'http://localhost:3000',
   ]
