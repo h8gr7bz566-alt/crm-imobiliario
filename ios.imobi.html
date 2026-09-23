@@ -187,8 +187,8 @@
     <rect width="160" height="80" rx="12" fill="rgba(15,28,46,0.85)" stroke="#b8962e" stroke-width="1"/>
     <rect width="160" height="3" rx="12" fill="url(#gold)" opacity="0.7"/>
     <text x="14" y="26" font-family="Inter,sans-serif" font-size="10" fill="#b8962e" font-weight="600" letter-spacing="1">IMÓVEIS ATIVOS</text>
-    <text x="14" y="52" font-family="Inter,sans-serif" font-size="26" fill="#ffffff" font-weight="700">248</text>
-    <text x="100" y="52" font-family="Inter,sans-serif" font-size="11" fill="#4ade80">▲ 12%</text>
+    <text id="svgstat-imoveis" x="14" y="52" font-family="Inter,sans-serif" font-size="26" fill="#ffffff" font-weight="700">248</text>
+    <text id="svgstat-imoveis-pct" x="100" y="52" font-family="Inter,sans-serif" font-size="11" fill="#4ade80">▲ 12%</text>
     <text x="14" y="68" font-family="Inter,sans-serif" font-size="9" fill="rgba(255,255,255,0.4)">vs mês anterior</text>
   </g>
 
@@ -197,7 +197,7 @@
     <rect width="180" height="80" rx="12" fill="rgba(15,28,46,0.85)" stroke="#b8962e" stroke-width="1"/>
     <rect width="180" height="3" rx="12" fill="url(#gold)" opacity="0.7"/>
     <text x="14" y="26" font-family="Inter,sans-serif" font-size="10" fill="#b8962e" font-weight="600" letter-spacing="1">VALOR TOTAL</text>
-    <text x="14" y="50" font-family="Inter,sans-serif" font-size="18" fill="#ffffff" font-weight="700">R$ 48,2M</text>
+    <text id="svgstat-valor" x="14" y="50" font-family="Inter,sans-serif" font-size="18" fill="#ffffff" font-weight="700">R$ 48,2M</text>
     <text x="14" y="68" font-family="Inter,sans-serif" font-size="9" fill="rgba(255,255,255,0.4)">carteira ativa</text>
   </g>
 
@@ -206,8 +206,8 @@
     <rect width="165" height="90" rx="12" fill="rgba(15,28,46,0.85)" stroke="#b8962e" stroke-width="1"/>
     <rect width="165" height="3" rx="12" fill="url(#gold)" opacity="0.7"/>
     <text x="14" y="26" font-family="Inter,sans-serif" font-size="10" fill="#b8962e" font-weight="600" letter-spacing="1">NOVOS LEADS</text>
-    <text x="14" y="52" font-family="Inter,sans-serif" font-size="26" fill="#ffffff" font-weight="700">37</text>
-    <text x="65" y="52" font-family="Inter,sans-serif" font-size="11" fill="#4ade80">▲ 8%</text>
+    <text id="svgstat-leads" x="14" y="52" font-family="Inter,sans-serif" font-size="26" fill="#ffffff" font-weight="700">37</text>
+    <text id="svgstat-leads-pct" x="65" y="52" font-family="Inter,sans-serif" font-size="11" fill="#4ade80">▲ 8%</text>
     <text x="14" y="70" font-family="Inter,sans-serif" font-size="9" fill="rgba(255,255,255,0.4)">este mês</text>
     <!-- mini bar chart -->
     <g fill="#b8962e" opacity="0.6">
@@ -225,8 +225,8 @@
     <rect width="185" height="90" rx="12" fill="rgba(15,28,46,0.85)" stroke="#b8962e" stroke-width="1"/>
     <rect width="185" height="3" rx="12" fill="url(#gold)" opacity="0.7"/>
     <text x="14" y="26" font-family="Inter,sans-serif" font-size="10" fill="#b8962e" font-weight="600" letter-spacing="1">VENDAS NO MÊS</text>
-    <text x="14" y="52" font-family="Inter,sans-serif" font-size="26" fill="#ffffff" font-weight="700">R$ 3,1M</text>
-    <text x="14" y="70" font-family="Inter,sans-serif" font-size="9" fill="rgba(255,255,255,0.4)">5 negócios fechados</text>
+    <text id="svgstat-vendas" x="14" y="52" font-family="Inter,sans-serif" font-size="26" fill="#ffffff" font-weight="700">R$ 3,1M</text>
+    <text id="svgstat-vendas-sub" x="14" y="70" font-family="Inter,sans-serif" font-size="9" fill="rgba(255,255,255,0.4)">5 negócios fechados</text>
     <!-- progress bar -->
     <rect x="14" y="78" width="157" height="5" rx="3" fill="rgba(255,255,255,0.1)"/>
     <rect x="14" y="78" width="95" height="5" rx="3" fill="url(#gold)"/>
@@ -1582,6 +1582,145 @@
       </div>
     </div>
   </div>
+
+  <!-- ── Dashboard real-time stats ── -->
+  <script type="module">
+  import { supabase } from './lib/supabase.js'
+
+  // ── Formatação ────────────────────────────────────────────────────────────
+  function fmtM(val) {
+    if (!val || isNaN(val)) return '—'
+    if (val >= 1e9) return 'R$ ' + (val/1e9).toFixed(1).replace(/\.0$/, '') + 'B'
+    if (val >= 1e6) return 'R$ ' + (val/1e6).toFixed(1).replace(/\.0$/, '') + 'M'
+    if (val >= 1e3) return 'R$ ' + Math.round(val/1e3) + 'K'
+    return 'R$ ' + val.toLocaleString('pt-BR')
+  }
+
+  function parsePrice(str) {
+    if (!str) return 0
+    const s = String(str).trim()
+    if (s.includes(',') && s.lastIndexOf(',') > s.lastIndexOf('.')) {
+      return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0
+    }
+    return parseFloat(s.replace(/[^\d.]/g, '')) || 0
+  }
+
+  function setText(id, val) {
+    const el = document.getElementById(id)
+    if (el) el.textContent = val
+  }
+
+  function startOfMonth() {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString()
+  }
+
+  // ── Atualiza imóveis ativos + valor total (público, sem auth) ─────────────
+  async function fetchPublicStats() {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('price')
+        .eq('published', true)
+      if (error || !data) return
+      const count = data.length
+      const total = data.reduce((acc, p) => acc + parsePrice(p.price), 0)
+      setText('svgstat-imoveis', String(count))
+      setText('svgstat-valor', fmtM(total))
+    } catch (e) {
+      console.warn('[stats] fetchPublicStats:', e)
+    }
+  }
+
+  // ── Atualiza leads e vendas (requer sessão autenticada) ───────────────────
+  async function fetchAuthStats() {
+    try {
+      const som = startOfMonth()
+      // Leads criados este mês
+      const { count: leadsCount, error: le } = await supabase
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', som)
+      if (!le && leadsCount != null) {
+        setText('svgstat-leads', String(leadsCount))
+      }
+
+      // Vendas fechadas este mês
+      const { data: vendas, error: ve } = await supabase
+        .from('leads')
+        .select('budget_max, converted_at')
+        .not('converted_at', 'is', null)
+        .gte('converted_at', som)
+      if (!ve && vendas) {
+        const count = vendas.length
+        const total = vendas.reduce((acc, l) => acc + (parseFloat(l.budget_max) || 0), 0)
+        setText('svgstat-vendas', fmtM(total) !== '—' ? fmtM(total) : count + ' venda' + (count !== 1 ? 's' : ''))
+        setText('svgstat-vendas-sub', count + ' neg\u00f3cio' + (count !== 1 ? 's' : '') + ' fechado' + (count !== 1 ? 's' : ''))
+      }
+
+      // Atualiza dashboard pós-login
+      renderDashboard()
+    } catch (e) {
+      console.warn('[stats] fetchAuthStats:', e)
+    }
+  }
+
+  // ── Dashboard pós-login ───────────────────────────────────────────────────
+  async function renderDashboard() {
+    const sec = document.getElementById('section-dashboard')
+    if (!sec) return
+    try {
+      const som = startOfMonth()
+
+      // Imóveis
+      const { data: props } = await supabase.from('properties').select('price, published').order('created_at', { ascending: false })
+      const totalProps  = (props || []).length
+      const pubProps    = (props || []).filter(p => p.published).length
+      const valorCart   = (props || []).filter(p => p.published).reduce((a, p) => a + parsePrice(p.price), 0)
+
+      // Leads
+      const { count: totalLeads } = await supabase.from('leads').select('id', { count: 'exact', head: true })
+      const { count: leadsMonth } = await supabase.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', som)
+      const { count: leadsOpen }  = await supabase.from('leads').select('id', { count: 'exact', head: true }).is('converted_at', null).is('lost_at', null)
+
+      // Vendas
+      const { data: allVendas }   = await supabase.from('leads').select('budget_max, converted_at').not('converted_at', 'is', null)
+      const { data: monthVendas } = await supabase.from('leads').select('budget_max, converted_at').not('converted_at', 'is', null).gte('converted_at', som)
+      const vendasMonth = (monthVendas || []).length
+      const valorMonth  = (monthVendas || []).reduce((a, l) => a + (parseFloat(l.budget_max) || 0), 0)
+
+      sec.innerHTML = `
+        <div style="padding:28px 24px 12px;font-size:22px;font-weight:700;color:#0f172a">Dashboard</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;padding:0 24px 28px">
+          ${kpi('\ud83c\udfe0', 'Im\u00f3veis Publicados', pubProps + ' / ' + totalProps, fmtM(valorCart), '#0ea5e9')}
+          ${kpi('\ud83d\udc65', 'Leads Ativos', leadsOpen ?? '—', (leadsMonth ?? '—') + ' este m\u00eas', '#8b5cf6')}
+          ${kpi('\ud83c\udfc6', 'Vendas no M\u00eas', vendasMonth + ' fechada' + (vendasMonth !== 1 ? 's' : ''), fmtM(valorMonth), '#059669')}
+          ${kpi('\ud83d\udcca', 'Total de Leads', (totalLeads ?? '—'), 'no CRM', '#f59e0b')}
+        </div>
+      `
+    } catch (e) {
+      console.warn('[stats] renderDashboard:', e)
+    }
+  }
+
+  function kpi(icon, label, main, sub, color) {
+    return `<div style="background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid ${color}">
+      <div style="font-size:26px;margin-bottom:6px">${icon}</div>
+      <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${label}</div>
+      <div style="font-size:24px;font-weight:700;color:#0f172a">${main}</div>
+      <div style="font-size:13px;color:#64748b;margin-top:2px">${sub}</div>
+    </div>`
+  }
+
+  // ── Executa ao carregar e ao logar ────────────────────────────────────────
+  fetchPublicStats()
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session) {
+      fetchAuthStats()
+    }
+  })
+  </script>
 
   <script>
     if ("serviceWorker" in navigator) {
