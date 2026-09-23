@@ -1915,5 +1915,268 @@
   })()
   </script>
 
+
+  <!-- ─ Funil: Toolbar buttons (refresh, calendar, analytics) ─────── -->
+  <script>
+  (function() {
+    var _calendarOpen = false
+    var _analyticsOpen = false
+
+    function fmtBRL(v) {
+      v = parseFloat(v) || 0
+      if (v >= 1e6) return 'R$ ' + (v/1e6).toFixed(1).replace('.0','') + 'M'
+      if (v >= 1e3) return 'R$ ' + (v/1e3).toFixed(0) + 'K'
+      return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0})
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '—'
+      try {
+        var d = new Date(iso)
+        return d.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit' })
+      } catch(e) { return iso.slice(0,10) }
+    }
+
+    function closeAllPanels() {
+      document.querySelectorAll('.toolbar-panel').forEach(function(p) { p.remove() })
+      _calendarOpen = _analyticsOpen = false
+    }
+
+    function makePanel(title, id) {
+      closeAllPanels()
+      var overlay = document.createElement('div')
+      overlay.className = 'toolbar-panel-overlay'
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeAllPanels()
+      })
+
+      var panel = document.createElement('div')
+      panel.className = 'toolbar-panel ' + id
+      panel.innerHTML =
+        '<div class="toolbar-panel-header">' +
+          '<span class="toolbar-panel-title">' + title + '</span>' +
+          '<button class="toolbar-panel-close" onclick="this.closest('.toolbar-panel-overlay').remove()">&#x2715;</button>' +
+        '</div>' +
+        '<div class="toolbar-panel-body" id="' + id + '-body">Carregando&#8230;</div>'
+
+      overlay.appendChild(panel)
+      overlay.className = 'toolbar-panel-overlay'
+      document.body.appendChild(overlay)
+      return document.getElementById(id + '-body')
+    }
+
+    /* ─── REFRESH ─────────────────────────────────── */
+    function wireRefresh() {
+      var btn = document.getElementById('btn-funil-refresh')
+      if (!btn || btn._wiredToolbar) return
+      btn._wiredToolbar = true
+      btn.addEventListener('click', function() {
+        var svg = btn.querySelector('svg')
+        if (svg) { svg.style.transition = 'none'; svg.style.transform = 'rotate(0)'; svg.style.animation = 'funilSpin 0.8s linear infinite' }
+        // Trigger reload via pipe select change event
+        var sel = document.getElementById('funil-pipe-sel')
+        if (sel) sel.dispatchEvent(new Event('change'))
+        // Also try window.reloadFunilData if exposed
+        if (typeof window.reloadFunilData === 'function') {
+          window.reloadFunilData().finally(function() { if (svg) svg.style.animation = '' })
+        } else {
+          setTimeout(function() { if (svg) svg.style.animation = '' }, 1200)
+        }
+      })
+    }
+
+    /* ─── CALENDAR ─────────────────────────────────── */
+    function wireCalendar() {
+      var btn = document.getElementById('btn-funil-calendar')
+      if (!btn || btn._wiredToolbar) return
+      btn._wiredToolbar = true
+      btn.addEventListener('click', function() {
+        if (_calendarOpen) { closeAllPanels(); return }
+        _calendarOpen = true
+        var body = makePanel('Agenda de Atividades — Próximos 14 dias', 'funil-calendar-panel')
+        loadCalendar(body)
+      })
+    }
+
+    async function loadCalendar(el) {
+      try {
+        var supabase = window.supabase
+        if (!supabase) { el.innerHTML = '<div class="tp-empty">Supabase não disponível</div>'; return }
+
+        var today = new Date(); today.setHours(0,0,0,0)
+        var end   = new Date(today); end.setDate(today.getDate() + 14)
+
+        var { data: tasks, error } = await supabase
+          .from('tasks')
+          .select('id, title, due_date, status, lead_id, leads(name)')
+          .gte('due_date', today.toISOString().slice(0,10))
+          .lte('due_date', end.toISOString().slice(0,10))
+          .neq('status', 'concluida').neq('status', 'done')
+          .order('due_date', { ascending: true })
+          .limit(200)
+
+        if (error) throw error
+        var items = tasks || []
+        if (!items.length) {
+          el.innerHTML = '<div class="tp-empty">Nenhuma atividade nos próximos 14 dias</div>'
+          return
+        }
+
+        // Group by date
+        var groups = {}
+        items.forEach(function(t) {
+          var d = (t.due_date || '').slice(0,10)
+          if (!groups[d]) groups[d] = []
+          groups[d].push(t)
+        })
+
+        var todayStr = today.toISOString().slice(0,10)
+        var tomorrowStr = new Date(today.getTime() + 86400000).toISOString().slice(0,10)
+
+        var html = ''
+        Object.keys(groups).sort().forEach(function(d) {
+          var label = d === todayStr ? 'Hoje' : d === tomorrowStr ? 'Amanhã' : fmtDate(d + 'T00:00:00')
+          html += '<div class="tp-date-group">'
+          html += '<div class="tp-date-label">' + label + '</div>'
+          groups[d].forEach(function(t) {
+            var leadName = (t.leads && t.leads.name) ? t.leads.name : 'Lead #' + t.lead_id
+            html += '<div class="tp-task-row">' +
+              '<div class="tp-task-dot"></div>' +
+              '<div class="tp-task-info">' +
+                '<div class="tp-task-title">' + escHTML(t.title || 'Tarefa') + '</div>' +
+                '<div class="tp-task-lead">' + escHTML(leadName) + '</div>' +
+              '</div>' +
+            '</div>'
+          })
+          html += '</div>'
+        })
+        el.innerHTML = html
+      } catch(e) {
+        el.innerHTML = '<div class="tp-empty">Erro: ' + escHTML(e.message) + '</div>'
+      }
+    }
+
+    /* ─── ANALYTICS ─────────────────────────────────── */
+    function wireAnalytics() {
+      var btn = document.getElementById('btn-funil-analytics')
+      if (!btn || btn._wiredToolbar) return
+      btn._wiredToolbar = true
+      btn.addEventListener('click', function() {
+        if (_analyticsOpen) { closeAllPanels(); return }
+        _analyticsOpen = true
+        var body = makePanel('Análise do Funil', 'funil-analytics-panel')
+        buildAnalytics(body)
+      })
+    }
+
+    function buildAnalytics(el) {
+      // Extract data from rendered kanban DOM (no extra Supabase call needed)
+      var board = document.getElementById('kanban-board')
+      var cols  = board ? board.querySelectorAll('.kanban-col') : []
+
+      if (!cols.length) {
+        el.innerHTML = '<div class="tp-empty">Carregue o funil primeiro</div>'
+        return
+      }
+
+      var totalLeads = 0
+      var totalValue = 0
+      var stageData  = []
+
+      cols.forEach(function(col) {
+        var stageName  = col.dataset.stage || 'Sem etapa'
+        var stageColor = (function() {
+          var dot = col.querySelector('.kanban-stage-dot')
+          return dot ? dot.style.background : '#0ea5e9'
+        })()
+        var cards = col.querySelectorAll('.kanban-card').length
+        // Parse value from .rd-col-value
+        var valEl = col.querySelector('.rd-col-value')
+        var valText = valEl ? valEl.textContent.trim() : 'R$ 0'
+        var val = (function(s) {
+          s = s.replace('R$','').replace(/\./g,'').replace(',','.').trim()
+          var n = parseFloat(s)
+          if (s.indexOf('M') > 0) n = parseFloat(s)*1e6
+          else if (s.indexOf('K') > 0) n = parseFloat(s)*1e3
+          return isNaN(n) ? 0 : n
+        })(valText)
+
+        totalLeads += cards
+        totalValue += val
+        stageData.push({ name: stageName, color: stageColor, count: cards, value: val })
+      })
+
+      var maxCount = Math.max(1, Math.max.apply(null, stageData.map(function(s) { return s.count })))
+
+      var html = '<div class="tp-kpi-row">' +
+        '<div class="tp-kpi"><div class="tp-kpi-val">' + totalLeads + '</div><div class="tp-kpi-lbl">Negociações</div></div>' +
+        '<div class="tp-kpi"><div class="tp-kpi-val">' + fmtBRL(totalValue) + '</div><div class="tp-kpi-lbl">Valor Total</div></div>' +
+        '<div class="tp-kpi"><div class="tp-kpi-val">' + (totalLeads ? fmtBRL(totalValue/totalLeads) : '—') + '</div><div class="tp-kpi-lbl">Ticket Médio</div></div>' +
+        '</div>'
+
+      html += '<div class="tp-stages-title">Negociações por etapa</div>'
+      html += '<div class="tp-stages">'
+      stageData.forEach(function(s) {
+        var pct = Math.round(s.count / maxCount * 100)
+        html += '<div class="tp-stage-row">' +
+          '<div class="tp-stage-name"><span class="tp-stage-dot" style="background:' + escHTML(s.color) + '"></span>' + escHTML(s.name) + '</div>' +
+          '<div class="tp-stage-bar-wrap"><div class="tp-stage-bar" style="width:' + pct + '%;background:' + escHTML(s.color) + '"></div></div>' +
+          '<div class="tp-stage-count"><b>' + s.count + '</b> &nbsp;<span class="tp-stage-val">' + fmtBRL(s.value) + '</span></div>' +
+        '</div>'
+      })
+      html += '</div>'
+      el.innerHTML = html
+    }
+
+    function escHTML(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+
+    /* ─── VIEW TOGGLE backup wiring ────────────────── */
+    function wireViewToggle() {
+      document.querySelectorAll('.rd-view-btn').forEach(function(b) {
+        if (b._wired2) return
+        b._wired2 = true
+        b.addEventListener('click', function() {
+          if (typeof _rdToggleView === 'function') {
+            _rdToggleView(b.dataset.view)
+          }
+        })
+      })
+    }
+
+    /* ─── Init ──────────────────────────────────────── */
+    function init() {
+      wireRefresh()
+      wireCalendar()
+      wireAnalytics()
+      wireViewToggle()
+    }
+
+    // Run on DOM ready and also when funil section becomes active
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() { setTimeout(init, 300) })
+    } else {
+      setTimeout(init, 300)
+    }
+
+    // Re-run when navigating to funil section (buttons re-rendered)
+    var _origNav = window.navigateToSection
+    if (typeof _origNav === 'function') {
+      // Already defined - patch it
+    }
+    // Use MutationObserver on admin-root to detect funil section becoming visible
+    var adminRoot = document.getElementById('admin-root')
+    if (adminRoot) {
+      new MutationObserver(function() {
+        var sec = document.getElementById('section-funil')
+        if (sec && !sec.classList.contains('hidden')) {
+          setTimeout(init, 150)
+        }
+      }).observe(adminRoot, { attributes: true, subtree: true, attributeFilter: ['class'] })
+    }
+  })()
+  </script>
+
 </body>
 </html>
