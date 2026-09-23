@@ -458,7 +458,7 @@ async function loginAdmin(email, password) {
     return false
   }
   // 2. Tenta login
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data: _authData, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) {
     const s = _secRegisterFail()
     if (s.blockedUntil) {
@@ -467,12 +467,12 @@ async function loginAdmin(email, password) {
       const left = _SEC_MAX_ATTEMPTS - s.count
       console.warn(`[SEC] Login falhou. ${left} tentativa(s) restante(s) antes do bloqueio.`)
     }
-    return false
+    return null
   }
   // 3. Sucesso: reseta contador e marca atividade
   _secResetAttempts()
   _secMarkActivity()
-  return true
+  return _authData?.session || null
 }
 
 // ─── Auto-logout por inatividade (sem mouse/teclado por 2h) ───────────────
@@ -5346,16 +5346,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Entrando…' }
 
           try {
-            const ok = await loginAdmin(email, password)
-            if (ok) {
+            const loginSess = await loginAdmin(email, password)
+            if (loginSess) {
               loginModal.classList.add('hidden')
               if (adminRoot) adminRoot.classList.remove('hidden')
               attachAdminForm()
               attachAdminUI()
               if (window.lucide) lucide.createIcons()
 
-              const { data: { session: s2 } } = await supabase.auth.getSession()
-              currentProfile = s2 ? await loadProfile(s2.user.id) : null
+              // Usa sessão retornada diretamente — evita race condition com getSession()
+              currentProfile = await loadProfile(loginSess.user.id)
+              if (!currentProfile) {
+                await new Promise(r => setTimeout(r, 500))
+                currentProfile = await loadProfile(loginSess.user.id)
+              }
               if (!currentProfile) {
                 await supabase.auth.signOut()
                 loginModal.classList.remove('hidden')
@@ -5380,7 +5384,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               if (window.lucide) lucide.createIcons()
               navigateToSection('dashboard')
             } else {
-              alert('E-mail ou senha incorretos')
+              if (loginSess !== null) alert('E-mail ou senha incorretos')
             }
           } catch (err) {
             alert('Erro ao fazer login: ' + (err?.message || String(err)))
