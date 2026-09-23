@@ -67,6 +67,9 @@
       <feGaussianBlur stdDeviation="4" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="rgba(0,0,0,0.3)"/>
+    </filter>
   </defs>
 
   <!-- Background -->
@@ -251,6 +254,12 @@
     <circle cx="440" cy="160" r="1.5" opacity="0.5"/>
     <circle cx="170" cy="620" r="1.5" opacity="0.4"/>
     <circle cx="640" cy="380" r="1" opacity="0.5"/>
+  </g>
+
+  <!-- Logo Isaac Omar -->
+  <g transform="translate(265,645)">
+    <rect width="270" height="100" rx="14" fill="rgba(255,255,255,0.93)" filter="url(#shadow)"/>
+    <image href="/logo-watermark.png" x="10" y="5" width="250" height="90" preserveAspectRatio="xMidYMid meet"/>
   </g>
 
   <!-- Tagline -->
