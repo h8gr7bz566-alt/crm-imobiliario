@@ -686,6 +686,9 @@
       <!-- ── Negociações (Funil/Kanban) — Estilo RD Station ── -->
       <section id="section-funil" class="admin-section hidden">
 
+        <!-- Pipeline selector tabs -->
+        <div id="funil-pipeline-tabs" class="funil-tabs-bar" style="display:none"></div>
+
         <!-- Toolbar RD-style: View toggle + Filter chips + Criar button -->
         <div class="rd-toolbar">
           <div class="rd-view-toggle">
@@ -752,6 +755,9 @@
             <span>Importar</span>
           </button>
         </div>
+
+        <!-- Stage quick-filter tabs -->
+        <div id="funil-stage-tabs" class="funil-stage-tabs" style="display:none"></div>
 
         <!-- Filtros ativos visíveis -->
         <div class="rd-active-filters" id="rd-active-filters">
@@ -1785,5 +1791,129 @@
       });
     }
   </script>
+
+  <!-- ─ Funil: Pipeline tabs + Stage filter tabs ──────────────────── -->
+  <script>
+  (function() {
+    function initFunilTabs() {
+      const sel     = document.getElementById('funil-pipe-sel')
+      const pipeBar = document.getElementById('funil-pipeline-tabs')
+      const stageBar= document.getElementById('funil-stage-tabs')
+      const board   = document.getElementById('kanban-board')
+      if (!sel || !pipeBar || !stageBar || !board) return
+
+      /* ── Pipeline tabs ─────────────────────────────────── */
+      function renderPipeTabs() {
+        pipeBar.innerHTML = ''
+        const opts = Array.from(sel.options)
+        if (!opts.length) { pipeBar.style.display = 'none'; return }
+        pipeBar.style.display = 'flex'
+        opts.forEach(function(opt) {
+          var btn = document.createElement('button')
+          btn.className = 'funil-tab' + (opt.value == sel.value ? ' active' : '')
+          btn.textContent = opt.text
+          btn.dataset.pipeId = opt.value
+          btn.addEventListener('click', function() {
+            if (btn.classList.contains('active')) return
+            sel.value = opt.value
+            sel.dispatchEvent(new Event('change'))
+          })
+          pipeBar.appendChild(btn)
+        })
+
+        // "+" button to go to crm-config for adding pipelines (admin only)
+        var addBtn = document.createElement('button')
+        addBtn.className = 'funil-tab-add'
+        addBtn.title = 'Gerenciar funis'
+        addBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+        addBtn.addEventListener('click', function() {
+          if (typeof navigateToSection === 'function') navigateToSection('crm-config')
+        })
+        pipeBar.appendChild(addBtn)
+      }
+
+      // Observe select options changes (when reloadFunilData runs)
+      new MutationObserver(renderPipeTabs).observe(sel, { childList: true })
+
+      // Also update active tab when select value changes
+      sel.addEventListener('change', function() {
+        pipeBar.querySelectorAll('.funil-tab').forEach(function(b) {
+          b.classList.toggle('active', b.dataset.pipeId == sel.value)
+        })
+        // Reset stage tabs
+        if (stageBar) {
+          stageBar.querySelectorAll('.funil-stage-tab').forEach(function(b) { b.classList.remove('active') })
+          var allBtn = stageBar.querySelector('[data-stage="__all__"]')
+          if (allBtn) allBtn.classList.add('active')
+          board.querySelectorAll('.kanban-col').forEach(function(c) { c.style.display = '' })
+        }
+      })
+
+      renderPipeTabs()
+
+      /* ── Stage filter tabs ─────────────────────────────── */
+      var _stageFilter = '__all__'
+
+      function renderStageTabs() {
+        var cols = board.querySelectorAll('.kanban-col')
+        if (!cols.length) { stageBar.style.display = 'none'; return }
+        stageBar.innerHTML = ''
+        stageBar.style.display = 'flex'
+
+        function makeTab(label, stageKey) {
+          var btn = document.createElement('button')
+          btn.className = 'funil-stage-tab' + (stageKey === _stageFilter ? ' active' : '')
+          btn.dataset.stage = stageKey
+          btn.textContent = label
+          btn.addEventListener('click', function() {
+            _stageFilter = stageKey
+            stageBar.querySelectorAll('.funil-stage-tab').forEach(function(b) {
+              b.classList.toggle('active', b.dataset.stage === stageKey)
+            })
+            if (stageKey === '__all__') {
+              board.querySelectorAll('.kanban-col').forEach(function(c) { c.style.display = '' })
+            } else {
+              board.querySelectorAll('.kanban-col').forEach(function(c) {
+                c.style.display = (c.dataset.stage === stageKey) ? '' : 'none'
+              })
+            }
+          })
+          return btn
+        }
+
+        // Count leads per stage for badge
+        stageBar.appendChild(makeTab('Todas as etapas', '__all__'))
+        cols.forEach(function(col) {
+          var stageName = col.dataset.stage || ''
+          if (!stageName) return
+          var count = col.querySelectorAll('.kanban-card').length
+          var label = stageName + (count > 0 ? ' (' + count + ')' : '')
+          stageBar.appendChild(makeTab(label, stageName))
+        })
+
+        // Re-apply current filter (board was re-rendered)
+        if (_stageFilter !== '__all__') {
+          board.querySelectorAll('.kanban-col').forEach(function(c) {
+            c.style.display = (c.dataset.stage === _stageFilter) ? '' : 'none'
+          })
+        }
+      }
+
+      new MutationObserver(function(mutations) {
+        // Only react to direct children being added/replaced (kanban cols rebuilt)
+        var relevant = mutations.some(function(m) { return m.type === 'childList' })
+        if (relevant) renderStageTabs()
+      }).observe(board, { childList: true })
+    }
+
+    // Wait for DOM + funil section to be initialized
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() { setTimeout(initFunilTabs, 200) })
+    } else {
+      setTimeout(initFunilTabs, 200)
+    }
+  })()
+  </script>
+
 </body>
 </html>
