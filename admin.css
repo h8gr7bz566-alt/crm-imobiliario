@@ -126,9 +126,123 @@ body {
 }
 #admin-root.hidden { display: none; }
 
+/* ═══ SIDEBAR ══════════════════════════════════════════════════════ */
+.admin-sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: 64px;
+  height: 100vh;
+  background: #0f1c2e;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  z-index: 101;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-brand {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #c9a84c;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+/* Nav inside sidebar — vertical layout */
+.admin-sidebar .topnav-links {
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 8px 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  scrollbar-width: none;
+}
+.admin-sidebar .topnav-links::-webkit-scrollbar { display: none; }
+
+.admin-sidebar .topnav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255,255,255,0.5);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  border-radius: 0;
+  position: relative;
+  font-family: 'Inter', system-ui, sans-serif;
+  transition: color 0.15s, background 0.15s;
+}
+.admin-sidebar .topnav-link i,
+.admin-sidebar .topnav-link svg[data-lucide] {
+  width: 20px !important; height: 20px !important;
+  margin: 0 !important; vertical-align: unset !important;
+  flex-shrink: 0;
+}
+.admin-sidebar .topnav-link:hover {
+  background: rgba(255,255,255,0.06);
+  color: #ffffff;
+}
+.admin-sidebar .topnav-link.active {
+  background: rgba(201,168,76,0.14);
+  color: #c9a84c;
+}
+/* Left accent bar for active item */
+.admin-sidebar .topnav-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px;
+  background: #c9a84c;
+  border-radius: 0 3px 3px 0;
+}
+/* Remove horizontal underline from topnav active style */
+.admin-sidebar .topnav-link.active::after { display: none !important; }
+.admin-sidebar .topnav-link.topnav-dropdown-btn::after { display: none !important; }
+
+.sidenav-label { pointer-events: none; line-height: 1; }
+
+/* Dropdown in sidebar — submenu flies out to the right */
+.admin-sidebar .topnav-dropdown {
+  position: relative;
+  width: 100%;
+}
+.admin-sidebar .sidebar-submenu {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  padding-left: 4px;
+  z-index: 300;
+  min-width: 180px;
+}
+.admin-sidebar .topnav-dropdown:hover .sidebar-submenu,
+.admin-sidebar .topnav-dropdown:focus-within .sidebar-submenu { display: block; }
+/* Override the default dropdown menu positioning for sidebar */
+.admin-sidebar .topnav-dropdown-menu { display: none !important; }
+.admin-sidebar .topnav-dropdown:hover .sidebar-submenu,
+.admin-sidebar .topnav-dropdown:focus-within .sidebar-submenu { display: block !important; }
+
+
+
 /* ═══ TOP NAV ═══════════════════════════════════════════════════════ */
 .admin-topnav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  position: fixed; top: 0; left: 64px; right: 0; z-index: 100;
   height: 56px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
@@ -215,7 +329,7 @@ body {
 .nav-item { display: none; }
 
 /* ─── Main ────────────────────────────────────────────────────────── */
-.admin-main { flex: 1; min-width: 0; overflow-x: hidden; max-width: 100%; margin-left: 0 !important; padding-top: 72px; }
+.admin-main { flex: 1; min-width: 0; overflow-x: hidden; max-width: 100%; margin-left: 64px; padding-top: 72px; }
 
 .admin-section          { padding: 32px; }
 .admin-section.hidden   { display: none; }
@@ -4955,3 +5069,24 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   .db-quick-actions { grid-template-columns: repeat(2, 1fr) !important; }
   .kanban-col { flex: 0 0 260px !important; min-width: 260px !important; }
 }
+
+/* ═══ SIDEBAR MOBILE ══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .admin-sidebar {
+    transform: translateX(-64px);
+    z-index: 200;
+  }
+  /* When hamburger toggles .open on #topnav-links (existing JS behavior),
+     show the sidebar via CSS :has() — modern browsers support this */
+  .admin-sidebar:has(.topnav-links.open),
+  .admin-sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+  .admin-topnav { left: 0 !important; }
+  .admin-main   { margin-left: 0 !important; }
+  .topnav-hamburger { display: flex !important; }
+}
+@media (min-width: 769px) {
+  .topnav-hamburger { display: none !important; }
+}
+

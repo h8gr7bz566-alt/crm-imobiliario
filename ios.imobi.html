@@ -331,10 +331,73 @@
   <!-- ── App shell ── -->
   <div id="admin-root" class="hidden">
 
-    <!-- Top Navigation Bar -->
+    <!-- Side Navigation -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-brand">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24" aria-label="IOS imobi">
+          <rect x="2" y="8" width="7" height="18" rx="1.5" fill="currentColor"/>
+          <rect x="11" y="4" width="7" height="22" rx="1.5" fill="currentColor"/>
+          <rect x="20" y="11" width="6" height="15" rx="1.5" fill="currentColor"/>
+        </svg>
+      </div>
+      <nav class="topnav-links" id="topnav-links">
+        <button class="topnav-link active" data-section="dashboard" title="Dashboard">
+          <i data-lucide="layout-dashboard"></i>
+          <span class="sidenav-label">Dashboard</span>
+        </button>
+        <button class="topnav-link" data-section="properties" title="Im&#243;veis">
+          <i data-lucide="building-2"></i>
+          <span class="sidenav-label">Im&#243;veis</span>
+        </button>
+        <button class="topnav-link" data-section="funil" title="Negoci&#43;&#43;&#43;&#43;&#43;&#43;&#43;&#43;es">
+          <i data-lucide="bar-chart-2"></i>
+          <span class="sidenav-label">Funil</span>
+        </button>
+        <button class="topnav-link" data-section="contatos" title="Contatos">
+          <i data-lucide="users"></i>
+          <span class="sidenav-label">Contatos</span>
+        </button>
+        <button class="topnav-link" data-section="tarefas" title="Tarefas">
+          <i data-lucide="check-square"></i>
+          <span class="sidenav-label">Tarefas</span>
+        </button>
+        <button class="topnav-link" data-section="vendas" title="Vendas">
+          <i data-lucide="trending-up"></i>
+          <span class="sidenav-label">Vendas</span>
+        </button>
+        <button class="topnav-link" data-section="perdas" title="Perdas">
+          <i data-lucide="trending-down"></i>
+          <span class="sidenav-label">Perdas</span>
+        </button>
+        <!-- admin-only items abaixo -->
+        <div class="topnav-dropdown admin-only" style="display:none">
+          <button class="topnav-link topnav-dropdown-btn" title="Configura&#231;&#245;es">
+            <i data-lucide="settings"></i>
+            <span class="sidenav-label">Config</span>
+          </button>
+          <div class="topnav-dropdown-menu sidebar-submenu">
+            <div class="topnav-dropdown-menu-inner">
+              <button class="topnav-dropdown-item" data-section="empresa">Empresa</button>
+              <button class="topnav-dropdown-item" data-section="visual">Visual</button>
+              <button class="topnav-dropdown-item" data-section="site-config">Site &amp; SEO</button>
+              <button class="topnav-dropdown-item" data-section="crm-config">CRM Config</button>
+              <button class="topnav-dropdown-item" data-section="integracoes">Integra&#231;&#245;es</button>
+              <button class="topnav-dropdown-item" data-section="midia">M&#237;dia</button>
+              <button class="topnav-dropdown-item admin-only" data-section="depoimentos" style="display:none"><i data-lucide="star"></i> Depoimentos</button>
+            </div>
+          </div>
+        </div>
+        <button class="topnav-link super-admin-only" data-section="super-admin" style="display:none" title="Super Admin">
+          <i data-lucide="shield"></i>
+          <span class="sidenav-label">Super</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Top Bar -->
     <header class="admin-topnav" id="admin-topnav">
       <div class="topnav-left">
-        <button class="topnav-hamburger" id="topnav-hamburger">
+        <button class="topnav-hamburger" id="topnav-hamburger" title="Menu">
           <i data-lucide="menu"></i>
         </button>
         <div class="topnav-logo">
@@ -345,69 +408,44 @@
           </svg>
           <span>IOS imobi</span>
         </div>
-        <nav class="topnav-links" id="topnav-links">
-          <button class="topnav-link active" data-section="dashboard"><i data-lucide="layout-dashboard" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;"></i>Dashboard</button>
-          <button class="topnav-link" data-section="properties">Imóveis</button>
-          <button class="topnav-link" data-section="funil">Negociações</button>
-          <button class="topnav-link" data-section="contatos">Contatos</button>
-          <button class="topnav-link" data-section="tarefas">Tarefas</button>
-          <button class="topnav-link" data-section="vendas" style="color:#059669"><i data-lucide="trending-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;"></i>Vendas</button>
-          <button class="topnav-link" data-section="perdas" style="color:#dc2626"><i data-lucide="trending-down" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;"></i>Perdas</button>
-          <!-- admin-only items abaixo -->
-          <div class="topnav-dropdown admin-only" style="display:none">
-            <button class="topnav-link topnav-dropdown-btn">Configurações <i data-lucide="chevron-down"></i></button>
-            <div class="topnav-dropdown-menu">
-              <div class="topnav-dropdown-menu-inner">
-                <button class="topnav-dropdown-item" data-section="empresa">Empresa</button>
-                <button class="topnav-dropdown-item" data-section="visual">Visual</button>
-                <button class="topnav-dropdown-item" data-section="site-config">Site &amp; SEO</button>
-                <button class="topnav-dropdown-item" data-section="crm-config">CRM Config</button>
-                <button class="topnav-dropdown-item" data-section="integracoes">Integrações</button>
-                <button class="topnav-dropdown-item" data-section="midia">Mídia</button>
-          <button class="topnav-dropdown-item admin-only" data-section="depoimentos" style="display:none"><i data-lucide="star"></i> Depoimentos</button>
-              </div>
-            </div>
-          </div>
-          <button class="topnav-link super-admin-only" data-section="super-admin" style="display:none">Super Admin</button>
-        </nav>
       </div>
       <div class="topnav-right">
         <button class="topnav-icon-btn" id="btn-search-open" title="Buscar"><i data-lucide="search"></i></button>
 
-        <!-- Notificações dropdown -->
+        <!-- Notifica&#231;&#245;es dropdown -->
         <div class="topnav-notif-wrap" id="topnav-notif-wrap">
-          <button class="topnav-icon-btn" id="btn-notif" title="Notificações">
+          <button class="topnav-icon-btn" id="btn-notif" title="Notifica&#231;&#245;es">
             <i data-lucide="bell"></i>
             <span class="notif-badge hidden" id="notif-badge">0</span>
           </button>
           <div class="notif-dropdown hidden" id="notif-dropdown">
             <div class="notif-header">
-              <span>Notificações</span>
+              <span>Notifica&#231;&#245;es</span>
               <div style="display:flex;gap:8px">
                 <button class="notif-mark-all" id="notif-mark-all">Marcar lidas</button>
                 <button class="notif-mark-all" id="notif-clear-all" style="color:#ef4444">Apagar todas</button>
               </div>
             </div>
-            
-            <!-- ── Push notifications status (este aparelho) ────── -->
+
+            <!-- &#8212;&#8212; Push notifications status (este aparelho) &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212; -->
             <div id="push-status-card" style="margin:8px 12px;padding:12px;background:#f1f5f9;border-radius:10px;border:1px solid #e2e8f0;">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <span id="push-status-icon" style="font-size:18px;">🔕</span>
+                <span id="push-status-icon" style="font-size:18px;">&#128277;</span>
                 <div style="flex:1;">
-                  <div style="font-size:13px;font-weight:600;color:#0f172a;" id="push-status-title">Notificações deste aparelho</div>
-                  <div style="font-size:11px;color:#64748b;" id="push-status-sub">Verificando…</div>
+                  <div style="font-size:13px;font-weight:600;color:#0f172a;" id="push-status-title">Notifica&#231;&#245;es deste aparelho</div>
+                  <div style="font-size:11px;color:#64748b;" id="push-status-sub">Verificando&#8230;</div>
                 </div>
               </div>
               <button id="push-activate-btn" style="width:100%;padding:9px;background:#06b6d4;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:none;">
-                🔔 Ativar nesse aparelho
+                &#128276; Ativar nesse aparelho
               </button>
               <button id="push-test-btn" style="width:100%;padding:9px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;cursor:pointer;display:none;margin-top:6px;">
-                🧪 Enviar notificação de teste
+                &#129514; Enviar notifica&#231;&#227;o de teste
               </button>
             </div>
-            
+
             <div class="notif-list" id="notif-list">
-              <div class="notif-empty">Carregando…</div>
+              <div class="notif-empty">Carregando&#8230;</div>
             </div>
           </div>
         </div>
@@ -420,8 +458,8 @@
               <span id="topnav-avatar-initial">?</span>
             </div>
             <div class="topnav-user-info">
-              <div id="topnav-name" class="topnav-user-name">Carregando…</div>
-              <div id="topnav-role" class="topnav-user-role">—</div>
+              <div id="topnav-name" class="topnav-user-name">Carregando&#8230;</div>
+              <div id="topnav-role" class="topnav-user-role">&#8212;</div>
             </div>
           </div>
           <div class="avatar-dropdown hidden" id="avatar-dropdown">
@@ -431,8 +469,8 @@
                 <span id="avatar-dd-initial">?</span>
               </div>
               <div>
-                <div id="avatar-dd-name" style="font-weight:600;font-size:14px;color:#0f172a;">—</div>
-                <div id="avatar-dd-role" style="font-size:12px;color:#64748b;">—</div>
+                <div id="avatar-dd-name" style="font-weight:600;font-size:14px;color:#0f172a;">&#8212;</div>
+                <div id="avatar-dd-role" style="font-size:12px;color:#64748b;">&#8212;</div>
               </div>
             </div>
             <div class="avatar-dropdown-divider"></div>
@@ -452,11 +490,11 @@
         <div class="search-overlay-inner">
           <div class="search-overlay-bar">
             <i data-lucide="search" style="color:#94a3b8;"></i>
-            <input id="search-input" type="text" placeholder="Buscar imóveis, leads, contatos…" autocomplete="off">
+            <input id="search-input" type="text" placeholder="Buscar im&#243;veis, leads, contatos&#8230;" autocomplete="off">
             <button class="search-overlay-close" id="search-overlay-close"><i data-lucide="x"></i></button>
           </div>
           <div class="search-results" id="search-results">
-            <div class="search-hint">Digite para pesquisar…</div>
+            <div class="search-hint">Digite para pesquisar&#8230;</div>
           </div>
         </div>
       </div>
