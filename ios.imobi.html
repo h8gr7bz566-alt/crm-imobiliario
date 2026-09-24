@@ -2525,6 +2525,44 @@
   })()
   </script>
 
+  <!-- ─── Dropdown Config click-toggle ───────────────────────── -->
+  <style>
+    .topnav-dropdown.open .sidebar-submenu { display: block !important; }
+  </style>
+  <script>
+  ;(function() {
+    document.addEventListener('DOMContentLoaded', function() {
+      function wireDropdowns() {
+        document.querySelectorAll('.topnav-dropdown-btn').forEach(function(btn) {
+          if (btn._ddWired) return
+          btn._ddWired = true
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation()
+            var parent = btn.closest('.topnav-dropdown')
+            if (!parent) return
+            var isOpen = parent.classList.contains('open')
+            // Close all dropdowns first
+            document.querySelectorAll('.topnav-dropdown.open').forEach(function(d) {
+              d.classList.remove('open')
+            })
+            if (!isOpen) parent.classList.add('open')
+          })
+        })
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function() {
+          document.querySelectorAll('.topnav-dropdown.open').forEach(function(d) {
+            d.classList.remove('open')
+          })
+        })
+      }
+      wireDropdowns()
+      // Re-wire after script.js may have shown admin-only elements
+      setTimeout(wireDropdowns, 1000)
+      setTimeout(wireDropdowns, 2500)
+    })
+  })()
+  </script>
+
   <!-- ─── Mobile sidebar — single authoritative capture handler ──────── -->
   <script>
   /* ====================================================================
