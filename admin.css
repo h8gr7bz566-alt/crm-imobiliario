@@ -237,6 +237,7 @@ body {
 .admin-sidebar .topnav-dropdown-menu { display: none !important; }
 .admin-sidebar .topnav-dropdown:hover .sidebar-submenu,
 .admin-sidebar .topnav-dropdown:focus-within .sidebar-submenu { display: block !important; }
+.admin-sidebar .topnav-dropdown.open .sidebar-submenu { display: block !important; }
 
 
 

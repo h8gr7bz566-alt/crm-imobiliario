@@ -2589,21 +2589,7 @@
       // ── Nav item inside sidebar: close after navigation ───────────
       var navBtn = e.target.closest('#admin-sidebar .topnav-link')
       if (navBtn && navBtn.classList.contains('topnav-dropdown-btn')) {
-        // Let event propagate so button gets focus → CSS :focus-within shows submenu
-        // Also force display as extra insurance against CSS !important
-        var parent = navBtn.closest('.topnav-dropdown')
-        if (parent) {
-          var submenu = parent.querySelector('.sidebar-submenu') || parent.querySelector('.topnav-dropdown-menu')
-          if (submenu) {
-            var isOpen = submenu.style.getPropertyValue('display') === 'block'
-            document.querySelectorAll('#admin-sidebar .topnav-dropdown').forEach(function(d) {
-              var sm = d.querySelector('.sidebar-submenu') || d.querySelector('.topnav-dropdown-menu')
-              if (sm) sm.style.removeProperty('display')
-            })
-            if (!isOpen) submenu.style.setProperty('display', 'block', 'important')
-          }
-        }
-        return
+        return  // script.js handles .open toggle; CSS now shows it on desktop too
       }
       if (navBtn && !navBtn.classList.contains('topnav-dropdown-btn')) {
         // Close any open submenus when navigating to a regular section
@@ -2617,11 +2603,7 @@
         return
       }
 
-      // ── Click outside sidebar: close submenus and sidebar ─────────
-      document.querySelectorAll('#admin-sidebar .topnav-dropdown').forEach(function(d) {
-        var sm = d.querySelector('.sidebar-submenu') || d.querySelector('.topnav-dropdown-menu')
-        if (sm) sm.style.display = ''
-      })
+      // ── Click outside sidebar: close sidebar on mobile ──────────
       if (sidebar && sidebar.classList.contains('sidebar-open')) {
         if (window.innerWidth < 901 && !e.target.closest('#admin-sidebar')) {
           closeMobileNav()
