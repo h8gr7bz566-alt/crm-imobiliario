@@ -2589,19 +2589,17 @@
       // ── Nav item inside sidebar: close after navigation ───────────
       var navBtn = e.target.closest('#admin-sidebar .topnav-link')
       if (navBtn && navBtn.classList.contains('topnav-dropdown-btn')) {
-        // Direct style toggle — bypasses all CSS specificity issues
-        e.stopPropagation()
+        // Let event propagate so button gets focus → CSS :focus-within shows submenu
+        // Also force display as extra insurance against CSS !important
         var parent = navBtn.closest('.topnav-dropdown')
         if (parent) {
           var submenu = parent.querySelector('.sidebar-submenu') || parent.querySelector('.topnav-dropdown-menu')
           if (submenu) {
             var isOpen = submenu.style.getPropertyValue('display') === 'block'
-            // Close all other submenus first
             document.querySelectorAll('#admin-sidebar .topnav-dropdown').forEach(function(d) {
               var sm = d.querySelector('.sidebar-submenu') || d.querySelector('.topnav-dropdown-menu')
               if (sm) sm.style.removeProperty('display')
             })
-            // Use setProperty with !important to override CSS `display:none !important`
             if (!isOpen) submenu.style.setProperty('display', 'block', 'important')
           }
         }
