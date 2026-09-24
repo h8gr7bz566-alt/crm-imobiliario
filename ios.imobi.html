@@ -39,57 +39,6 @@
     gtag('config', 'G-YG0CJHPW7D');
   </script>
   <!-- End Google Analytics -->
-<style id="mobile-sidebar-fix">
-/* ── Mobile sidebar: force nav links visible (overrides old visibility:hidden rule) ── */
-@media (max-width: 768px) {
-  .admin-sidebar .topnav-links {
-    position: static !important;
-    transform: none !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    left: auto !important;
-    right: auto !important;
-    top: auto !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    width: 100% !important;
-    z-index: auto !important;
-  }
-  .admin-sidebar .topnav-link {
-    color: rgba(255,255,255,0.75) !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    gap: 14px !important;
-    padding: 14px 20px !important;
-    width: 100% !important;
-    font-size: 14px !important;
-    font-weight: 500 !important;
-    text-align: left !important;
-    background: transparent !important;
-    border: none !important;
-  }
-  .admin-sidebar .topnav-link.active {
-    color: #c9a84c !important;
-    background: rgba(201,168,76,0.14) !important;
-  }
-  .admin-sidebar .topnav-link:hover { color: #fff !important; }
-  .admin-sidebar .topnav-link i,
-  .admin-sidebar .topnav-link svg { flex-shrink: 0; width: 20px !important; height: 20px !important; }
-  .sidenav-label {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    color: inherit !important;
-    letter-spacing: 0 !important;
-  }
-}
-</style>
 </head>
 <body>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=660044113549849&ev=PageView&noscript=1"/></noscript>
@@ -2235,108 +2184,115 @@
   </script>
 
 
-  <!-- ─ Mobile sidebar + notification fix ─────────────────────────── -->
+  <!-- ─── Mobile sidebar — single authoritative capture handler ──────── -->
   <script>
-  /* ══════════════════════════════════════════════════════════════════
-     MOBILE SIDEBAR — MutationObserver approach
+  /* ====================================================================
+     Mobile sidebar handler.
      
-     script.js hijacks #topnav-hamburger clicks (capture phase +
-     stopPropagation), so we CANNOT intercept the click.
-     Instead we OBSERVE what script.js does: it toggles .open on
-     #topnav-links. We mirror that into sidebar-open on the sidebar.
-     ══════════════════════════════════════════════════════════════════ */
-  (function() {
-    function initSidebarSync() {
-      var nav      = document.getElementById('topnav-links')
-      var sidebar  = document.getElementById('admin-sidebar')
-      var backdrop = document.getElementById('sidebar-backdrop')
-      if (!nav || !sidebar || !backdrop) return
-      if (nav._sidebarSynced) return
-      nav._sidebarSynced = true
+     WHY this approach:
+     script.js registers a document capture-phase listener that calls
+     e.stopPropagation() on hamburger clicks — this blocks any listener
+     on the BUTTON itself. But document-level capture listeners added
+     BEFORE script.js (this file is parsed first) run first and are NOT
+     stopped by stopPropagation from another document listener.
+     
+     So we use a document capture listener for full control.
+     ==================================================================== */
+  ;(function() {
+    function getSidebar()  { return document.getElementById('admin-sidebar') }
+    function getNav()      { return document.getElementById('topnav-links') }
+    function getBackdrop() { return document.getElementById('sidebar-backdrop') }
 
-      function openSidebar() {
-        sidebar.classList.add('sidebar-open')
-        backdrop.classList.add('active')
-        document.body.style.overflow = 'hidden'
-      }
-      function closeSidebar() {
-        sidebar.classList.remove('sidebar-open')
-        backdrop.classList.remove('active')
-        document.body.style.overflow = ''
-        nav.classList.remove('open')   // keep script.js state in sync
-      }
+    function openMobileNav() {
+      var s = getSidebar(), b = getBackdrop()
+      if (!s) return
+      s.classList.add('sidebar-open')
+      if (b) b.classList.add('active')
+      document.body.style.overflow = 'hidden'
+    }
 
-      // Watch script.js toggling .open on #topnav-links
-      new MutationObserver(function() {
-        if (nav.classList.contains('open')) {
-          openSidebar()
+    function closeMobileNav() {
+      var s = getSidebar(), b = getBackdrop(), n = getNav()
+      if (s) s.classList.remove('sidebar-open')
+      if (b) b.classList.remove('active')
+      if (n) n.classList.remove('open')
+      document.body.style.overflow = ''
+    }
+
+    document.addEventListener('click', function(e) {
+      var sidebar = getSidebar()
+
+      // ── Hamburger: toggle open/close ──────────────────────────────
+      if (e.target.closest('#topnav-hamburger')) {
+        if (sidebar && sidebar.classList.contains('sidebar-open')) {
+          closeMobileNav()
         } else {
-          closeSidebar()
+          openMobileNav()
         }
-      }).observe(nav, { attributes: true, attributeFilter: ['class'] })
-
-      // Backdrop click → close
-      backdrop.addEventListener('click', function() { closeSidebar() })
-
-      // X button → close
-      var closeBtn = document.getElementById('sidebar-close-btn')
-      if (closeBtn) {
-        closeBtn.onclick = null
-        closeBtn.addEventListener('click', function(e) {
-          e.stopPropagation()
-          closeSidebar()
-        })
+        return
       }
 
-      // Clicking a nav item on mobile → close sidebar after navigation
-      nav.addEventListener('click', function(e) {
-        var btn = e.target.closest('.topnav-link:not(.topnav-dropdown-btn)')
-        if (btn && window.innerWidth <= 900) {
-          setTimeout(function() { closeSidebar() }, 100)
+      // ── Backdrop: close ───────────────────────────────────────────
+      if (e.target.id === 'sidebar-backdrop' ||
+          e.target.closest('#sidebar-backdrop')) {
+        closeMobileNav()
+        return
+      }
+
+      // ── X close button: close ─────────────────────────────────────
+      if (e.target.closest('#sidebar-close-btn')) {
+        closeMobileNav()
+        return
+      }
+
+      // ── Nav item inside sidebar: close after navigation ───────────
+      var navBtn = e.target.closest('#admin-sidebar .topnav-link')
+      if (navBtn && !navBtn.classList.contains('topnav-dropdown-btn')) {
+        if (window.innerWidth < 901) {
+          setTimeout(closeMobileNav, 120)
         }
-      })
+        return
+      }
 
-      // Resize to desktop → close
-      window.addEventListener('resize', function() {
-        if (window.innerWidth > 900) closeSidebar()
-      })
-    }
+      // ── Click outside sidebar while it's open: close ──────────────
+      if (sidebar && sidebar.classList.contains('sidebar-open')) {
+        if (window.innerWidth < 901 && !e.target.closest('#admin-sidebar')) {
+          closeMobileNav()
+        }
+      }
+    }, true)   /* capture phase = runs BEFORE script.js handlers */
 
-    // Run when DOM is ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initSidebarSync)
-    } else {
-      initSidebarSync()
-    }
-    // Re-run after login (admin-root becomes visible)
+    // Close on resize to desktop
+    window.addEventListener('resize', function() {
+      if (window.innerWidth > 900) closeMobileNav()
+    })
+
+    // Safety: on login, ensure sidebar is closed
     var loginEl = document.getElementById('admin-login')
     if (loginEl) {
       new MutationObserver(function() {
-        if (loginEl.classList.contains('hidden')) {
-          setTimeout(initSidebarSync, 200)
-        }
+        if (!loginEl.classList.contains('hidden')) closeMobileNav()
       }).observe(loginEl, { attributes: true, attributeFilter: ['class'] })
     }
   })()
   </script>
 
-  <!-- ─ Notification read-state fix ────────────────────────────────── -->
+  <!-- ─── Notification read-state fix ──────────────────────────────── -->
   <script>
-  /* Ensures notification read state always reflects localStorage,
-     even if the in-memory notifsRead array was reset.
-     Patches window.loadNotifications to sync from storage first. */
-  (function() {
-    function patchNotifRead() {
-      if (!window.loadNotifications) return
-      if (window.loadNotifications._patched) return
+  /* Ensures notifsRead always reflects localStorage before rendering.
+     Patches window.loadNotifications after script.js defines it. */
+  ;(function() {
+    function patchNotif() {
+      if (!window.loadNotifications || window.loadNotifications._patched) return
       var orig = window.loadNotifications
       window.loadNotifications = async function() {
-        // Re-sync in-memory notifsRead from localStorage before rendering
         try {
           var stored = JSON.parse(localStorage.getItem('crm_notifs_read') || '[]')
           if (window.notifsRead && Array.isArray(window.notifsRead)) {
             stored.forEach(function(id) {
-              if (!window.notifsRead.includes(id)) window.notifsRead.push(id)
+              if (!window.notifsRead.includes(String(id))) {
+                window.notifsRead.push(String(id))
+              }
             })
           }
         } catch(e) {}
@@ -2344,10 +2300,8 @@
       }
       window.loadNotifications._patched = true
     }
-
-    // Try immediately and after a short delay
-    setTimeout(patchNotifRead, 500)
-    setTimeout(patchNotifRead, 2000)
+    setTimeout(patchNotif, 800)
+    setTimeout(patchNotif, 2500)
   })()
   </script>
 
