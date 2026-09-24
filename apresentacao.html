@@ -7,228 +7,250 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:'Inter',sans-serif;background:#f3f4f6;color:#111;-webkit-font-smoothing:antialiased;min-height:100vh}
+body{font-family:'Inter',sans-serif;background:#f7f7f8;color:#1a1a1a;-webkit-font-smoothing:antialiased}
 .hidden{display:none!important}
 a{text-decoration:none;color:inherit}
-button{font-family:inherit;cursor:pointer}
-img{display:block;max-width:100%}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+img{display:block;width:100%}
 
-/* ── LOGO ─────────────────────────────────────── */
-.logo{font-size:19px;font-weight:800;letter-spacing:-.4px;color:#111}
+/* ── LOGO ── */
+.logo{font-size:16px;font-weight:700;letter-spacing:-.2px;color:#1a1a1a;line-height:1}
 .logo em{font-style:normal;color:#c9892a}
+.logo small{display:block;font-size:10px;font-weight:400;color:#aaa;letter-spacing:.2px;margin-top:2px}
 
-/* ── GATE ─────────────────────────────────────── */
-.gate-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,#fafafa 0%,#f0f0f0 100%)}
-.gate-card{width:100%;max-width:420px;background:#fff;border-radius:22px;padding:40px 36px;box-shadow:0 4px 40px rgba(0,0,0,.08)}
-.gate-logo-row{display:flex;align-items:center;gap:10px;margin-bottom:28px}
-.gate-logo-icon{width:38px;height:38px;background:#c9892a;border-radius:10px;display:flex;align-items:center;justify-content:center}
-.gate-logo-icon svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.gate-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#c9892a;background:#fef8ee;border:1px solid #f5deb0;padding:5px 12px;border-radius:20px;margin-bottom:16px}
-.gate-h1{font-size:26px;font-weight:800;color:#111;letter-spacing:-.5px;line-height:1.2;margin-bottom:8px}
-.gate-sub{font-size:14px;color:#888;line-height:1.6;margin-bottom:28px}
-.gate-label{display:block;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#555;margin-bottom:7px}
-.gate-input{display:block;width:100%;padding:13px 16px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:15px;font-family:inherit;outline:none;color:#111;margin-bottom:16px;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
-.gate-input:focus{border-color:#c9892a;box-shadow:0 0 0 3px rgba(201,137,42,.12)}
-.gate-input::placeholder{color:#c0c0c0}
-.gate-btn{width:100%;padding:15px;background:#c9892a;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;transition:background .2s;margin-top:4px}
-.gate-btn:hover{background:#b8782a}
-.gate-btn:disabled{background:#d9b887}
-.gate-err{font-size:13px;color:#ef4444;margin-top:10px;min-height:18px}
-.gate-privacy{font-size:12px;color:#bbb;text-align:center;margin-top:20px;line-height:1.55}
+/* ══════════════════════════════════════
+   GATE
+══════════════════════════════════════ */
+.gate-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#f7f7f8}
+.gate-card{width:100%;max-width:400px;background:#fff;border-radius:16px;padding:36px 32px;box-shadow:0 2px 24px rgba(0,0,0,.08)}
+.gate-logo-row{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.gate-icon{width:36px;height:36px;background:#c9892a;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.gate-icon svg{width:18px;height:18px}
+.gate-chip{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:#c9892a;background:#fef8ee;border:1px solid #f0d9b0;padding:4px 10px;border-radius:20px;margin-bottom:14px}
+.gate-h1{font-size:22px;font-weight:700;color:#1a1a1a;letter-spacing:-.3px;margin-bottom:6px;line-height:1.25}
+.gate-sub{font-size:13px;color:#999;line-height:1.6;margin-bottom:24px}
+.gate-label{display:block;font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;color:#666;margin-bottom:6px}
+.gate-input{display:block;width:100%;padding:12px 14px;border:1.5px solid #e8e8e8;border-radius:10px;font-size:14px;font-family:inherit;color:#1a1a1a;outline:none;margin-bottom:14px;transition:border-color .2s;-webkit-appearance:none}
+.gate-input:focus{border-color:#c9892a}
+.gate-input::placeholder{color:#ccc}
+.gate-btn{width:100%;padding:13px;background:#c9892a;color:#fff;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:.2px;transition:opacity .2s;margin-top:4px}
+.gate-btn:hover{opacity:.9}
+.gate-btn:disabled{opacity:.5}
+.gate-err{font-size:12px;color:#e04040;margin-top:8px;min-height:16px}
+.gate-privacy{font-size:11px;color:#ccc;text-align:center;margin-top:18px;line-height:1.5}
 
-/* ── HEADER ───────────────────────────────────── */
-.site-header{position:sticky;top:0;z-index:200;background:#fff;border-bottom:1px solid #e5e7eb;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 20px}
-.h-wa{display:inline-flex;align-items:center;gap:7px;background:#25d366;color:#fff;border:none;border-radius:50px;padding:9px 18px;font-size:13px;font-weight:700;transition:background .2s}
-.h-wa:hover{background:#20b858}
-.h-wa svg{width:17px;height:17px;flex-shrink:0}
-.h-wa-text{display:none}
+/* ══════════════════════════════════════
+   HEADER
+══════════════════════════════════════ */
+.site-header{position:sticky;top:0;z-index:300;background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-bottom:1px solid #ebebeb;height:58px;display:flex;align-items:center;padding:0 20px;gap:16px}
+.site-header .logo{flex:1}
+.header-sub{font-size:11px;color:#bbb;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.h-cta{display:inline-flex;align-items:center;gap:7px;background:#fff;color:#1a1a1a;border:1.5px solid #e0e0e0;border-radius:50px;padding:8px 16px;font-size:12px;font-weight:600;white-space:nowrap;transition:border-color .2s}
+.h-cta:hover{border-color:#c9892a;color:#c9892a}
+.h-cta svg{width:15px;height:15px;fill:#25d366;flex-shrink:0}
 
-/* ── HERO INTRO ───────────────────────────────── */
-.pres-hero{background:#fff;border-bottom:1px solid #e5e7eb;padding:28px 20px 24px}
-.pres-hero-inner{max-width:700px;margin:0 auto}
-.pres-eyebrow{font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#c9892a;margin-bottom:8px}
-.pres-h1{font-size:26px;font-weight:800;letter-spacing:-.5px;color:#111;line-height:1.2;margin-bottom:6px}
-.pres-sub{font-size:14px;color:#888;margin-bottom:10px}
-.pres-expiry{font-size:12px;color:#bbb;display:flex;align-items:center;gap:5px}
-.pres-expiry svg{width:13px;height:13px;stroke:#bbb;fill:none;stroke-width:2}
+/* ══════════════════════════════════════
+   INTRO
+══════════════════════════════════════ */
+.pres-intro{background:#fff;border-bottom:1px solid #ebebeb;padding:20px 20px 18px}
+.pi-inner{max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.pi-label{font-size:10px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#c9892a;margin-bottom:5px}
+.pi-h1{font-size:20px;font-weight:700;color:#1a1a1a;letter-spacing:-.3px;margin-bottom:3px}
+.pi-sub{font-size:13px;color:#999;font-weight:400}
+.pi-expiry{font-size:12px;color:#bbb;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.pi-expiry svg{width:13px;height:13px;stroke:#ccc;fill:none;stroke-width:2}
 
-/* ── MINI NAV ─────────────────────────────────── */
-.mini-nav-wrap{background:#fff;border-bottom:1px solid #e5e7eb;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.mini-nav-wrap::-webkit-scrollbar{display:none}
-.mini-nav{display:flex;gap:0;padding:0 12px;max-width:760px;margin:0 auto}
-.mc{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:2px solid transparent;transition:border-color .2s;flex:0 0 auto;cursor:pointer;text-decoration:none}
-.mc.active{border-bottom-color:#c9892a}
-.mc-thumb{width:42px;height:34px;border-radius:8px;overflow:hidden;background:#e5e7eb;flex-shrink:0}
+/* ══════════════════════════════════════
+   MINI NAV
+══════════════════════════════════════ */
+.mini-nav-wrap{background:#fff;border-bottom:1px solid #ebebeb}
+.mini-nav{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 16px;max-width:1100px;margin:0 auto}
+.mini-nav::-webkit-scrollbar{display:none}
+.mc{display:flex;align-items:center;gap:10px;padding:12px 12px;border-bottom:2px solid transparent;flex:0 0 auto;cursor:pointer;transition:border-color .2s;min-width:0}
+.mc.active,.mc:hover{border-bottom-color:#c9892a}
+.mc-thumb{width:44px;height:34px;border-radius:7px;overflow:hidden;background:#f0f0f0;flex-shrink:0}
 .mc-thumb img{width:100%;height:100%;object-fit:cover}
-.mc-info{min-width:0}
-.mc-title{font-size:12px;font-weight:700;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
-.mc-price{font-size:11px;color:#c9892a;font-weight:700;white-space:nowrap}
+.mc-name{font-size:12px;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.mc-price{font-size:11px;color:#c9892a;font-weight:500;margin-top:1px}
 
-/* ── CARDS CONTAINER ──────────────────────────── */
-.props-wrap-inner{max-width:700px;margin:0 auto;padding:24px 16px;display:flex;flex-direction:column;gap:20px}
+/* ══════════════════════════════════════
+   PROPERTY SECTION
+══════════════════════════════════════ */
+.prop-section{background:#fff;margin-bottom:8px}
+.prop-section:last-child{margin-bottom:0}
 
-/* ── PROPERTY CARD ────────────────────────────── */
-.pc{background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 12px rgba(0,0,0,.06);border:1px solid #e9eaec}
-.pc-label{display:flex;align-items:center;gap:8px;padding:10px 18px;background:#fef8ee;border-bottom:1px solid #f5e8c8;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#c9892a}
-.pc-label-dot{width:20px;height:20px;border-radius:50%;background:#c9892a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
-.pc-img{position:relative;overflow:hidden;background:#e5e7eb;aspect-ratio:16/9}
-.pc-img img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
-.pc-img:hover img{transform:scale(1.03)}
-.pc-photo-count{position:absolute;bottom:12px;right:14px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;backdrop-filter:blur(4px)}
-.pc-body{padding:20px 20px 0}
-.pc-title{font-size:18px;font-weight:800;color:#111;letter-spacing:-.4px;margin-bottom:5px;line-height:1.25}
-.pc-addr{font-size:12px;color:#9ca3af;display:flex;align-items:center;gap:4px;margin-bottom:14px}
-.pc-addr svg{flex-shrink:0}
-.pc-specs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-.pc-spec{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#555;background:#f9f9fb;border-radius:20px;padding:5px 12px}
-.pc-spec svg{width:13px;height:13px;flex-shrink:0;stroke:#c9892a;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.pc-desc{font-size:13px;color:#666;line-height:1.7;margin-bottom:16px}
-/* Gallery strip */
-.pc-gallery{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 0 16px;-webkit-overflow-scrolling:touch;margin:0 -20px;padding-left:20px;padding-right:20px}
-.pc-gallery::-webkit-scrollbar{display:none}
-.pc-gallery-img{flex:0 0 auto;width:130px;height:88px;border-radius:10px;overflow:hidden;background:#e5e7eb}
-.pc-gallery-img img{width:100%;height:100%;object-fit:cover}
-/* Price + CTA row */
-.pc-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:16px 20px;border-top:1px solid #f3f4f6;background:#fafafa}
-.pc-price{font-size:22px;font-weight:900;color:#c9892a;letter-spacing:-.5px}
-.pc-price-label{font-size:10px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
-.pc-cta{display:inline-flex;align-items:center;gap:8px;background:#25d366;color:#fff;border-radius:12px;padding:12px 20px;font-size:14px;font-weight:700;white-space:nowrap;transition:background .2s;border:none}
-.pc-cta:hover{background:#20b858}
-.pc-cta svg{width:18px;height:18px;flex-shrink:0}
+/* HERO — full bleed */
+.prop-hero{position:relative;overflow:hidden;background:#1a1a1a;max-height:600px}
+.prop-hero img{width:100%;max-height:600px;object-fit:cover;object-position:center;display:block;opacity:.85}
+.prop-hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.75) 0%,rgba(0,0,0,.2) 50%,transparent 100%)}
+.prop-hero-content{position:absolute;bottom:0;left:0;right:0;padding:24px 20px}
+.prop-hero-inner{max-width:1100px;margin:0 auto}
+.ph-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.ph-chip{font-size:11px;font-weight:500;color:#fff;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(4px);padding:3px 10px;border-radius:20px;letter-spacing:.2px}
+.ph-title{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.3px;line-height:1.2;margin-bottom:6px;text-shadow:0 1px 6px rgba(0,0,0,.3)}
+.ph-addr{font-size:12px;color:rgba(255,255,255,.75);display:flex;align-items:center;gap:4px;font-weight:400}
+.ph-addr svg{width:12px;height:12px;flex-shrink:0}
 
-/* ── CORRETOR BOX ─────────────────────────────── */
-.corretor-box{max-width:700px;margin:0 auto 24px;padding:0 16px}
-.corretor-inner{display:flex;align-items:center;gap:14px;background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #e9eaec;box-shadow:0 1px 6px rgba(0,0,0,.04)}
-.corretor-avatar{width:48px;height:48px;border-radius:50%;background:#c9892a;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;flex-shrink:0}
-.corretor-info{flex:1;min-width:0}
-.corretor-label{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#c9892a;margin-bottom:2px}
-.corretor-name{font-size:15px;font-weight:700;color:#111}
-.corretor-phone{font-size:12px;color:#9ca3af;margin-top:1px}
+/* INFO ROW below hero */
+.prop-info-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:20px 20px;border-bottom:1px solid #f3f3f3;max-width:1100px;margin:0 auto;width:100%}
+.pi-price-block{}
+.pi-price-label{font-size:10px;font-weight:500;color:#aaa;letter-spacing:.4px;text-transform:uppercase;margin-bottom:3px}
+.pi-price{font-size:24px;font-weight:700;color:#c9892a;letter-spacing:-.4px}
+.pi-photo-count{font-size:12px;color:#aaa;background:#f7f7f8;padding:5px 12px;border-radius:20px;font-weight:500}
+.pi-cta{display:inline-flex;align-items:center;gap:7px;background:#c9892a;color:#fff;border-radius:10px;padding:11px 20px;font-size:13px;font-weight:600;white-space:nowrap;transition:opacity .2s}
+.pi-cta:hover{opacity:.88}
+.pi-cta svg{width:16px;height:16px;flex-shrink:0;fill:currentColor}
 
-/* ── FOOTER ───────────────────────────────────── */
-.site-footer{background:#fff;border-top:1px solid #e5e7eb;padding:32px 20px 24px;margin-top:12px}
-.site-footer-inner{max-width:700px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
-.sf-desc{font-size:12px;color:#aaa;margin-top:6px;max-width:260px;line-height:1.6}
+/* SPECIALIST */
+.prop-specialist{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #f3f3f3}
+.prop-specialist-inner{max-width:1100px;margin:0 auto;width:100%;display:flex;align-items:center;gap:12px}
+.spec-avatar{width:40px;height:40px;border-radius:50%;background:#c9892a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0}
+.spec-label{font-size:10px;color:#c9892a;font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-bottom:2px}
+.spec-name{font-size:14px;font-weight:600;color:#1a1a1a}
+.spec-phone{font-size:12px;color:#aaa;margin-top:1px}
+
+/* DESCRIPTION */
+.prop-desc-wrap{padding:20px 20px;border-bottom:1px solid #f3f3f3}
+.prop-desc-inner{max-width:1100px;margin:0 auto}
+.prop-desc-text{font-size:13px;color:#666;line-height:1.75;font-weight:400}
+
+/* PHOTO GRID */
+.prop-photos{padding:20px 20px}
+.prop-photos-inner{max-width:1100px;margin:0 auto}
+.photos-label{font-size:10px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#aaa;margin-bottom:12px}
+.photos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.photos-grid .pgim{overflow:hidden;border-radius:4px;background:#f0f0f0;aspect-ratio:4/3}
+.photos-grid .pgim img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.photos-grid .pgim:hover img{transform:scale(1.04)}
+.photos-grid .pgim:first-child{grid-column:span 2;aspect-ratio:16/9}
+
+/* DIVIDER between properties */
+.prop-divider{height:8px;background:#f7f7f8}
+
+/* ══════════════════════════════════════
+   FOOTER
+══════════════════════════════════════ */
+.site-footer{background:#fff;border-top:1px solid #ebebeb;padding:28px 20px 20px;margin-top:8px}
+.sf-inner{max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.sf-desc{font-size:12px;color:#bbb;margin-top:5px;line-height:1.6;max-width:320px}
 .sf-right{text-align:right}
-.sf-corretor{font-size:14px;font-weight:700;color:#111;margin-bottom:3px}
-.sf-phone{font-size:13px;color:#aaa;margin-bottom:14px}
-.sf-wa{display:inline-flex;align-items:center;gap:7px;background:#25d366;color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:13px;font-weight:700;transition:background .2s}
-.sf-wa:hover{background:#20b858}
-.sf-wa svg{width:16px;height:16px;flex-shrink:0}
-.sf-copy{font-size:11px;color:#ddd;text-align:center;margin-top:24px;border-top:1px solid #f3f4f6;padding-top:18px}
+.sf-name{font-size:13px;font-weight:600;color:#333;margin-bottom:2px}
+.sf-phone{font-size:12px;color:#bbb;margin-bottom:12px}
+.sf-wa{display:inline-flex;align-items:center;gap:6px;background:#25d366;color:#fff;border-radius:8px;padding:9px 18px;font-size:12px;font-weight:600;transition:opacity .2s}
+.sf-wa:hover{opacity:.88}
+.sf-wa svg{width:15px;height:15px;flex-shrink:0}
+.sf-copy{max-width:1100px;margin:20px auto 0;font-size:11px;color:#ddd;border-top:1px solid #f3f3f3;padding-top:16px}
 
-/* ── LOADING ──────────────────────────────────── */
-.load-center{min-height:50vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#fff;border-radius:20px}
-.spinner{width:36px;height:36px;border:3px solid #f0f0f0;border-top-color:#c9892a;border-radius:50%;animation:spin .7s linear infinite}
+/* LOADING */
+.load-wrap{padding:60px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#fff}
+.spinner{width:32px;height:32px;border:2.5px solid #f0f0f0;border-top-color:#c9892a;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.load-txt{font-size:14px;color:#aaa}
+.load-txt{font-size:13px;color:#bbb;font-weight:400}
 
-/* ── RESPONSIVE ───────────────────────────────── */
-@media(min-width:600px){
-  .h-wa-text{display:inline}
-  .gate-card{padding:48px 44px}
-  .gate-h1{font-size:30px}
-  .pres-hero{padding:36px 28px 28px}
-  .pres-h1{font-size:30px}
-  .props-wrap-inner{padding:28px 20px}
-  .pc-body{padding:24px 24px 0}
-  .pc-footer{padding:18px 24px}
-  .pc-gallery{margin:0 -24px;padding-left:24px;padding-right:24px}
-  .pc-title{font-size:20px}
-  .pc-price{font-size:24px}
+/* ══════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════ */
+@media(min-width:768px){
+  .ph-title{font-size:28px}
+  .pi-price{font-size:28px}
+  .prop-hero-content{padding:32px 28px}
+  .prop-info-row{padding:22px 28px}
+  .prop-specialist{padding:18px 28px}
+  .prop-desc-wrap{padding:24px 28px}
+  .prop-photos{padding:24px 28px}
+  .photos-grid{grid-template-columns:repeat(4,1fr)}
+  .photos-grid .pgim:first-child{grid-column:span 2;grid-row:span 2;aspect-ratio:auto}
+  .h-cta span{display:inline}
+  .pres-intro{padding:24px 28px 20px}
 }
-@media(max-width:400px){
-  .gate-card{padding:28px 20px;border-radius:16px}
-  .gate-h1{font-size:22px}
-  .pc-footer{flex-direction:column;align-items:flex-start}
-  .pc-cta{width:100%;justify-content:center}
+@media(max-width:480px){
+  .gate-card{padding:28px 22px}
   .sf-right{text-align:left}
-  .site-footer-inner{flex-direction:column;gap:16px}
+  .sf-inner{flex-direction:column;gap:14px}
+  .ph-title{font-size:20px}
+  .pi-price{font-size:20px}
+  .pi-cta{width:100%;justify-content:center}
+  .prop-info-row{flex-direction:column;align-items:flex-start;gap:12px}
+  .photos-grid{grid-template-columns:repeat(2,1fr)}
+  .photos-grid .pgim:first-child{grid-column:span 2}
+  .header-sub{display:none}
 }
 </style>
 </head>
 <body>
 
-<!-- ── GATE ──────────────────────────────────── -->
+<!-- GATE -->
 <div id="gate" class="gate-page">
   <div class="gate-card">
     <div class="gate-logo-row">
-      <div class="gate-logo-icon">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <div class="gate-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </div>
-      <div class="logo">Isaac<em>Corretor</em></div>
+      <div class="logo">Isaac<em>Corretor</em><small>Corretor de Imóveis · CRECI</small></div>
     </div>
-    <div class="gate-badge">
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-      Seleção Exclusiva
-    </div>
+    <div class="gate-chip">Seleção Exclusiva</div>
     <h1 class="gate-h1" id="gate-h1">Seleção Especial</h1>
-    <p class="gate-sub">Imóveis selecionados especialmente para você. Preencha seus dados para acessar.</p>
+    <p class="gate-sub">Imóveis selecionados especialmente para você. Informe seus dados para acessar.</p>
     <form id="gate-form" novalidate>
-      <label class="gate-label" for="g-name">Seu nome</label>
-      <input class="gate-input" id="g-name" type="text" placeholder="Ex: João Silva" autocomplete="name" required>
+      <label class="gate-label" for="g-name">Nome completo</label>
+      <input class="gate-input" id="g-name" type="text" placeholder="Seu nome" autocomplete="name" required>
       <label class="gate-label" for="g-phone">WhatsApp</label>
       <input class="gate-input" id="g-phone" type="tel" placeholder="(47) 99999-9999" autocomplete="tel" required>
       <div class="gate-err" id="gate-err"></div>
-      <button class="gate-btn" id="gate-btn" type="submit">Ver os Imóveis →</button>
+      <button class="gate-btn" id="gate-btn" type="submit">Acessar os imóveis</button>
     </form>
-    <p class="gate-privacy">🔒 Suas informações são confidenciais e não serão compartilhadas.</p>
+    <p class="gate-privacy">🔒 Seus dados são confidenciais</p>
   </div>
 </div>
 
-<!-- ── APRESENTAÇÃO ───────────────────────────── -->
+<!-- APRESENTAÇÃO -->
 <div id="pres" class="hidden">
 
-  <!-- Header -->
   <header class="site-header">
-    <div class="logo">Isaac<em>Corretor</em></div>
-    <button class="h-wa" id="h-wa-btn">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.561 4.14 1.543 5.879L0 24l6.322-1.57A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.93 0-3.74-.508-5.302-1.395l-.38-.215-3.752.932.97-3.664-.234-.388A9.962 9.962 0 012 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>
-      <span class="h-wa-text">Falar com corretor</span>
+    <div class="logo">Isaac<em>Corretor</em><small class="header-sub" id="header-sub">Seleção especial de imóveis</small></div>
+    <button class="h-cta" id="h-wa-btn">
+      <svg viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.561 4.14 1.543 5.879L0 24l6.322-1.57A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.93 0-3.74-.508-5.302-1.395l-.38-.215-3.752.932.97-3.664-.234-.388A9.962 9.962 0 012 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>
+      <span>Falar com o corretor</span>
     </button>
   </header>
 
-  <!-- Intro hero -->
-  <div class="pres-hero">
-    <div class="pres-hero-inner">
-      <div class="pres-eyebrow">Seleção de Imóveis</div>
-      <h1 class="pres-h1" id="pres-h1">Seleção Especial</h1>
-      <p class="pres-sub">Imóveis selecionados especialmente para você.</p>
-      <div class="pres-expiry hidden" id="pres-expiry">
+  <div class="pres-intro">
+    <div class="pi-inner">
+      <div>
+        <div class="pi-label">Seleção de imóveis</div>
+        <div class="pi-h1" id="pres-h1">Seleção Especial</div>
+        <div class="pi-sub" id="pres-sub">Imóveis selecionados especialmente para você</div>
+      </div>
+      <div class="pi-expiry hidden" id="pres-expiry">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span id="expiry-txt"></span>
       </div>
     </div>
   </div>
 
-  <!-- Mini nav -->
   <div class="mini-nav-wrap">
     <div class="mini-nav" id="mini-nav"></div>
   </div>
 
-  <!-- Properties -->
   <div id="props-wrap">
-    <div class="props-wrap-inner">
-      <div class="load-center">
-        <div class="spinner"></div>
-        <div class="load-txt">Carregando imóveis…</div>
-      </div>
+    <div class="load-wrap">
+      <div class="spinner"></div>
+      <div class="load-txt">Carregando imóveis…</div>
     </div>
   </div>
 
-  <!-- Footer -->
   <footer class="site-footer">
-    <div class="site-footer-inner">
+    <div class="sf-inner">
       <div>
         <div class="logo">Isaac<em>Corretor</em></div>
-        <p class="sf-desc">Conectando pessoas a imóveis com qualidade de vida, exclusividade e valorização em Santa Catarina.</p>
+        <div class="sf-desc">Conectando pessoas a imóveis com qualidade de vida, exclusividade e valorização em Santa Catarina.</div>
       </div>
       <div class="sf-right">
-        <div class="sf-corretor" id="pf-name">Isaac Corretor</div>
+        <div class="sf-name" id="pf-name">Isaac Corretor</div>
         <div class="sf-phone">(47) 99970-1743</div>
         <button class="sf-wa" id="pf-wa-btn">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.561 4.14 1.543 5.879L0 24l6.322-1.57A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.93 0-3.74-.508-5.302-1.395l-.38-.215-3.752.932.97-3.664-.234-.388A9.962 9.962 0 012 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>
@@ -236,7 +258,7 @@ img{display:block;max-width:100%}
         </button>
       </div>
     </div>
-    <p class="sf-copy">© <span id="pf-year"></span> Isaac Corretor. Todos os direitos reservados.</p>
+    <div class="sf-copy">© <span id="pf-year"></span> Isaac Corretor · Todos os direitos reservados.</div>
   </footer>
 
 </div>
@@ -260,16 +282,17 @@ img{display:block;max-width:100%}
   var CORRETOR = dec(params.get('c')) || 'Isaac Corretor'
 
   if (!PROP_IDS.length) {
-    document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:24px"><div><div style="font-size:48px;margin-bottom:16px">🔗</div><div style="font-size:18px;font-weight:700;color:#222;margin-bottom:8px">Link inválido ou expirado</div><div style="font-size:14px;color:#888">Entre em contato com o corretor para receber um novo link.</div></div></div>'
+    document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:24px"><div><div style="font-size:40px;margin-bottom:14px">🔗</div><p style="font-size:16px;font-weight:600;color:#333;margin-bottom:6px">Link inválido</p><p style="font-size:13px;color:#aaa">Entre em contato com o corretor para receber um novo link.</p></div></div>'
     return
   }
 
   var sb = supabase.createClient(SB_URL, SB_KEY)
 
-  document.getElementById('gate-h1').textContent = TITLE
-  document.getElementById('pres-h1').textContent = TITLE
-  document.getElementById('pf-year').textContent = new Date().getFullYear()
-  document.getElementById('pf-name').textContent = CORRETOR
+  document.getElementById('gate-h1').textContent  = TITLE
+  document.getElementById('pres-h1').textContent  = TITLE
+  document.getElementById('header-sub').textContent = TITLE
+  document.getElementById('pf-year').textContent  = new Date().getFullYear()
+  document.getElementById('pf-name').textContent  = CORRETOR
 
   var expParam = params.get('e')
   if (expParam) {
@@ -280,138 +303,140 @@ img{display:block;max-width:100%}
     }
   }
 
-  function openWa(msg) {
-    var txt = msg || ('Olá, ' + CORRETOR + '! Vi a seleção "' + TITLE + '" e tenho interesse.')
-    window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(txt), '_blank')
-  }
-  document.getElementById('h-wa-btn').onclick  = function(){ openWa() }
-  document.getElementById('pf-wa-btn').onclick = function(){ openWa() }
+  function waUrl(msg) { return 'https://wa.me/'+WA+'?text='+encodeURIComponent(msg||('Olá, '+CORRETOR+'! Vi a seleção "'+TITLE+'" e tenho interesse.')) }
+  document.getElementById('h-wa-btn').onclick  = function(){ window.open(waUrl(),'_blank') }
+  document.getElementById('pf-wa-btn').onclick = function(){ window.open(waUrl(),'_blank') }
 
-  /* ── Gate form ── */
+  /* Gate */
   document.getElementById('gate-form').addEventListener('submit', function(e) {
     e.preventDefault()
-    var nome     = (document.getElementById('g-name').value  || '').trim()
-    var whatsapp = (document.getElementById('g-phone').value || '').trim()
+    var nome     = (document.getElementById('g-name').value||'').trim()
+    var whatsapp = (document.getElementById('g-phone').value||'').trim()
     var errEl    = document.getElementById('gate-err')
-    if (!nome)     { errEl.textContent = 'Por favor informe seu nome.'; return }
-    if (!whatsapp) { errEl.textContent = 'Por favor informe seu WhatsApp.'; return }
-    errEl.textContent = ''
-    var btn = document.getElementById('gate-btn')
-    btn.disabled = true; btn.textContent = 'Aguarde…'
+    if (!nome)     { errEl.textContent='Por favor informe seu nome.'; return }
+    if (!whatsapp) { errEl.textContent='Por favor informe seu WhatsApp.'; return }
+    errEl.textContent=''
+    var btn=document.getElementById('gate-btn'); btn.disabled=true; btn.textContent='Aguarde…'
     Promise.all([
-      sb.from('apresentacao_leads').insert({ apresentacao_id:PRES_ID, apresentacao_titulo:TITLE, nome:nome, whatsapp:whatsapp, imoveis_ids:PROP_IDS, tenant_id:TENANT }),
-      sb.from('leads').insert({ name:nome, phone:whatsapp, source:'Apresentação: '+TITLE, notes:'Acessou a apresentação "'+TITLE+'" (ID: '+PRES_ID+')', tenant_id:TENANT })
-    ]).catch(function(err){ console.warn('[apres] lead save:', err) })
+      sb.from('apresentacao_leads').insert({apresentacao_id:PRES_ID,apresentacao_titulo:TITLE,nome:nome,whatsapp:whatsapp,imoveis_ids:PROP_IDS,tenant_id:TENANT}),
+      sb.from('leads').insert({name:nome,phone:whatsapp,source:'Apresentação: '+TITLE,notes:'Acessou "'+TITLE+'" (ID: '+PRES_ID+')',tenant_id:TENANT})
+    ]).catch(function(err){console.warn('[apres]',err)})
     document.getElementById('gate').classList.add('hidden')
     document.getElementById('pres').classList.remove('hidden')
     fetchAndRender()
   })
 
-  /* ── Helpers ── */
+  /* Helpers */
   function esc(s){ if(s==null)return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
-  function getImages(p){ return (p.images && p.images.length) ? p.images : (p.cover_image ? [p.cover_image] : []) }
-  function fmtPrice(p){ if(!p.price)return ''; var v=String(p.price); return v.startsWith('R$')?v:'R$ '+v }
-  function buildAddr(p){ return [p.neighborhood,p.city].filter(Boolean).join(', ') }
+  function imgs(p){ return (p.images&&p.images.length)?p.images:(p.cover_image?[p.cover_image]:[]) }
+  function price(p){ if(!p.price)return ''; var v=String(p.price); return v.startsWith('R$')?v:'R$ '+v }
+  function addr(p){ return [p.neighborhood,p.city].filter(Boolean).join(', ') }
 
-  var WA_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.561 4.14 1.543 5.879L0 24l6.322-1.57A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.93 0-3.74-.508-5.302-1.395l-.38-.215-3.752.932.97-3.664-.234-.388A9.962 9.962 0 012 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>'
-  var PIN_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>'
-  var BED_SVG = '<svg viewBox="0 0 24 24"><path d="M2 4v16M2 8h20a0 0 0 010 8H2M22 8v12"/><rect x="6" y="4" width="4" height="4" rx="1"/></svg>'
-  var CAR_SVG = '<svg viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h16a2 2 0 012 2v6a2 2 0 01-2 2h-2M9 17h6M7.5 17a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm9 0a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/></svg>'
+  var WA_ICO = '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.561 4.14 1.543 5.879L0 24l6.322-1.57A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.93 0-3.74-.508-5.302-1.395l-.38-.215-3.752.932.97-3.664-.234-.388A9.962 9.962 0 012 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>'
+  var PIN_ICO = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>'
 
-  /* ── Mini nav ── */
-  function renderMiniNav(props) {
-    var html = props.map(function(p, i) {
-      var imgs = getImages(p)
-      var thumb = imgs[0] ? '<img src="'+esc(imgs[0])+'" alt="" loading="lazy">' : ''
-      return '<a class="mc'+(i===0?' active':'')+'" href="#prop-'+p.id+'" onclick="apresNav(this)">'
-        +'<div class="mc-thumb">'+thumb+'</div>'
-        +'<div class="mc-info"><div class="mc-title">'+esc(p.title||'Imóvel')+'</div><div class="mc-price">'+esc(fmtPrice(p))+'</div></div>'
+  /* Mini nav */
+  function renderNav(props) {
+    document.getElementById('mini-nav').innerHTML = props.map(function(p,i){
+      var im = imgs(p)
+      return '<a class="mc'+(i===0?' active':'')+'" href="#p-'+p.id+'" onclick="apresNav(this)">'
+        +'<div class="mc-thumb">'+(im[0]?'<img src="'+esc(im[0])+'" loading="lazy" alt="">':'')+'</div>'
+        +'<div><div class="mc-name">'+esc(p.title||'Imóvel')+'</div><div class="mc-price">'+esc(price(p))+'</div></div>'
         +'</a>'
     }).join('')
-    document.getElementById('mini-nav').innerHTML = html
   }
   window.apresNav = function(el){
-    document.querySelectorAll('.mc').forEach(function(c){ c.classList.remove('active') })
+    document.querySelectorAll('.mc').forEach(function(c){c.classList.remove('active')})
     el.classList.add('active')
   }
 
-  /* ── Properties ── */
-  function renderProperties(props) {
-    var html = '<div class="props-wrap-inner">'
+  /* Render */
+  function renderProps(props) {
+    var html = ''
     props.forEach(function(p, i) {
-      var imgs   = getImages(p)
-      var hero   = imgs[0] || ''
-      var gallery = imgs.slice(1)
-      var addr   = buildAddr(p)
-      var waMsg  = 'Olá! Tenho interesse no imóvel "'+p.title+'" da seleção "'+TITLE+'". Pode me dar mais detalhes?'
-      var waUrl  = 'https://wa.me/'+WA+'?text='+encodeURIComponent(waMsg)
+      var im    = imgs(p)
+      var hero  = im[0] || ''
+      var rest  = im.slice(1)
+      var ad    = addr(p)
+      var wamsg = 'Olá! Tenho interesse no imóvel "'+p.title+'" da seleção "'+TITLE+'". Pode me passar mais informações?'
 
-      html += '<div class="pc" id="prop-'+p.id+'">'
-      // Label
-      html += '<div class="pc-label"><div class="pc-label-dot">'+(i+1)+'</div>Imóvel '+(i+1)+' de '+props.length+'</div>'
-      // Hero
+      html += '<div class="prop-section" id="p-'+p.id+'">'
+
+      /* Hero full-bleed */
       if (hero) {
-        html += '<div class="pc-img"><img src="'+esc(hero)+'" alt="'+esc(p.title||'')+'"'+(i===0?'':' loading="lazy"')+'>'
-        if (imgs.length > 1) html += '<div class="pc-photo-count">📷 '+imgs.length+'</div>'
-        html += '</div>'
+        html += '<div class="prop-hero">'
+        html += '<img src="'+esc(hero)+'" alt="'+esc(p.title||'')+'"'+(i===0?'':' loading="lazy"')+'>'
+        html += '<div class="prop-hero-overlay"></div>'
+        html += '<div class="prop-hero-content"><div class="prop-hero-inner">'
+        /* Chips */
+        var chips = []
+        if (p.bedrooms) chips.push(p.bedrooms+(p.bedrooms>1?' dormitórios':' dormitório'))
+        if (p.parking)  chips.push(p.parking+(p.parking>1?' vagas':' vaga'))
+        if (chips.length) html += '<div class="ph-chips">'+chips.map(function(c){ return '<span class="ph-chip">'+esc(c)+'</span>' }).join('')+'</div>'
+        html += '<div class="ph-title">'+esc(p.title||'Imóvel')+'</div>'
+        if (ad) html += '<div class="ph-addr">'+PIN_ICO+' '+esc(ad)+'</div>'
+        html += '</div></div></div>'
       }
-      // Body
-      html += '<div class="pc-body">'
-      html += '<div class="pc-title">'+esc(p.title||'Imóvel')+'</div>'
-      if (addr) html += '<div class="pc-addr">'+PIN_SVG+' '+esc(addr)+'</div>'
-      // Specs
-      var specs = []
-      if (p.bedrooms) specs.push(BED_SVG + p.bedrooms + (p.bedrooms>1?' dorms':' dorm'))
-      if (p.parking)  specs.push(CAR_SVG + p.parking  + (p.parking>1?' vagas':' vaga'))
-      if (specs.length) {
-        html += '<div class="pc-specs">'
-        specs.forEach(function(s){ html += '<div class="pc-spec">'+s+'</div>' })
-        html += '</div>'
+
+      /* Info row */
+      html += '<div style="background:#fff">'
+      html += '<div class="prop-info-row">'
+      if (p.price) {
+        html += '<div class="pi-price-block"><div class="pi-price-label">Valor</div><div class="pi-price">'+esc(price(p))+'</div></div>'
       }
-      // Description
+      html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+      if (im.length > 1) html += '<span class="pi-photo-count">'+im.length+' fotos</span>'
+      html += '<a class="pi-cta" href="'+esc(waUrl(wamsg))+'" target="_blank" rel="noopener">'+WA_ICO+' Tenho Interesse</a>'
+      html += '</div></div>'
+
+      /* Specialist */
+      html += '<div class="prop-specialist"><div class="prop-specialist-inner">'
+      html += '<div class="spec-avatar">'+esc((CORRETOR[0]||'I').toUpperCase())+'</div>'
+      html += '<div><div class="spec-label">Seu especialista</div><div class="spec-name">'+esc(CORRETOR)+'</div><div class="spec-phone">(47) 99970-1743</div></div>'
+      html += '</div></div>'
+
+      /* Description */
       if (p.description) {
-        var desc = p.description.length > 240 ? p.description.slice(0, 240)+'…' : p.description
-        html += '<p class="pc-desc">'+esc(desc)+'</p>'
+        html += '<div class="prop-desc-wrap"><div class="prop-desc-inner">'
+        html += '<p class="prop-desc-text">'+esc(p.description)+'</p>'
+        html += '</div></div>'
       }
-      // Gallery strip
-      if (gallery.length) {
-        html += '<div class="pc-gallery">'
-        gallery.slice(0,8).forEach(function(u){ html += '<div class="pc-gallery-img"><img src="'+esc(u)+'" loading="lazy" alt=""></div>' })
-        html += '</div>'
+
+      /* Photo grid */
+      if (rest.length) {
+        html += '<div class="prop-photos"><div class="prop-photos-inner">'
+        html += '<div class="photos-label">Galeria de fotos</div>'
+        html += '<div class="photos-grid">'
+        rest.slice(0,9).forEach(function(u){ html += '<div class="pgim"><img src="'+esc(u)+'" loading="lazy" alt=""></div>' })
+        html += '</div></div></div>'
       }
-      html += '</div>' // /body
-      // Footer
-      html += '<div class="pc-footer">'
-      if (p.price) html += '<div><div class="pc-price-label">Valor</div><div class="pc-price">'+esc(fmtPrice(p))+'</div></div>'
-      html += '<a class="pc-cta" href="'+waUrl+'" target="_blank" rel="noopener">'+WA_SVG+' Tenho Interesse</a>'
-      html += '</div>'
-      html += '</div>' // /pc
+      html += '</div>' // /bg white
+
+      if (i < props.length - 1) html += '<div class="prop-divider"></div>'
+      html += '</div>' // /prop-section
     })
-    html += '</div>' // /props-wrap-inner
     document.getElementById('props-wrap').innerHTML = html
   }
 
-  /* ── Fetch ── */
+  /* Fetch */
   function fetchAndRender() {
-    var ids = PROP_IDS.map(function(id){ return isNaN(id) ? id : parseInt(id, 10) })
+    var ids = PROP_IDS.map(function(id){ return isNaN(id)?id:parseInt(id,10) })
     sb.from('properties')
-      .select('id,title,rua,numero,city,neighborhood,price,bedrooms,parking,images,cover_image,description')
+      .select('id,title,city,neighborhood,price,bedrooms,parking,images,cover_image,description')
       .in('id', ids)
       .then(function(res) {
         if (res.error) {
-          document.getElementById('props-wrap').innerHTML = '<div style="padding:60px 20px;text-align:center;color:#aaa;font-size:14px">Erro ao carregar imóveis.<br><small style="color:#f87171">'+(res.error.message||JSON.stringify(res.error))+'</small></div>'
+          document.getElementById('props-wrap').innerHTML = '<div style="padding:48px 20px;text-align:center;color:#aaa;font-size:13px">Erro ao carregar: '+(res.error.message||'')+'</div>'
           return
         }
-        if (!res.data || !res.data.length) {
-          document.getElementById('props-wrap').innerHTML = '<div style="padding:60px 20px;text-align:center;color:#aaa;font-size:14px">Imóveis não encontrados.</div>'
+        if (!res.data||!res.data.length) {
+          document.getElementById('props-wrap').innerHTML = '<div style="padding:48px 20px;text-align:center;color:#aaa;font-size:13px">Nenhum imóvel encontrado.</div>'
           return
         }
         var sorted = ids.map(function(id){ return res.data.find(function(p){ return String(p.id)===String(id) }) }).filter(Boolean)
-        renderMiniNav(sorted)
-        renderProperties(sorted)
-      }).catch(function(e){
-        document.getElementById('props-wrap').innerHTML = '<div style="padding:60px 20px;text-align:center;color:#aaa;font-size:14px">Erro inesperado.</div>'
-      })
+        renderNav(sorted)
+        renderProps(sorted)
+      }).catch(function(){ document.getElementById('props-wrap').innerHTML = '<div style="padding:48px 20px;text-align:center;color:#aaa;font-size:13px">Erro inesperado.</div>' })
   }
 })()
 </script>
