@@ -573,31 +573,61 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 .sidebar-toggle { display: none; }
 .sidebar-overlay { display: none; }
 
-/* Mobile top nav */
+/* Mobile nav — sidebar drawer approach */
 @media (max-width: 768px) {
-  .topnav-hamburger {
-    display: flex; background: none; border: none; cursor: pointer;
-    width: 36px; height: 36px; align-items: center; justify-content: center;
-    color: #64748b; border-radius: 8px;
+  /* Sidebar: use left offset (NOT transform) so position:fixed children
+     stay viewport-relative and the backdrop works correctly */
+  .admin-sidebar {
+    width: 240px !important;
+    left: -240px !important;
+    transform: none !important;
+    transition: left 0.25s ease !important;
+    z-index: 300 !important;
   }
-  .topnav-links { display: none; }
-  .topnav-links.open {
-    display: flex; flex-direction: column; align-items: flex-start;
-    position: fixed; top: 56px; left: 0; right: 0;
-    background: #fff; border-bottom: 1px solid #e2e8f0;
-    padding: 12px; gap: 4px; z-index: 99;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  .admin-sidebar.sidebar-open { left: 0 !important; }
+
+  /* Backdrop overlay behind open sidebar */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed; inset: 0; z-index: 299;
+    background: rgba(0, 0, 0, 0.45);
   }
-  .topnav-link.active::after { display: none; }
+  .sidebar-backdrop.active { display: block; }
+
+  /* Nav buttons: show icon + label side-by-side on mobile */
+  .admin-sidebar .topnav-links {
+    padding-top: 4px !important;
+  }
+  .admin-sidebar .topnav-link {
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    padding: 13px 20px !important;
+    gap: 14px !important;
+    font-size: 14px !important;
+    width: 100% !important;
+  }
+  .admin-sidebar .topnav-link.active::before {
+    top: 10px !important; bottom: 10px !important;
+  }
+  .sidenav-label {
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+    display: block !important;
+  }
+  /* Dropdown submenu: show inline below button on mobile */
+  .admin-sidebar .sidebar-submenu {
+    position: static !important;
+    padding-left: 20px !important;
+    display: none;
+  }
+  .admin-sidebar .topnav-dropdown.open .sidebar-submenu { display: block !important; }
+  /* Topbar + main: full width on mobile */
+  .admin-topnav { left: 0 !important; }
+  .admin-main   { margin-left: 0 !important; }
+  .topnav-hamburger { display: flex !important; }
   .topnav-user-info { display: none; }
-  .topnav-dropdown-menu {
-    position: static; padding: 0 0 0 14px;
-  }
-  .topnav-dropdown-menu-inner {
-    box-shadow: none; border: none; border-radius: 0; padding: 0;
-  }
-  .topnav-dropdown:hover .topnav-dropdown-menu { display: none; }
-  .topnav-dropdown.open .topnav-dropdown-menu { display: block; }
+  .topnav-link.active::after { display: none; }
 }
 
 /* ─── Leads placeholder ───────────────────────────────────────────── */
@@ -5070,22 +5100,7 @@ textarea.form-control { resize: vertical; min-height: 88px; }
   .kanban-col { flex: 0 0 260px !important; min-width: 260px !important; }
 }
 
-/* ═══ SIDEBAR MOBILE ══════════════════════════════════════════════ */
-@media (max-width: 768px) {
-  .admin-sidebar {
-    transform: translateX(-64px);
-    z-index: 200;
-  }
-  /* When hamburger toggles .open on #topnav-links (existing JS behavior),
-     show the sidebar via CSS :has() — modern browsers support this */
-  .admin-sidebar:has(.topnav-links.open),
-  .admin-sidebar.sidebar-open {
-    transform: translateX(0);
-  }
-  .admin-topnav { left: 0 !important; }
-  .admin-main   { margin-left: 0 !important; }
-  .topnav-hamburger { display: flex !important; }
-}
+/* Desktop: hide hamburger */
 @media (min-width: 769px) {
   .topnav-hamburger { display: none !important; }
 }
@@ -5344,3 +5359,30 @@ textarea.form-control { resize: vertical; min-height: 88px; }
 }
 .tp-stage-val { color: #94a3b8; }
 
+
+/* ═══ SIDEBAR BRAND MOBILE ELEMENTS ══════════════════════════════ */
+.sidebar-brand-name {
+  display: none;   /* hidden on desktop */
+  font-size: 15px; font-weight: 700; color: #fff;
+  margin-left: 8px; flex: 1;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.sidebar-close-btn {
+  display: none;   /* hidden on desktop */
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,0.55); padding: 4px;
+  border-radius: 6px; transition: color 0.15s;
+  margin-left: auto;
+}
+.sidebar-close-btn:hover { color: #fff; }
+.sidebar-close-btn i, .sidebar-close-btn svg { width: 18px; height: 18px; }
+
+@media (max-width: 768px) {
+  .sidebar-brand {
+    justify-content: flex-start !important;
+    padding: 0 16px !important;
+    gap: 0 !important;
+  }
+  .sidebar-brand-name { display: block !important; }
+  .sidebar-close-btn  { display: flex !important; }
+}

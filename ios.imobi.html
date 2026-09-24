@@ -330,6 +330,7 @@
 
   <!-- ── App shell ── -->
   <div id="admin-root" class="hidden">
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
 
     <!-- Side Navigation -->
     <aside class="admin-sidebar" id="admin-sidebar">
@@ -339,6 +340,10 @@
           <rect x="11" y="4" width="7" height="22" rx="1.5" fill="currentColor"/>
           <rect x="20" y="11" width="6" height="15" rx="1.5" fill="currentColor"/>
         </svg>
+        <span class="sidebar-brand-name">IOS imobi</span>
+        <button class="sidebar-close-btn" id="sidebar-close-btn" title="Fechar menu">
+          <i data-lucide="x"></i>
+        </button>
       </div>
       <nav class="topnav-links" id="topnav-links">
         <button class="topnav-link active" data-section="dashboard" title="Dashboard">
@@ -2174,6 +2179,83 @@
           setTimeout(init, 150)
         }
       }).observe(adminRoot, { attributes: true, subtree: true, attributeFilter: ['class'] })
+    }
+  })()
+  </script>
+
+
+  <!-- ─ Mobile: hamburger → sidebar drawer ───────────────────────── -->
+  <script>
+  (function() {
+    function initMobileSidebar() {
+      var ham      = document.getElementById('topnav-hamburger')
+      var sidebar  = document.getElementById('admin-sidebar')
+      var backdrop = document.getElementById('sidebar-backdrop')
+      if (!ham || !sidebar || !backdrop || ham._mobileSidebarWired) return
+      ham._mobileSidebarWired = true
+
+      function openSidebar() {
+        sidebar.classList.add('sidebar-open')
+        backdrop.classList.add('active')
+        document.body.style.overflow = 'hidden'
+      }
+      function closeSidebar() {
+        sidebar.classList.remove('sidebar-open')
+        backdrop.classList.remove('active')
+        document.body.style.overflow = ''
+        // keep topnav-links in sync with existing JS
+        var nav = document.getElementById('topnav-links')
+        if (nav) nav.classList.remove('open')
+      }
+
+      ham.addEventListener('click', function() {
+        if (sidebar.classList.contains('sidebar-open')) closeSidebar()
+        else openSidebar()
+      })
+
+      backdrop.addEventListener('click', closeSidebar)
+
+      // X button inside sidebar
+      var closeBtn2 = document.getElementById('sidebar-close-btn')
+      if (closeBtn2) closeBtn2.addEventListener('click', closeSidebar)
+
+      // Close on nav item click (on mobile)
+      var navLinks = document.getElementById('topnav-links')
+      if (navLinks) {
+        navLinks.addEventListener('click', function(e) {
+          var btn = e.target.closest('.topnav-link')
+          if (btn && !btn.classList.contains('topnav-dropdown-btn') && window.innerWidth <= 768) {
+            closeSidebar()
+          }
+          // Dropdown: toggle open class inline
+          if (btn && btn.classList.contains('topnav-dropdown-btn')) {
+            var dd = btn.closest('.topnav-dropdown')
+            if (dd) dd.classList.toggle('open')
+            e.stopPropagation()
+          }
+        })
+      }
+
+      // Resize: close sidebar if switching to desktop
+      window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) closeSidebar()
+      })
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() { setTimeout(initMobileSidebar, 100) })
+    } else {
+      setTimeout(initMobileSidebar, 100)
+    }
+
+    // Also re-init when admin-root is revealed (after login)
+    var loginEl = document.getElementById('admin-login')
+    if (loginEl) {
+      new MutationObserver(function() {
+        if (loginEl.classList.contains('hidden')) {
+          setTimeout(initMobileSidebar, 200)
+        }
+      }).observe(loginEl, { attributes: true, attributeFilter: ['class'] })
     }
   })()
   </script>
