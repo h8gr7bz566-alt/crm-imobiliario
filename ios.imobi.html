@@ -392,7 +392,7 @@
           <rect x="20" y="11" width="6" height="15" rx="1.5" fill="currentColor"/>
         </svg>
         <span class="sidebar-brand-name">IOS imobi</span>
-        <button class="sidebar-close-btn" id="sidebar-close-btn" title="Fechar menu" onclick="document.getElementById('admin-sidebar').classList.remove('sidebar-open');document.getElementById('sidebar-backdrop').classList.remove('active');document.body.style.overflow='';">
+        <button class="sidebar-close-btn" id="sidebar-close-btn" title="Fechar menu">
           <i data-lucide="x"></i>
         </button>
       </div>
@@ -453,7 +453,7 @@
     <!-- Top Bar -->
     <header class="admin-topnav" id="admin-topnav">
       <div class="topnav-left">
-        <button class="topnav-hamburger" id="topnav-hamburger" title="Menu" onclick="(function(){var s=document.getElementById('admin-sidebar'),b=document.getElementById('sidebar-backdrop');if(!s)return;var o=s.classList.toggle('sidebar-open');if(b){b.classList.toggle('active',o);b.onclick=function(){s.classList.remove('sidebar-open');b.classList.remove('active');document.body.style.overflow='';};}document.body.style.overflow=o?'hidden':'';})()">
+        <button class="topnav-hamburger" id="topnav-hamburger" title="Menu">
           <i data-lucide="menu"></i>
         </button>
         <div class="topnav-logo">
@@ -2237,13 +2237,16 @@
 
   <!-- ─ Mobile: hamburger → sidebar drawer ───────────────────────── -->
   <script>
+  /* Single, authoritative mobile sidebar handler.
+     No inline onclick on button — this is the ONLY handler. */
   (function() {
     function initMobileSidebar() {
       var ham      = document.getElementById('topnav-hamburger')
       var sidebar  = document.getElementById('admin-sidebar')
       var backdrop = document.getElementById('sidebar-backdrop')
-      if (!ham || !sidebar || !backdrop || ham._mobileSidebarWired) return
-      ham._mobileSidebarWired = true
+      if (!ham || !sidebar || !backdrop) return
+      if (ham._mobileWired) return   // guard against double-init
+      ham._mobileWired = true
 
       function openSidebar() {
         sidebar.classList.add('sidebar-open')
@@ -2254,62 +2257,74 @@
         sidebar.classList.remove('sidebar-open')
         backdrop.classList.remove('active')
         document.body.style.overflow = ''
-        // keep topnav-links in sync with existing JS
         var nav = document.getElementById('topnav-links')
         if (nav) nav.classList.remove('open')
       }
 
-      ham.addEventListener('click', function() {
-        if (sidebar.classList.contains('sidebar-open')) closeSidebar()
-        else openSidebar()
+      // Single click handler on hamburger
+      ham.addEventListener('click', function(e) {
+        e.stopPropagation()   // prevent event from bubbling up and re-triggering
+        if (sidebar.classList.contains('sidebar-open')) {
+          closeSidebar()
+        } else {
+          openSidebar()
+        }
       })
 
-      backdrop.addEventListener('click', closeSidebar)
+      // Close via backdrop
+      backdrop.addEventListener('click', function() { closeSidebar() })
 
       // X button inside sidebar
-      var closeBtn2 = document.getElementById('sidebar-close-btn')
-      if (closeBtn2) closeBtn2.addEventListener('click', closeSidebar)
+      var closeBtn = document.getElementById('sidebar-close-btn')
+      if (closeBtn) {
+        closeBtn.onclick = null  // remove old inline handler
+        closeBtn.addEventListener('click', function(e) { e.stopPropagation(); closeSidebar() })
+      }
 
-      // Close on nav item click (on mobile)
+      // Close when a nav item is clicked (mobile only)
       var navLinks = document.getElementById('topnav-links')
       if (navLinks) {
         navLinks.addEventListener('click', function(e) {
           var btn = e.target.closest('.topnav-link')
-          if (btn && !btn.classList.contains('topnav-dropdown-btn') && window.innerWidth <= 768) {
-            closeSidebar()
-          }
-          // Dropdown: toggle open class inline
-          if (btn && btn.classList.contains('topnav-dropdown-btn')) {
+          if (!btn) return
+          if (btn.classList.contains('topnav-dropdown-btn')) {
+            // Toggle dropdown
             var dd = btn.closest('.topnav-dropdown')
             if (dd) dd.classList.toggle('open')
             e.stopPropagation()
+            return
+          }
+          // Regular nav item: close sidebar on mobile
+          if (window.innerWidth <= 900) {
+            setTimeout(function() { closeSidebar() }, 80)
           }
         })
       }
 
-      // Resize: close sidebar if switching to desktop
+      // Auto-close if resized to desktop
       window.addEventListener('resize', function() {
-        if (window.innerWidth > 768) closeSidebar()
+        if (window.innerWidth > 900) closeSidebar()
       })
     }
 
+    // Run immediately if DOM ready, else wait
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', function() { setTimeout(initMobileSidebar, 100) })
+      document.addEventListener('DOMContentLoaded', function() { initMobileSidebar() })
     } else {
-      setTimeout(initMobileSidebar, 100)
+      initMobileSidebar()
     }
 
-    // Also re-init when admin-root is revealed (after login)
+    // Re-run after login (admin-root becomes visible after auth)
     var loginEl = document.getElementById('admin-login')
     if (loginEl) {
       new MutationObserver(function() {
         if (loginEl.classList.contains('hidden')) {
-          setTimeout(initMobileSidebar, 200)
+          setTimeout(function() { initMobileSidebar() }, 150)
         }
       }).observe(loginEl, { attributes: true, attributeFilter: ['class'] })
     }
   })()
-  </script>
+  </script>pt>
 
 </body>
 </html>
