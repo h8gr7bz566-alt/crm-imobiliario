@@ -2589,7 +2589,23 @@
       // ── Nav item inside sidebar: close after navigation ───────────
       var navBtn = e.target.closest('#admin-sidebar .topnav-link')
       if (navBtn && navBtn.classList.contains('topnav-dropdown-btn')) {
-        return  // script.js handles .open toggle; CSS now shows it on desktop too
+        var parent = navBtn.closest('.topnav-dropdown')
+        var sm = parent ? (parent.querySelector('.sidebar-submenu') || parent.querySelector('.topnav-dropdown-menu')) : null
+        if (sm) {
+          var isOpen = sm.getAttribute('data-dd-open') === '1'
+          // Close all other dropdowns first
+          document.querySelectorAll('#admin-sidebar .sidebar-submenu, #admin-sidebar .topnav-dropdown-menu').forEach(function(s) {
+            s.style.cssText = ''
+            s.removeAttribute('data-dd-open')
+          })
+          if (!isOpen) {
+            // Position as fixed so it escapes overflow:hidden/auto clipping
+            var r = navBtn.getBoundingClientRect()
+            sm.style.cssText = 'display:block!important;position:fixed!important;left:64px!important;top:' + Math.round(r.top) + 'px!important;z-index:9999!important;min-width:180px!important;'
+            sm.setAttribute('data-dd-open', '1')
+          }
+        }
+        return
       }
       if (navBtn && !navBtn.classList.contains('topnav-dropdown-btn')) {
         // Close any open submenus when navigating to a regular section
@@ -2603,7 +2619,11 @@
         return
       }
 
-      // ── Click outside sidebar: close sidebar on mobile ──────────
+      // ── Click outside: close any open dropdown ──────────────────
+      document.querySelectorAll('#admin-sidebar .sidebar-submenu, #admin-sidebar .topnav-dropdown-menu').forEach(function(s) {
+        s.style.cssText = ''
+        s.removeAttribute('data-dd-open')
+      })
       if (sidebar && sidebar.classList.contains('sidebar-open')) {
         if (window.innerWidth < 901 && !e.target.closest('#admin-sidebar')) {
           closeMobileNav()
