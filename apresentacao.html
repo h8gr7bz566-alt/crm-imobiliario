@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seleção Especial · Isaac Corretor</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f5f5f7;color:#111;-webkit-font-smoothing:antialiased}
+.hidden{display:none!important}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit}
+/* GATE */
+.gate-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#fafafa 0%,#f0f0f2 100%)}
+.gate-card{background:#fff;border-radius:20px;padding:44px 40px;width:100%;max-width:440px;box-shadow:0 8px 48px rgba(0,0,0,.09)}
+.gate-logo{font-size:20px;font-weight:800;color:#111;margin-bottom:8px}
+.gate-logo em{font-style:normal;color:#c9892a}
+.gate-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#c9892a;background:#fef8ee;border:1px solid #f5deb0;padding:5px 12px;border-radius:20px;margin-bottom:22px}
+.gate-badge svg{width:11px;height:11px}
+.gate-card h1{font-size:28px;font-weight:800;line-height:1.15;color:#111;margin-bottom:8px;letter-spacing:-.5px}
+.gate-desc{font-size:14px;color:#777;line-height:1.6;margin-bottom:28px}
+.gate-card label{display:block;font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#444;margin-bottom:7px}
+.gate-card input{display:block;width:100%;padding:13px 16px;border:1.5px solid #e8e8e8;border-radius:12px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s;color:#111;margin-bottom:20px}
+.gate-card input:focus{border-color:#c9892a;box-shadow:0 0 0 3px rgba(201,137,42,.1)}
+.gate-card input::placeholder{color:#bbb}
+.gate-submit{display:block;width:100%;padding:15px;background:#c9892a;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s}
+.gate-submit:hover{background:#b8782a}
+.gate-submit:disabled{background:#d9b887;cursor:default}
+.gate-error{font-size:13px;color:#ef4444;margin-top:10px;min-height:18px}
+.gate-privacy{font-size:11.5px;color:#aaa;text-align:center;margin-top:18px;line-height:1.55;display:flex;align-items:flex-start;gap:6px;justify-content:center}
+/* HEADER */
+.pres-header{position:sticky;top:0;z-index:200;background:#fff;border-bottom:1px solid #ebebeb;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:62px}
+.h-logo{font-size:17px;font-weight:800;color:#111;letter-spacing:-.3px}
+.h-logo em{font-style:normal;color:#c9892a}
+.h-wa{display:inline-flex;align-items:center;gap:8px;background:#25d366;color:#fff;border:none;border-radius:24px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+.h-wa:hover{background:#1cb85a}
+.h-wa svg{width:17px;height:17px;flex-shrink:0}
+/* INTRO */
+.pres-intro{background:#fff;border-bottom:1px solid #ebebeb;padding:28px 28px 20px}
+.intro-eyebrow{font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#c9892a;margin-bottom:6px}
+.intro-h1{font-size:30px;font-weight:800;letter-spacing:-.5px;color:#111;margin-bottom:5px}
+.intro-sub{font-size:14px;color:#888;margin-bottom:12px}
+.intro-expiry{font-size:12px;color:#aaa;display:flex;align-items:center;gap:5px}
+/* MINI NAV */
+.mini-nav{display:flex;gap:10px;padding:14px 28px;background:#fff;border-bottom:1px solid #ebebeb;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mini-nav::-webkit-scrollbar{display:none}
+.mini-card{flex:0 0 auto;display:flex;align-items:center;gap:10px;background:#f5f5f7;border-radius:12px;padding:9px 13px;cursor:pointer;border:2px solid transparent;transition:all .2s;color:inherit}
+.mini-card:hover,.mini-card.active{border-color:#c9892a;background:#fef8ee}
+.mini-card-thumb{width:52px;height:40px;border-radius:7px;flex-shrink:0;background:#e5e5e5;display:block}
+.mini-card img{width:52px;height:40px;object-fit:cover;border-radius:7px;flex-shrink:0}
+.mc-title{font-size:12px;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;margin-bottom:2px}
+.mc-price{font-size:11px;color:#c9892a;font-weight:700}
+/* PROPERTY */
+.prop-section{background:#fff;margin-bottom:10px}
+.prop-hero-wrap{position:relative;width:100%;overflow:hidden;background:#e8e8e8}
+.prop-hero-wrap img{width:100%;aspect-ratio:16/9;max-height:560px;object-fit:cover;display:block}
+.prop-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.65) 0%,rgba(0,0,0,.1) 55%,transparent 100%)}
+.prop-hero-content{position:absolute;bottom:0;left:0;right:0;padding:28px}
+.ph-badges{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.ph-badge{background:rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:12px;font-weight:600;padding:4px 12px;border-radius:24px}
+.ph-title{font-size:30px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,.35);letter-spacing:-.4px}
+.ph-addr{font-size:13px;color:rgba(255,255,255,.85);display:flex;align-items:center;gap:5px}
+/* BODY */
+.prop-body{padding:28px}
+.prop-price-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:22px}
+.prop-price{font-size:30px;font-weight:800;color:#c9892a;letter-spacing:-.5px}
+.prop-photo-badge{font-size:12px;color:#888;background:#f3f3f5;padding:6px 13px;border-radius:20px}
+.prop-specialist{display:flex;align-items:center;gap:14px;background:#f7f7f9;border-radius:14px;padding:18px;margin-bottom:24px;flex-wrap:wrap}
+.ps-avatar{width:46px;height:46px;border-radius:50%;background:#c9892a;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;color:#fff;flex-shrink:0}
+.ps-eyebrow{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#c9892a;margin-bottom:2px}
+.ps-name{font-size:15px;font-weight:700;color:#111}
+.ps-phone{font-size:13px;color:#888;margin-top:1px}
+.prop-interesse{margin-left:auto;display:inline-flex;align-items:center;gap:8px;background:#25d366;color:#fff;border-radius:12px;padding:13px 20px;font-size:14px;font-weight:700;white-space:nowrap}
+.prop-interesse:hover{background:#1cb85a}
+.prop-interesse svg{width:18px;height:18px;flex-shrink:0}
+.prop-desc{font-size:14px;color:#555;line-height:1.7;margin-bottom:24px}
+/* GALLERY */
+.gal-eyebrow{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#aaa;margin-bottom:6px}
+.gal-title{font-size:22px;font-weight:700;color:#111;margin-bottom:18px;letter-spacing:-.3px}
+.gal-grid{display:grid;grid-template-columns:3fr 2fr;gap:3px}
+.gal-grid .gim{overflow:hidden;cursor:pointer;min-height:160px}
+.gal-grid .gim:first-child{grid-row:span 2;min-height:320px}
+.gal-grid .gim img,.gal-more .gim img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.gal-grid .gim:hover img,.gal-more .gim:hover img{transform:scale(1.03)}
+.gal-more{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:3px}
+.gal-more .gim{aspect-ratio:4/3;overflow:hidden;cursor:pointer}
+/* PORTFOLIO FOOTER */
+.prop-all-footer{padding:24px 28px;display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid #f0f0f0}
+.paf-card{flex:1 1 160px;min-width:140px}
+.paf-neigh{font-size:10px;color:#999;font-weight:600;letter-spacing:.3px;text-transform:uppercase;margin-bottom:3px}
+.paf-title{font-size:13px;font-weight:700;color:#222;margin-bottom:3px}
+.paf-price{font-size:13px;font-weight:700;color:#c9892a;margin-bottom:6px}
+.paf-link{font-size:12px;color:#c9892a;font-weight:600}
+.paf-link:hover{text-decoration:underline}
+/* FOOTER */
+.pres-footer{background:#fff;border-top:1px solid #ebebeb;padding:36px 28px 28px;margin-top:10px;display:grid;grid-template-columns:1fr auto;align-items:start;gap:24px}
+.pf-logo{font-size:22px;font-weight:800;color:#111;margin-bottom:6px;letter-spacing:-.4px}
+.pf-logo em{font-style:normal;color:#c9892a}
+.pf-desc{font-size:13px;color:#999;max-width:300px;line-height:1.55}
+.pf-right{text-align:right}
+.pf-name{font-size:15px;font-weight:700;color:#111;margin-bottom:3px}
+.pf-phone{font-size:13px;color:#888;margin-bottom:16px}
+.pf-wa{display:inline-flex;align-items:center;gap:8px;background:#25d366;color:#fff;border:none;border-radius:12px;padding:13px 22px;font-size:14px;font-weight:700;cursor:pointer}
+.pf-wa:hover{background:#1cb85a}
+.pf-wa svg{width:18px;height:18px}
+.pf-copy{grid-column:1/-1;font-size:11.5px;color:#ccc;margin-top:20px;border-top:1px solid #f3f3f3;padding-top:18px;text-align:center}
+/* LOADING */
+.load-center{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+.spinner{width:38px;height:38px;border:3px solid #f0f0f0;border-top-color:#c9892a;border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-size:14px;color:#aaa}
+.prop-hr{border:none;border-top:8px solid #f5f5f7;margin:0}
+@media(max-width:600px){
+  .gate-card{padding:30px 22px;border-radius:16px}
+  .gate-card h1{font-size:24px}
+  .pres-header{padding:0 16px}
+  .pres-intro,.prop-body,.prop-all-footer{padding-left:16px;padding-right:16px}
+  .mini-nav{padding-left:16px}
+  .ph-title{font-size:22px}
+  .prop-price{font-size:24px}
+  .pres-footer{grid-template-columns:1fr;padding:28px 16px 24px}
+  .pf-right{text-align:left}
+  .gal-more{grid-template-columns:repeat(2,1fr)}
+  .h-wa span{display:none}
+  .prop-interesse{width:100%;justify-content:center;margin:8px 0 0}
+}
+</style>
+</head>
+<body>
+
+<!-- GATE -->
+<div class="gate-wrap" id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">Isaac<em>Corretor</em></div>
+    <div class="gate-badge">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      Material Exclusivo
+    </div>
+    <h1 id="gate-h1">Seleção Especial</h1>
+    <p class="gate-desc">Imóveis selecionados especialmente para você. Informe seus dados para liberar o acesso.</p>
+    <form id="gate-form">
+      <label for="g-name">Seu nome</label>
+      <input type="text" id="g-name" placeholder="Nome completo" autocomplete="name" required>
+      <label for="g-phone">Seu WhatsApp</label>
+      <input type="tel" id="g-phone" placeholder="(47) 99999-9999" autocomplete="tel" required>
+      <button type="submit" class="gate-submit" id="gate-btn">Ver os imóveis</button>
+      <div class="gate-error" id="gate-err"></div>
+    </form>
+    <p class="gate-privacy">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:12px;height:12px;flex-shrink:0;margin-top:1px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      Seus dados são usados apenas para atendimento de Isaac Corretor e não são compartilhados com terceiros.
+    </p>
+  </div>
+</div>
+
+<!-- APRESENTAÇÃO -->
+<div id="pres" class="hidden">
+  <header class="pres-header">
+    <div class="h-logo">Isaac<em>Corretor</em></div>
+    <button class="h-wa" id="h-wa-btn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.561 4.14 1.543 5.879L0 24l6.322-1.57A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.93 0-3.74-.508-5.302-1.395l-.38-.215-3.752.932.97-3.664-.234-.388A9.962 9.962 0 012 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>
+      <span>Falar com corretor</span>
+    </button>
+  </header>
+
+  <div class="pres-intro">
+    <div class="intro-eyebrow">Seleção de Imóveis</div>
+    <h1 class="intro-h1" id="pres-h1">Seleção Especial</h1>
+    <p class="intro-sub">Imóveis selecionados especialmente para você</p>
+    <div class="intro-expiry hidden" id="pres-expiry">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:13px;height:13px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span id="expiry-txt"></span>
+    </div>
+  </div>
+
+  <div class="mini-nav" id="mini-nav"></div>
+
+  <div id="props-wrap">
+    <div class="load-center"><div class="spinner"></div><div class="load-txt">Carregando imóveis…</div></div>
+  </div>
+
+  <footer class="pres-footer">
+    <div>
+      <div class="pf-logo">Isaac<em>Corretor</em></div>
+      <div class="pf-desc">Conectamos pessoas a imóveis que unem qualidade de vida, exclusividade e valorização em Santa Catarina.</div>
+    </div>
+    <div class="pf-right">
+      <div class="pf-name" id="pf-name">Isaac Corretor</div>
+      <div class="pf-phone">(47) 99970-1743</div>
+      <button class="pf-wa" id="pf-wa-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.561 4.14 1.543 5.879L0 24l6.322-1.57A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.93 0-3.74-.508-5.302-1.395l-.38-.215-3.752.932.97-3.664-.234-.388A9.962 9.962 0 012 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>
+        Chamar no WhatsApp
+      </button>
+    </div>
+    <div class="pf-copy">© <span id="pf-year"></span> Isaac Corretor. Todos os direitos reservados.</div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+;(function(){
+  'use strict'
+  var SB_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co'
+  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua25wYnpkY3JoYmZvenp2eHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY1NjYsImV4cCI6MjA5NDQ0MjU2Nn0.5yX05Y4Nhp8UJlhFblK4z_1TRxBqJKrwOLQ91KxsLMM'
+  var DEFAULT_WA = '5547999701743'
+
+  function dec(s) { try { return s ? decodeURIComponent(s) : '' } catch(_) { return s || '' } }
+
+  var params   = new URLSearchParams(location.search)
+  var PRES_ID  = params.get('id') || 'direto'
+  var TITLE    = dec(params.get('t')) || 'Seleção Especial'
+  var PROP_IDS = (params.get('p') || '').split(',').map(function(s){ return s.trim() }).filter(Boolean)
+  var TENANT   = params.get('tid') || null
+  var WA       = params.get('w') || DEFAULT_WA
+  var CORRETOR = dec(params.get('c')) || 'Isaac Corretor'
+
+  if (!PROP_IDS.length) {
+    document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:24px"><div><div style="font-size:48px;margin-bottom:16px">🔗</div><div style="font-size:18px;font-weight:700;color:#222;margin-bottom:8px">Link inválido ou expirado</div><div style="font-size:14px;color:#888">Entre em contato com o corretor para receber um novo link.</div></div></div>'
+    return
+  }
+
+  var sb = supabase.createClient(SB_URL, SB_KEY)
+
+  document.getElementById('gate-h1').textContent  = TITLE
+  document.getElementById('pres-h1').textContent  = TITLE
+  document.getElementById('pf-year').textContent  = new Date().getFullYear()
+  document.getElementById('pf-name').textContent  = CORRETOR
+
+  var expParam = params.get('e')
+  if (expParam) {
+    var d = new Date(expParam)
+    if (!isNaN(d)) {
+      document.getElementById('expiry-txt').textContent = 'Disponível até ' + d.toLocaleDateString('pt-BR')
+      document.getElementById('pres-expiry').classList.remove('hidden')
+    }
+  }
+
+  function openWa(msg) {
+    var txt = msg || ('Olá, ' + CORRETOR + '! Vi a seleção "' + TITLE + '" e tenho interesse.')
+    window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(txt), '_blank')
+  }
+  document.getElementById('h-wa-btn').onclick  = function(){ openWa() }
+  document.getElementById('pf-wa-btn').onclick = function(){ openWa() }
+
+  document.getElementById('gate-form').addEventListener('submit', function(e) {
+    e.preventDefault()
+    var nome     = document.getElementById('g-name').value.trim()
+    var whatsapp = document.getElementById('g-phone').value.trim()
+    if (!nome || !whatsapp) return
+    var btn = document.getElementById('gate-btn')
+    btn.disabled = true
+    btn.textContent = 'Registrando acesso…'
+    // Save leads (non-blocking)
+    Promise.all([
+      sb.from('apresentacao_leads').insert({ apresentacao_id: PRES_ID, apresentacao_titulo: TITLE, nome: nome, whatsapp: whatsapp, imoveis_ids: PROP_IDS, tenant_id: TENANT }),
+      sb.from('leads').insert({ name: nome, phone: whatsapp, source: 'Apresentação: ' + TITLE, notes: 'Acessou a apresentação "' + TITLE + '" (ID: ' + PRES_ID + ')', tenant_id: TENANT })
+    ]).catch(function(err){ console.warn('[apres] lead save:', err) })
+    document.getElementById('gate').classList.add('hidden')
+    document.getElementById('pres').classList.remove('hidden')
+    fetchAndRender()
+  })
+
+  function esc(s) {
+    if (s == null) return ''
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+  }
+
+  function getImages(p) {
+    if (p.images && p.images.length) return p.images
+    if (p.cover_image) return [p.cover_image]
+    return []
+  }
+
+  function fmtPrice(p) {
+    if (!p.price) return ''
+    var v = String(p.price)
+    return v.startsWith('R$') ? v : 'R$ ' + v
+  }
+
+  function buildAddr(p) { return [p.neighborhood, p.city].filter(Boolean).join(', ') }
+
+  function buildBadges(p) {
+    var b = []
+    if (p.tipo)     b.push(p.tipo)
+    if (p.area)     b.push(p.area + ' m²')
+    if (p.bedrooms) b.push(p.bedrooms + (p.bedrooms > 1 ? ' dormitórios' : ' dormitório'))
+    if (p.suites)   b.push(p.suites   + (p.suites   > 1 ? ' suítes'      : ' suíte'))
+    if (p.parking)  b.push(p.parking  + (p.parking  > 1 ? ' vagas'       : ' vaga'))
+    return b.map(function(t){ return '<span class="ph-badge">' + esc(t) + '</span>' }).join('')
+  }
+
+  function renderMiniNav(props) {
+    var html = props.map(function(p, i) {
+      var imgs  = getImages(p)
+      var thumb = imgs[0] ? '<img src="' + esc(imgs[0]) + '" alt="" loading="lazy">' : '<span class="mini-card-thumb"></span>'
+      return '<a class="mini-card' + (i === 0 ? ' active' : '') + '" href="#prop-' + p.id + '" onclick="mcA(this)">' + thumb + '<div><div class="mc-title">' + esc(p.title || 'Imóvel') + '</div><div class="mc-price">' + esc(fmtPrice(p)) + '</div></div></a>'
+    }).join('')
+    document.getElementById('mini-nav').innerHTML = html
+  }
+
+  window.mcA = function(el) {
+    document.querySelectorAll('.mini-card').forEach(function(c){ c.classList.remove('active') })
+    el.classList.add('active')
+  }
+
+  var WA_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.561 4.14 1.543 5.879L0 24l6.322-1.57A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.93 0-3.74-.508-5.302-1.395l-.38-.215-3.752.932.97-3.664-.234-.388A9.962 9.962 0 012 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>'
+  var PIN_SVG = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>'
+
+  function renderProperties(props) {
+    var html = ''
+    props.forEach(function(p, idx) {
+      var imgs  = getImages(p)
+      var hero  = imgs[0] || ''
+      var rest  = imgs.slice(1)
+      var addr  = buildAddr(p)
+      var waMsg = 'Olá! Vi o imóvel "' + p.title + '" na seleção "' + TITLE + '" e tenho interesse. Pode me passar mais detalhes?'
+      var waUrl = 'https://wa.me/' + WA + '?text=' + encodeURIComponent(waMsg)
+
+      html += '<div class="prop-section" id="prop-' + p.id + '">'
+      // Hero
+      html += '<div class="prop-hero-wrap">'
+      html += hero ? '<img src="' + esc(hero) + '" alt="' + esc(p.title || '') + '"' + (idx === 0 ? ' loading="eager"' : ' loading="lazy"') + '>' : '<div style="aspect-ratio:16/9;background:#e8e8e8"></div>'
+      html += '<div class="prop-hero-grad"></div><div class="prop-hero-content">'
+      html += '<div class="ph-badges">' + buildBadges(p) + '</div>'
+      html += '<div class="ph-title">' + esc(p.title || 'Imóvel') + '</div>'
+      if (addr) html += '<div class="ph-addr">' + PIN_SVG + esc(addr) + '</div>'
+      html += '</div></div>'
+      // Body
+      html += '<div class="prop-body">'
+      html += '<div class="prop-price-row">'
+      if (p.price) html += '<div class="prop-price">' + esc(fmtPrice(p)) + '</div>'
+      if (imgs.length > 1) html += '<div class="prop-photo-badge">📷 ' + imgs.length + ' fotos</div>'
+      html += '</div>'
+      // Specialist
+      html += '<div class="prop-specialist">'
+      html += '<div class="ps-avatar">' + esc((CORRETOR[0] || 'I').toUpperCase()) + '</div>'
+      html += '<div><div class="ps-eyebrow">Seu especialista</div><div class="ps-name">' + esc(CORRETOR) + '</div><div class="ps-phone">(47) 99970-1743</div></div>'
+      html += '<a class="prop-interesse" href="' + waUrl + '" target="_blank" rel="noopener">' + WA_SVG + 'Tenho Interesse</a>'
+      html += '</div>'
+      if (p.description) html += '<p class="prop-desc">' + esc(p.description) + '</p>'
+      // Gallery
+      if (rest.length) {
+        html += '<div class="gal-eyebrow">Galeria</div><div class="gal-title">Conheça cada detalhe</div>'
+        html += '<div class="gal-grid">'
+        rest.slice(0, 3).forEach(function(u){ html += '<div class="gim"><img src="' + esc(u) + '" loading="lazy" alt=""></div>' })
+        html += '</div>'
+        var more = rest.slice(3, 11)
+        if (more.length) {
+          html += '<div class="gal-more">'
+          more.forEach(function(u){ html += '<div class="gim"><img src="' + esc(u) + '" loading="lazy" alt=""></div>' })
+          html += '</div>'
+        }
+      }
+      html += '</div>' // /body
+      if (idx < props.length - 1) html += '<hr class="prop-hr">'
+      html += '</div>' // /section
+    })
+    // Portfolio mini list
+    html += '<div class="prop-all-footer">'
+    props.forEach(function(p) {
+      html += '<div class="paf-card">'
+      if (buildAddr(p)) html += '<div class="paf-neigh">' + esc(buildAddr(p)) + '</div>'
+      html += '<div class="paf-title">' + esc(p.title || 'Imóvel') + '</div>'
+      if (p.price) html += '<div class="paf-price">' + esc(fmtPrice(p)) + '</div>'
+      html += '<a class="paf-link" href="/imoveis.html">Conhecer no portfólio →</a></div>'
+    })
+    html += '</div>'
+    document.getElementById('props-wrap').innerHTML = html
+  }
+
+  function fetchAndRender() {
+    var ids = PROP_IDS.map(function(id){ return isNaN(id) ? id : parseInt(id, 10) })
+    sb.from('properties')
+      .select('id,title,rua,numero,city,neighborhood,price,bedrooms,parking,suites,area,tipo,images,cover_image,description')
+      .in('id', ids)
+      .then(function(res) {
+        if (res.error || !res.data || !res.data.length) {
+          document.getElementById('props-wrap').innerHTML = '<div style="padding:80px 28px;text-align:center;color:#aaa;font-size:14px">Não foi possível carregar os imóveis.</div>'
+          return
+        }
+        var sorted = ids.map(function(id){ return res.data.find(function(p){ return String(p.id) === String(id) }) }).filter(Boolean)
+        renderMiniNav(sorted)
+        renderProperties(sorted)
+      })
+  }
+})()
+</script>
+</body>
+</html>

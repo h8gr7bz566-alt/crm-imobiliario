@@ -15,8 +15,9 @@ export default defineConfig({
         imoveis:  resolve(__dirname, 'imoveis.html'),
         admin:    resolve(__dirname, 'ios.imobi.html'),
         property: resolve(__dirname, 'property.html'),
-        servicos: resolve(__dirname, 'servicos.html'),
-        demo:     resolve(__dirname, 'demo.html'),
+        servicos:     resolve(__dirname, 'servicos.html'),
+        demo:         resolve(__dirname, 'demo.html'),
+        apresentacao: resolve(__dirname, 'apresentacao.html'),
       },
       external: []
     }
