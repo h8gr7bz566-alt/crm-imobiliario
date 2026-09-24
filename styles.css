@@ -1170,25 +1170,28 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
 }
 
 /* ── Horizontal card ─────────────────────────────────────────── */
+/* ── Vertical property card — Gert-inspired professional style ──────────── */
 .imovel-card-h {
   display: flex;
+  flex-direction: column;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  border: 1px solid rgba(0,0,0,0.05);
-  transition: transform .18s, box-shadow .18s;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  border: 1px solid #e8ecf1;
+  transition: transform .2s ease, box-shadow .2s ease;
   cursor: pointer;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 .imovel-card-h:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+  transform: translateY(-5px);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.14);
 }
 
-/* Image side */
+/* Image: full width on top */
 .icard-h-img-wrap {
-  width: 260px;
+  width: 100%;
+  height: 220px;
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
@@ -1213,89 +1216,124 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
   display: block;
   transition: transform .4s;
 }
-.imovel-card-h:hover .icard-h-img-wrap .icard-img { transform: scale(1.04); }
+.imovel-card-h:hover .icard-h-img-wrap .icard-img { transform: scale(1.05); }
 
-/* Carousel buttons on horizontal card */
+/* Carousel buttons */
 .icard-h-img-wrap .icard-prev { left: 8px; z-index: 5; }
 .icard-h-img-wrap .icard-next { right: 8px; z-index: 5; }
 
-/* Top-left badge on image */
+/* Status badge — clean dark pill with gold accent bar */
 .icard-h-img-badge {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 12px;
+  left: 12px;
   z-index: 4;
-  background: rgba(0,0,0,0.55);
+  background: rgba(10,22,40,0.80);
   color: #fff;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: .06em;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .12em;
   text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 20px;
-  backdrop-filter: blur(4px);
+  padding: 5px 11px;
+  border-radius: 5px;
+  backdrop-filter: blur(6px);
+  border-left: 3px solid #b8962e;
+  line-height: 1;
 }
 
-/* Content side */
+/* Content body */
 .icard-h-body {
   flex: 1;
-  padding: 18px 20px;
+  padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 0;
   min-width: 0;
 }
-.icard-h-cat {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .12em;
+/* Ref code — shown first via order, styled like "CÓDIGO IO-xxx" */
+.icard-h-ref {
+  order: -1;
+  display: inline-block;
+  background: none;
   color: #94a3b8;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 0;
+  border-radius: 0;
+  letter-spacing: .12em;
+  align-self: flex-start;
+  margin: 0 0 4px;
   text-transform: uppercase;
-  margin-bottom: 2px;
 }
-.icard-h-title {
-  font-size: 15px;
+/* Category badge — "VENDAS" as small gold pill */
+.icard-h-cat {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 9px;
   font-weight: 800;
-  color: #0f172a;
+  letter-spacing: .14em;
+  color: #b8962e;
+  text-transform: uppercase;
+  background: rgba(184,150,46,.1);
+  padding: 3px 9px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(184,150,46,.25);
+}
+/* Title */
+.icard-h-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0a1628;
   line-height: 1.25;
   text-transform: uppercase;
-  letter-spacing: .01em;
-  margin: 0;
+  letter-spacing: .015em;
+  margin: 0 0 7px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* Location */
 .icard-h-loc {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 12px;
   color: #64748b;
+  margin-bottom: 0;
 }
-.icard-h-ref {
-  display: inline-block;
-  background: rgba(13,33,68,.08);
-  color: #0d2144;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 6px;
-  letter-spacing: .04em;
-  align-self: flex-start;
-  margin: 2px 0;
+/* Specs row */
+.icard-h-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 9px 0;
+  border-top: 1px solid #f1f5f9;
+  margin-top: auto;
 }
+.icard-h-spec {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #475569;
+  font-weight: 500;
+}
+.icard-h-spec svg { color: #94a3b8; flex-shrink: 0; }
+/* Price row */
 .icard-h-price-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: auto;
-  padding-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
 }
 .icard-h-price {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 800;
-  color: #0f172a;
+  color: #0a1628;
+  letter-spacing: -.01em;
 }
 .icard-h-wa {
   display: flex;
@@ -1307,42 +1345,29 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
   color: #16a34a;
   transition: background .2s;
   text-decoration: none;
+  flex-shrink: 0;
 }
 .icard-h-wa:hover { background: rgba(37,211,102,.22); }
-.icard-h-specs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
-  margin-top: 4px;
-}
-.icard-h-spec {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: #475569;
-}
-.icard-h-spec svg { color: #94a3b8; flex-shrink: 0; }
 
-/* Grid for horizontal cards */
+/* Grid: 3 columns with gaps (desktop) */
 .imoveis-grid-h {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 24px;
   max-width: 1280px;
   margin: 0 auto;
 }
 .imoveis-grid-h .imovel-card-h {
   margin: 0;
-  border-radius: 0;
-  border: none;
-  border-bottom: 1px solid #e8ecf1;
-  border-right: 1px solid #e8ecf1;
+  border-radius: 14px;
+  border: 1px solid #e8ecf1;
 }
-.imoveis-grid-h .imovel-card-h:nth-child(2n) { border-right: none; }
-.imoveis-grid-h .imovel-card-h:hover { transform: none; box-shadow: none; background: #f8faff; }
+.imoveis-grid-h .imovel-card-h:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.13);
+  background: #fff;
+}
 
 /* Map marker popup */
 .im-marker-wrap {
@@ -1371,9 +1396,8 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .imoveis-grid-h { grid-template-columns: 1fr; }
-  .imoveis-grid-h .imovel-card-h { border-right: none; }
-  .icard-h-img-wrap { width: 200px; }
+  .imoveis-grid-h { grid-template-columns: repeat(2, 1fr); gap: 14px; padding: 16px; }
+  .icard-h-img-wrap { width: 100%; height: 190px; }
   .im-split-wrap { flex-direction: column; }
   .im-list-col { padding: 12px; }
 
@@ -1398,6 +1422,7 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
   #im-leaflet-map { width: 100%; height: 100%; }
 }
 @media (max-width: 600px) {
+  .imoveis-grid-h { grid-template-columns: 1fr; gap: 12px; padding: 12px; }
   .imovel-card-h { flex-direction: column; }
   .icard-h-img-wrap { width: 100%; height: 200px; }
 
