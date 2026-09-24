@@ -398,7 +398,7 @@
         </button>
         <button class="topnav-link" data-section="apresentacoes" title="Apresentações">
           <i data-lucide="share-2"></i>
-          <span class="sidenav-label">Apresentações</span>
+          <span class="sidenav-label" style="font-size:11px;letter-spacing:-0.3px">Apresentações</span>
         </button>
       </nav>
     </aside>
@@ -2266,6 +2266,8 @@
     var selectedIds = []
     var currentLink = ''
     var allProps    = []
+    var _wired      = false
+    var _leadsLoaded = false
 
     /* ── helpers ─────────────────────────────────────────────────── */
     function shortId() {
@@ -2277,93 +2279,119 @@
     function saveHistory(list) {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)) } catch(_){}
     }
+    function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
 
-    /* ── Init when section becomes visible ───────────────────────── */
-    function initSection() {
-      if (document.getElementById('apres-nova-btn')._wired) return
-      document.getElementById('apres-nova-btn')._wired = true
-
-      document.getElementById('apres-nova-btn').addEventListener('click', openModal)
-      document.getElementById('apres-modal-close').addEventListener('click', closeModal)
-      document.getElementById('apres-modal-close2').addEventListener('click', closeModal)
-      document.getElementById('apres-gerar-btn').addEventListener('click', gerarLink)
-      document.getElementById('apres-copy-btn').addEventListener('click', copyLink)
-      document.getElementById('apres-link-close').addEventListener('click', closeLinkModal)
-      document.getElementById('apres-wa-btn').addEventListener('click', shareWa)
-
+    /* ── Wire buttons once ────────────────────────────────────────── */
+    function wireButtons() {
+      if (_wired) return
+      _wired = true
+      var el = function(id){ return document.getElementById(id) }
+      el('apres-nova-btn')   && el('apres-nova-btn').addEventListener('click', openModal)
+      el('apres-modal-close')  && el('apres-modal-close').addEventListener('click', closeModal)
+      el('apres-modal-close2') && el('apres-modal-close2').addEventListener('click', closeModal)
+      el('apres-gerar-btn')  && el('apres-gerar-btn').addEventListener('click', gerarLink)
+      el('apres-copy-btn')   && el('apres-copy-btn').addEventListener('click', copyLink)
+      el('apres-link-close') && el('apres-link-close').addEventListener('click', closeLinkModal)
+      el('apres-wa-btn')     && el('apres-wa-btn').addEventListener('click', shareWa)
       renderHistory()
-      loadLeads()
     }
 
-    /* ── Observe section visibility ──────────────────────────────── */
-    var section = document.getElementById('section-apresentacoes')
-    if (section) {
-      new MutationObserver(function() {
-        if (!section.classList.contains('hidden')) {
-          setTimeout(initSection, 100)
-        }
-      }).observe(section, { attributes: true, attributeFilter: ['class'] })
+    function onSectionOpen() {
+      wireButtons()
+      if (!_leadsLoaded) { _leadsLoaded = true; loadLeads() }
     }
+
+    /* ── Detect section becoming visible via sidebar click ─────────── */
+    document.addEventListener('DOMContentLoaded', function() {
+      // 1. Watch sidebar button click (fires before script.js shows section)
+      var navBtn = document.querySelector('[data-section="apresentacoes"]')
+      if (navBtn) {
+        navBtn.addEventListener('click', function() {
+          setTimeout(onSectionOpen, 150)
+        })
+      }
+
+      // 2. MutationObserver fallback (in case section shown by other means)
+      var section = document.getElementById('section-apresentacoes')
+      if (section) {
+        new MutationObserver(function() {
+          if (!section.classList.contains('hidden')) onSectionOpen()
+        }).observe(section, { attributes: true, attributeFilter: ['class'] })
+
+        // 3. If section is already visible on load (e.g. hash nav)
+        if (!section.classList.contains('hidden')) onSectionOpen()
+      }
+    })
 
     /* ── Modal open/close ─────────────────────────────────────────── */
     function openModal() {
       selectedIds = []
-      document.getElementById('apres-titulo').value = ''
-      document.getElementById('apres-sel-count').textContent = '0 de 3 selecionados'
-      document.getElementById('apres-modal-overlay').style.display = 'flex'
-      document.body.style.overflow = 'hidden'
+      var titulo = document.getElementById('apres-titulo')
+      var count  = document.getElementById('apres-sel-count')
+      if (titulo) titulo.value = ''
+      if (count)  count.textContent = '0 de 3 selecionados'
+      var overlay = document.getElementById('apres-modal-overlay')
+      if (overlay) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden' }
       loadProps()
     }
     function closeModal() {
-      document.getElementById('apres-modal-overlay').style.display = 'none'
+      var overlay = document.getElementById('apres-modal-overlay')
+      if (overlay) overlay.style.display = 'none'
       document.body.style.overflow = ''
     }
     function closeLinkModal() {
-      document.getElementById('apres-link-modal-overlay').style.display = 'none'
+      var overlay = document.getElementById('apres-link-modal-overlay')
+      if (overlay) overlay.style.display = 'none'
       document.body.style.overflow = ''
     }
 
     /* ── Load properties ──────────────────────────────────────────── */
     function loadProps() {
+      var list = document.getElementById('apres-prop-list')
+      if (!list) return
       var sb = window.supabase
-      if (!sb) { document.getElementById('apres-prop-list').innerHTML = '<div style="padding:16px;color:#ef4444;font-size:13px">Supabase não disponível.</div>'; return }
+      if (!sb) { list.innerHTML = '<div style="padding:16px;color:#ef4444;font-size:13px">Supabase não disponível.</div>'; return }
       if (allProps.length) { renderPropList(allProps); return }
-      sb.from('properties').select('id,title,city,neighborhood,price,images,cover_image,bedrooms').eq('published', true).order('created_at', { ascending: false })
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:#aaa;font-size:13px">Carregando imóveis…</div>'
+      sb.from('properties').select('id,title,city,neighborhood,price,images,cover_image,bedrooms')
+        .eq('published', true).order('created_at', { ascending: false })
         .then(function(res) {
-          if (res.error || !res.data) { document.getElementById('apres-prop-list').innerHTML = '<div style="padding:16px;color:#ef4444;font-size:13px">Erro ao carregar imóveis.</div>'; return }
+          if (res.error || !res.data) { list.innerHTML = '<div style="padding:16px;color:#ef4444;font-size:13px">Erro ao carregar imóveis.</div>'; return }
           allProps = res.data
           renderPropList(allProps)
-        })
+        }).catch(function(e){ list.innerHTML = '<div style="padding:16px;color:#ef4444;font-size:13px">Erro: '+e.message+'</div>' })
     }
 
     function renderPropList(props) {
-      if (!props.length) { document.getElementById('apres-prop-list').innerHTML = '<div style="padding:20px;text-align:center;color:#aaa;font-size:13px">Nenhum imóvel publicado.</div>'; return }
-      var html = props.map(function(p) {
+      var list = document.getElementById('apres-prop-list')
+      if (!list) return
+      if (!props.length) { list.innerHTML = '<div style="padding:20px;text-align:center;color:#aaa;font-size:13px">Nenhum imóvel publicado.</div>'; return }
+      list.innerHTML = props.map(function(p) {
         var imgs  = (p.images && p.images.length) ? p.images : (p.cover_image ? [p.cover_image] : [])
-        var thumb = imgs[0] ? '<img src="' + imgs[0] + '" style="width:52px;height:40px;object-fit:cover;border-radius:7px;flex-shrink:0" alt="">' : '<div style="width:52px;height:40px;background:#e8e8e8;border-radius:7px;flex-shrink:0"></div>'
+        var thumb = imgs[0] ? '<img src="'+imgs[0]+'" style="width:52px;height:40px;object-fit:cover;border-radius:7px;flex-shrink:0" alt="">'
+                            : '<div style="width:52px;height:40px;background:#e8e8e8;border-radius:7px;flex-shrink:0"></div>'
         var addr  = [p.neighborhood, p.city].filter(Boolean).join(', ')
-        var price = p.price ? (String(p.price).startsWith('R$') ? p.price : 'R$ ' + p.price) : ''
-        var checked = selectedIds.includes(String(p.id))
-        return '<label style="display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;border-bottom:1px solid #f5f5f5;' + (checked ? 'background:#fef8ee' : '') + '" data-pid="' + p.id + '">' +
-          '<input type="checkbox" value="' + p.id + '" ' + (checked ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:#c9892a;flex-shrink:0" onchange="apresToggle(this)">' +
-          thumb +
-          '<div style="min-width:0"><div style="font-size:13px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (p.title || 'Imóvel') + '</div>' +
-          (addr ? '<div style="font-size:11px;color:#999">' + addr + '</div>' : '') +
-          (price ? '<div style="font-size:12px;color:#c9892a;font-weight:700">' + price + '</div>' : '') + '</div></label>'
+        var price = p.price ? (String(p.price).startsWith('R$') ? p.price : 'R$ '+p.price) : ''
+        var chk   = selectedIds.includes(String(p.id))
+        return '<label style="display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;border-bottom:1px solid #f5f5f5;'+(chk?'background:#fef8ee':'')+'" data-pid="'+p.id+'">'
+          +'<input type="checkbox" value="'+p.id+'" '+(chk?'checked':'')+' style="width:16px;height:16px;accent-color:#c9892a;flex-shrink:0" onchange="apresToggle(this)">'
+          +thumb
+          +'<div style="min-width:0"><div style="font-size:13px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.title||'Imóvel')+'</div>'
+          +(addr?'<div style="font-size:11px;color:#999">'+esc(addr)+'</div>':'')
+          +(price?'<div style="font-size:12px;color:#c9892a;font-weight:700">'+esc(price)+'</div>':'')+'</div></label>'
       }).join('')
-      document.getElementById('apres-prop-list').innerHTML = html
     }
 
     window.apresToggle = function(chk) {
       var id = String(chk.value)
       if (chk.checked) {
-        if (selectedIds.length >= 3) { chk.checked = false; return }
+        if (selectedIds.length >= 3) { chk.checked = false; alert('Máximo de 3 imóveis por apresentação.'); return }
         selectedIds.push(id)
       } else {
         selectedIds = selectedIds.filter(function(i){ return i !== id })
       }
-      document.getElementById('apres-sel-count').textContent = selectedIds.length + ' de 3 selecionados'
-      // Highlight selected rows
+      var count = document.getElementById('apres-sel-count')
+      if (count) count.textContent = selectedIds.length+' de 3 selecionados'
       document.querySelectorAll('#apres-prop-list label').forEach(function(lbl) {
         lbl.style.background = selectedIds.includes(String(lbl.dataset.pid)) ? '#fef8ee' : ''
       })
@@ -2371,132 +2399,129 @@
 
     /* ── Generate link ───────────────────────────────────────────── */
     function gerarLink() {
-      var titulo = (document.getElementById('apres-titulo').value || '').trim() || 'Seleção Especial'
+      var tituloEl = document.getElementById('apres-titulo')
+      var titulo   = tituloEl ? (tituloEl.value||'').trim() : ''
+      if (!titulo) titulo = 'Seleção Especial'
       if (!selectedIds.length) { alert('Selecione pelo menos 1 imóvel.'); return }
-      var id    = shortId()
-      var tid   = (window.getSettingsTenantId ? window.getSettingsTenantId() : '') || ''
-      var params = new URLSearchParams({
-        id: id,
-        t:  encodeURIComponent(titulo),
-        p:  selectedIds.join(','),
-        c:  encodeURIComponent('Isaac Corretor'),
-        w:  '5547999701743'
-      })
+      var id  = shortId()
+      var tid = ''
+      try { if (window.getSettingsTenantId) tid = window.getSettingsTenantId() || '' } catch(_){}
+      var params = new URLSearchParams({ id:id, t:titulo, p:selectedIds.join(','), c:'Isaac Corretor', w:'5547999701743' })
       if (tid) params.set('tid', tid)
       currentLink = BASE_URL + PRES_PAGE + '?' + params.toString()
-
-      // Save to history
       var hist = loadHistory()
-      hist.unshift({ id: id, titulo: titulo, imoveis_ids: selectedIds.slice(), criado_em: new Date().toISOString(), link: currentLink })
-      if (hist.length > 50) hist = hist.slice(0, 50)
+      hist.unshift({ id:id, titulo:titulo, imoveis_ids:selectedIds.slice(), criado_em:new Date().toISOString(), link:currentLink })
+      if (hist.length > 50) hist = hist.slice(0,50)
       saveHistory(hist)
-
       closeModal()
-      showLinkModal(currentLink, titulo)
+      showLinkModal(currentLink)
       renderHistory()
     }
 
-    function showLinkModal(link, titulo) {
-      document.getElementById('apres-link-display').textContent = link
-      document.getElementById('apres-link-modal-overlay').style.display = 'flex'
-      document.body.style.overflow = 'hidden'
+    function showLinkModal(link) {
+      var disp    = document.getElementById('apres-link-display')
+      var overlay = document.getElementById('apres-link-modal-overlay')
+      if (disp)    disp.textContent = link
+      if (overlay) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden' }
       currentLink = link
     }
 
     function copyLink() {
+      var btn = document.getElementById('apres-copy-btn')
       navigator.clipboard.writeText(currentLink).then(function() {
-        var btn = document.getElementById('apres-copy-btn')
-        btn.textContent = '✅ Copiado!'
-        setTimeout(function(){ btn.textContent = '📋 Copiar Link' }, 2000)
-      }).catch(function() {
-        prompt('Copie o link:', currentLink)
-      })
+        if (btn) { btn.textContent = '✅ Copiado!'; setTimeout(function(){ btn.textContent = '📋 Copiar Link' }, 2000) }
+      }).catch(function() { prompt('Copie o link:', currentLink) })
     }
 
     function shareWa() {
-      var msg = 'Olá! Preparei uma seleção especial de imóveis para você 🏠
-
-Acesse aqui: ' + currentLink
-      window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank')
+      var msg = 'Olá! Preparei uma seleção especial de imóveis para você 🏠\n\nAcesse aqui: '+currentLink
+      window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank')
     }
 
     /* ── History ─────────────────────────────────────────────────── */
     function renderHistory() {
-      var hist = loadHistory()
       var wrap = document.getElementById('apres-history-wrap')
+      if (!wrap) return
+      var hist = loadHistory()
       if (!hist.length) {
         wrap.innerHTML = '<div style="padding:32px;text-align:center;color:#aaa;font-size:14px">Nenhuma apresentação criada ainda.<br><span style="font-size:12px">Clique em "+ Nova Apresentação" para começar.</span></div>'
         return
       }
-      var html = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f7f7f9">' +
-        '<th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.4px">Título</th>' +
-        '<th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.4px">Imóveis</th>' +
-        '<th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.4px">Data</th>' +
-        '<th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.4px">Ações</th>' +
-        '</tr></thead><tbody>'
-      hist.forEach(function(item, idx) {
-        var date = new Date(item.criado_em).toLocaleDateString('pt-BR')
-        html += '<tr style="border-bottom:1px solid #f0f0f0">' +
-          '<td style="padding:12px 16px;font-weight:600;color:#111">' + esc(item.titulo) + '</td>' +
-          '<td style="padding:12px 16px;color:#777">' + (item.imoveis_ids ? item.imoveis_ids.length : '?') + ' imóveis</td>' +
-          '<td style="padding:12px 16px;color:#aaa">' + date + '</td>' +
-          '<td style="padding:12px 16px;display:flex;gap:8px">' +
-          '<button onclick="apresOpenLink(' + idx + ')" style="background:#111;color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">Ver link</button>' +
-          '<button onclick="apresDelete(' + idx + ')" style="background:none;color:#ef4444;border:1px solid #f5c6c6;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">Excluir</button>' +
-          '</td></tr>'
-      })
-      html += '</tbody></table>'
-      wrap.innerHTML = html
+      wrap.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f7f7f9">'
+        +'<th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase">Título</th>'
+        +'<th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase">Imóveis</th>'
+        +'<th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase">Data</th>'
+        +'<th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase">Ações</th>'
+        +'</tr></thead><tbody>'
+        + hist.map(function(item,idx) {
+            var d = new Date(item.criado_em).toLocaleDateString('pt-BR')
+            return '<tr style="border-bottom:1px solid #f0f0f0">'
+              +'<td style="padding:12px 16px;font-weight:600;color:#111">'+esc(item.titulo)+'</td>'
+              +'<td style="padding:12px 16px;color:#777">'+(item.imoveis_ids?item.imoveis_ids.length:'?')+' imóvel(is)</td>'
+              +'<td style="padding:12px 16px;color:#aaa">'+d+'</td>'
+              +'<td style="padding:12px 16px"><div style="display:flex;gap:8px">'
+              +'<button onclick="apresOpenLink('+idx+')" style="background:#111;color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">Ver link</button>'
+              +'<button onclick="apresDelete('+idx+')" style="background:none;color:#ef4444;border:1px solid #f5c6c6;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">Excluir</button>'
+              +'</div></td></tr>'
+          }).join('')
+        +'</tbody></table>'
     }
 
     window.apresOpenLink = function(idx) {
-      var hist = loadHistory()
-      var item = hist[idx]
+      var item = loadHistory()[idx]
       if (!item) return
       currentLink = item.link
-      showLinkModal(item.link, item.titulo)
+      showLinkModal(item.link)
     }
     window.apresDelete = function(idx) {
       if (!confirm('Remover esta apresentação do histórico?')) return
       var hist = loadHistory()
-      hist.splice(idx, 1)
+      hist.splice(idx,1)
       saveHistory(hist)
       renderHistory()
     }
 
-    /* ── Leads list ──────────────────────────────────────────────── */
+    /* ── Leads ────────────────────────────────────────────────────── */
     function loadLeads() {
+      var wrap = document.getElementById('apres-leads-wrap')
+      if (!wrap) return
       var sb = window.supabase
-      if (!sb) return
-      var tid = window.getSettingsTenantId ? window.getSettingsTenantId() : null
-      var query = sb.from('apresentacao_leads').select('*').order('created_at', { ascending: false }).limit(50)
-      if (tid) query = query.eq('tenant_id', tid)
-      query.then(function(res) {
-        var wrap = document.getElementById('apres-leads-wrap')
-        if (res.error) { wrap.innerHTML = '<div style="color:#aaa;font-size:13px">Tabela ainda não criada. Rode o SQL no Supabase.</div>'; return }
-        if (!res.data || !res.data.length) { wrap.innerHTML = '<div style="color:#aaa;font-size:13px">Nenhum lead recebido ainda.</div>'; return }
-        var html = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f7f7f9">' +
-          '<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.3px">Nome</th>' +
-          '<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.3px">WhatsApp</th>' +
-          '<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.3px">Apresentação</th>' +
-          '<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.3px">Data</th>' +
-          '</tr></thead><tbody>'
-        res.data.forEach(function(lead) {
-          var d = new Date(lead.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
-          var waUrl = 'https://wa.me/55' + lead.whatsapp.replace(/\D/g,'') + '?text=' + encodeURIComponent('Olá ' + lead.nome + '! Vi que você acessou minha seleção de imóveis. Posso te ajudar?')
-          html += '<tr style="border-bottom:1px solid #f5f5f5"><td style="padding:10px 14px;font-weight:600;color:#111">' + esc(lead.nome) + '</td>' +
-            '<td style="padding:10px 14px"><a href="' + waUrl + '" target="_blank" style="color:#25d366;font-weight:600">' + esc(lead.whatsapp) + '</a></td>' +
-            '<td style="padding:10px 14px;color:#777">' + esc(lead.apresentacao_titulo || '-') + '</td>' +
-            '<td style="padding:10px 14px;color:#aaa">' + d + '</td></tr>'
-        })
-        html += '</tbody></table>'
-        wrap.innerHTML = html
+      if (!sb) { wrap.innerHTML = '<div style="color:#aaa;font-size:13px">Supabase não disponível.</div>'; return }
+      wrap.innerHTML = '<div style="color:#aaa;font-size:13px">Carregando leads…</div>'
+      var tid = ''
+      try { if (window.getSettingsTenantId) tid = window.getSettingsTenantId() || '' } catch(_){}
+      var q = sb.from('apresentacao_leads').select('*').order('created_at',{ascending:false}).limit(50)
+      if (tid) q = q.eq('tenant_id', tid)
+      q.then(function(res) {
+        if (res.error) {
+          wrap.innerHTML = '<div style="color:#aaa;font-size:13px">Tabela ainda não criada. Rode o SQL no Supabase Dashboard.</div>'
+          return
+        }
+        if (!res.data || !res.data.length) {
+          wrap.innerHTML = '<div style="color:#aaa;font-size:13px">Nenhum lead recebido ainda.</div>'
+          return
+        }
+        wrap.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f7f7f9">'
+          +'<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase">Nome</th>'
+          +'<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase">WhatsApp</th>'
+          +'<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase">Apresentação</th>'
+          +'<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#999;text-transform:uppercase">Data</th>'
+          +'</tr></thead><tbody>'
+          + res.data.map(function(lead) {
+              var d   = new Date(lead.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+              var phone = (lead.whatsapp||'').replace(/\D/g,'')
+              var waUrl = 'https://wa.me/55'+phone+'?text='+encodeURIComponent('Olá '+lead.nome+'! Vi que você acessou minha seleção de imóveis. Posso te ajudar?')
+              return '<tr style="border-bottom:1px solid #f5f5f5">'
+                +'<td style="padding:10px 14px;font-weight:600;color:#111">'+esc(lead.nome)+'</td>'
+                +'<td style="padding:10px 14px"><a href="'+waUrl+'" target="_blank" style="color:#25d366;font-weight:600">'+esc(lead.whatsapp)+'</a></td>'
+                +'<td style="padding:10px 14px;color:#777">'+esc(lead.apresentacao_titulo||'-')+'</td>'
+                +'<td style="padding:10px 14px;color:#aaa">'+d+'</td></tr>'
+            }).join('')
+          +'</tbody></table>'
       }).catch(function() {
-        document.getElementById('apres-leads-wrap').innerHTML = '<div style="color:#aaa;font-size:13px">Rode o SQL para criar a tabela de leads.</div>'
+        wrap.innerHTML = '<div style="color:#aaa;font-size:13px">Rode o SQL para criar a tabela de leads.</div>'
       })
     }
-
-    function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
   })()
   </script>
 
