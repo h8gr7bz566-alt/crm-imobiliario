@@ -2235,18 +2235,24 @@
   </script>
 
 
-  <!-- ─ Mobile: hamburger → sidebar drawer ───────────────────────── -->
+  <!-- ─ Mobile sidebar + notification fix ─────────────────────────── -->
   <script>
-  /* Single, authoritative mobile sidebar handler.
-     No inline onclick on button — this is the ONLY handler. */
+  /* ══════════════════════════════════════════════════════════════════
+     MOBILE SIDEBAR — MutationObserver approach
+     
+     script.js hijacks #topnav-hamburger clicks (capture phase +
+     stopPropagation), so we CANNOT intercept the click.
+     Instead we OBSERVE what script.js does: it toggles .open on
+     #topnav-links. We mirror that into sidebar-open on the sidebar.
+     ══════════════════════════════════════════════════════════════════ */
   (function() {
-    function initMobileSidebar() {
-      var ham      = document.getElementById('topnav-hamburger')
+    function initSidebarSync() {
+      var nav      = document.getElementById('topnav-links')
       var sidebar  = document.getElementById('admin-sidebar')
       var backdrop = document.getElementById('sidebar-backdrop')
-      if (!ham || !sidebar || !backdrop) return
-      if (ham._mobileWired) return   // guard against double-init
-      ham._mobileWired = true
+      if (!nav || !sidebar || !backdrop) return
+      if (nav._sidebarSynced) return
+      nav._sidebarSynced = true
 
       function openSidebar() {
         sidebar.classList.add('sidebar-open')
@@ -2257,74 +2263,93 @@
         sidebar.classList.remove('sidebar-open')
         backdrop.classList.remove('active')
         document.body.style.overflow = ''
-        var nav = document.getElementById('topnav-links')
-        if (nav) nav.classList.remove('open')
+        nav.classList.remove('open')   // keep script.js state in sync
       }
 
-      // Single click handler on hamburger
-      ham.addEventListener('click', function(e) {
-        e.stopPropagation()   // prevent event from bubbling up and re-triggering
-        if (sidebar.classList.contains('sidebar-open')) {
-          closeSidebar()
-        } else {
+      // Watch script.js toggling .open on #topnav-links
+      new MutationObserver(function() {
+        if (nav.classList.contains('open')) {
           openSidebar()
+        } else {
+          closeSidebar()
         }
-      })
+      }).observe(nav, { attributes: true, attributeFilter: ['class'] })
 
-      // Close via backdrop
+      // Backdrop click → close
       backdrop.addEventListener('click', function() { closeSidebar() })
 
-      // X button inside sidebar
+      // X button → close
       var closeBtn = document.getElementById('sidebar-close-btn')
       if (closeBtn) {
-        closeBtn.onclick = null  // remove old inline handler
-        closeBtn.addEventListener('click', function(e) { e.stopPropagation(); closeSidebar() })
-      }
-
-      // Close when a nav item is clicked (mobile only)
-      var navLinks = document.getElementById('topnav-links')
-      if (navLinks) {
-        navLinks.addEventListener('click', function(e) {
-          var btn = e.target.closest('.topnav-link')
-          if (!btn) return
-          if (btn.classList.contains('topnav-dropdown-btn')) {
-            // Toggle dropdown
-            var dd = btn.closest('.topnav-dropdown')
-            if (dd) dd.classList.toggle('open')
-            e.stopPropagation()
-            return
-          }
-          // Regular nav item: close sidebar on mobile
-          if (window.innerWidth <= 900) {
-            setTimeout(function() { closeSidebar() }, 80)
-          }
+        closeBtn.onclick = null
+        closeBtn.addEventListener('click', function(e) {
+          e.stopPropagation()
+          closeSidebar()
         })
       }
 
-      // Auto-close if resized to desktop
+      // Clicking a nav item on mobile → close sidebar after navigation
+      nav.addEventListener('click', function(e) {
+        var btn = e.target.closest('.topnav-link:not(.topnav-dropdown-btn)')
+        if (btn && window.innerWidth <= 900) {
+          setTimeout(function() { closeSidebar() }, 100)
+        }
+      })
+
+      // Resize to desktop → close
       window.addEventListener('resize', function() {
         if (window.innerWidth > 900) closeSidebar()
       })
     }
 
-    // Run immediately if DOM ready, else wait
+    // Run when DOM is ready
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', function() { initMobileSidebar() })
+      document.addEventListener('DOMContentLoaded', initSidebarSync)
     } else {
-      initMobileSidebar()
+      initSidebarSync()
     }
-
-    // Re-run after login (admin-root becomes visible after auth)
+    // Re-run after login (admin-root becomes visible)
     var loginEl = document.getElementById('admin-login')
     if (loginEl) {
       new MutationObserver(function() {
         if (loginEl.classList.contains('hidden')) {
-          setTimeout(function() { initMobileSidebar() }, 150)
+          setTimeout(initSidebarSync, 200)
         }
       }).observe(loginEl, { attributes: true, attributeFilter: ['class'] })
     }
   })()
-  </script>pt>
+  </script>
+
+  <!-- ─ Notification read-state fix ────────────────────────────────── -->
+  <script>
+  /* Ensures notification read state always reflects localStorage,
+     even if the in-memory notifsRead array was reset.
+     Patches window.loadNotifications to sync from storage first. */
+  (function() {
+    function patchNotifRead() {
+      if (!window.loadNotifications) return
+      if (window.loadNotifications._patched) return
+      var orig = window.loadNotifications
+      window.loadNotifications = async function() {
+        // Re-sync in-memory notifsRead from localStorage before rendering
+        try {
+          var stored = JSON.parse(localStorage.getItem('crm_notifs_read') || '[]')
+          if (window.notifsRead && Array.isArray(window.notifsRead)) {
+            stored.forEach(function(id) {
+              if (!window.notifsRead.includes(id)) window.notifsRead.push(id)
+            })
+          }
+        } catch(e) {}
+        return orig.apply(this, arguments)
+      }
+      window.loadNotifications._patched = true
+    }
+
+    // Try immediately and after a short delay
+    setTimeout(patchNotifRead, 500)
+    setTimeout(patchNotifRead, 2000)
+  })()
+  </script>
 
 </body>
 </html>
