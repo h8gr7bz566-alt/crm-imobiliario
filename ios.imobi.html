@@ -2595,13 +2595,14 @@
         if (parent) {
           var submenu = parent.querySelector('.sidebar-submenu') || parent.querySelector('.topnav-dropdown-menu')
           if (submenu) {
-            var isOpen = submenu.style.display === 'block'
-            // Close all other submenus
+            var isOpen = submenu.style.getPropertyValue('display') === 'block'
+            // Close all other submenus first
             document.querySelectorAll('#admin-sidebar .topnav-dropdown').forEach(function(d) {
               var sm = d.querySelector('.sidebar-submenu') || d.querySelector('.topnav-dropdown-menu')
-              if (sm) sm.style.display = ''
+              if (sm) sm.style.removeProperty('display')
             })
-            submenu.style.display = isOpen ? '' : 'block'
+            // Use setProperty with !important to override CSS `display:none !important`
+            if (!isOpen) submenu.style.setProperty('display', 'block', 'important')
           }
         }
         return
