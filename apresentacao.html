@@ -375,7 +375,7 @@ button{font-family:inherit}
   function fetchAndRender() {
     var ids = PROP_IDS.map(function(id){ return isNaN(id) ? id : parseInt(id, 10) })
     sb.from('properties')
-      .select('id,title,rua,numero,city,neighborhood,price,bedrooms,parking,suites,area,tipo,images,cover_image,description')
+      .select('id,title,rua,numero,city,neighborhood,price,bedrooms,parking,images,cover_image,description')
       .in('id', ids)
       .then(function(res) {
         if (res.error) {
