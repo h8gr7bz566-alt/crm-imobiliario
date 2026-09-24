@@ -2525,45 +2525,7 @@
   })()
   </script>
 
-  <!-- ─── Dropdown Config click-toggle ───────────────────────── -->
-  <style>
-    .topnav-dropdown.open .sidebar-submenu { display: block !important; }
-  </style>
-  <script>
-  ;(function() {
-    document.addEventListener('DOMContentLoaded', function() {
-      function wireDropdowns() {
-        document.querySelectorAll('.topnav-dropdown-btn').forEach(function(btn) {
-          if (btn._ddWired) return
-          btn._ddWired = true
-          btn.addEventListener('click', function(e) {
-            e.stopPropagation()
-            var parent = btn.closest('.topnav-dropdown')
-            if (!parent) return
-            var isOpen = parent.classList.contains('open')
-            // Close all dropdowns first
-            document.querySelectorAll('.topnav-dropdown.open').forEach(function(d) {
-              d.classList.remove('open')
-            })
-            if (!isOpen) parent.classList.add('open')
-          })
-        })
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function() {
-          document.querySelectorAll('.topnav-dropdown.open').forEach(function(d) {
-            d.classList.remove('open')
-          })
-        })
-      }
-      wireDropdowns()
-      // Re-wire after script.js may have shown admin-only elements
-      setTimeout(wireDropdowns, 1000)
-      setTimeout(wireDropdowns, 2500)
-    })
-  })()
-  </script>
-
-  <!-- ─── Mobile sidebar — single authoritative capture handler ──────── -->
+    <!-- ─── Mobile sidebar — single authoritative capture handler ──────── -->
   <script>
   /* ====================================================================
      Mobile sidebar handler.
@@ -2626,14 +2588,41 @@
 
       // ── Nav item inside sidebar: close after navigation ───────────
       var navBtn = e.target.closest('#admin-sidebar .topnav-link')
+      if (navBtn && navBtn.classList.contains('topnav-dropdown-btn')) {
+        // Direct style toggle — bypasses all CSS specificity issues
+        e.stopPropagation()
+        var parent = navBtn.closest('.topnav-dropdown')
+        if (parent) {
+          var submenu = parent.querySelector('.sidebar-submenu') || parent.querySelector('.topnav-dropdown-menu')
+          if (submenu) {
+            var isOpen = submenu.style.display === 'block'
+            // Close all other submenus
+            document.querySelectorAll('#admin-sidebar .topnav-dropdown').forEach(function(d) {
+              var sm = d.querySelector('.sidebar-submenu') || d.querySelector('.topnav-dropdown-menu')
+              if (sm) sm.style.display = ''
+            })
+            submenu.style.display = isOpen ? '' : 'block'
+          }
+        }
+        return
+      }
       if (navBtn && !navBtn.classList.contains('topnav-dropdown-btn')) {
+        // Close any open submenus when navigating to a regular section
+        document.querySelectorAll('#admin-sidebar .topnav-dropdown').forEach(function(d) {
+          var sm = d.querySelector('.sidebar-submenu') || d.querySelector('.topnav-dropdown-menu')
+          if (sm) sm.style.display = ''
+        })
         if (window.innerWidth < 901) {
           setTimeout(closeMobileNav, 120)
         }
         return
       }
 
-      // ── Click outside sidebar while it's open: close ──────────────
+      // ── Click outside sidebar: close submenus and sidebar ─────────
+      document.querySelectorAll('#admin-sidebar .topnav-dropdown').forEach(function(d) {
+        var sm = d.querySelector('.sidebar-submenu') || d.querySelector('.topnav-dropdown-menu')
+        if (sm) sm.style.display = ''
+      })
       if (sidebar && sidebar.classList.contains('sidebar-open')) {
         if (window.innerWidth < 901 && !e.target.closest('#admin-sidebar')) {
           closeMobileNav()
