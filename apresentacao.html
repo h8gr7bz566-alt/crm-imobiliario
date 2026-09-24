@@ -378,8 +378,13 @@ button{font-family:inherit}
       .select('id,title,rua,numero,city,neighborhood,price,bedrooms,parking,suites,area,tipo,images,cover_image,description')
       .in('id', ids)
       .then(function(res) {
-        if (res.error || !res.data || !res.data.length) {
-          document.getElementById('props-wrap').innerHTML = '<div style="padding:80px 28px;text-align:center;color:#aaa;font-size:14px">Não foi possível carregar os imóveis.</div>'
+        if (res.error) {
+          console.error('[apres] properties error:', res.error)
+          document.getElementById('props-wrap').innerHTML = '<div style="padding:80px 28px;text-align:center;color:#aaa;font-size:14px">Erro ao carregar imóveis.<br><small style=\"color:#f87171\">' + (res.error.message||res.error.hint||JSON.stringify(res.error)) + '</small></div>'
+          return
+        }
+        if (!res.data || !res.data.length) {
+          document.getElementById('props-wrap').innerHTML = '<div style="padding:80px 28px;text-align:center;color:#aaa;font-size:14px">Imóveis não encontrados.<br><small>IDs: '+ids.join(',')+'</small></div>'
           return
         }
         var sorted = ids.map(function(id){ return res.data.find(function(p){ return String(p.id) === String(id) }) }).filter(Boolean)
