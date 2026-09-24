@@ -341,7 +341,7 @@
           <rect x="20" y="11" width="6" height="15" rx="1.5" fill="currentColor"/>
         </svg>
         <span class="sidebar-brand-name">IOS imobi</span>
-        <button class="sidebar-close-btn" id="sidebar-close-btn" title="Fechar menu">
+        <button class="sidebar-close-btn" id="sidebar-close-btn" title="Fechar menu" onclick="document.getElementById('admin-sidebar').classList.remove('sidebar-open');document.getElementById('sidebar-backdrop').classList.remove('active');document.body.style.overflow='';">
           <i data-lucide="x"></i>
         </button>
       </div>
@@ -402,7 +402,7 @@
     <!-- Top Bar -->
     <header class="admin-topnav" id="admin-topnav">
       <div class="topnav-left">
-        <button class="topnav-hamburger" id="topnav-hamburger" title="Menu">
+        <button class="topnav-hamburger" id="topnav-hamburger" title="Menu" onclick="(function(){var s=document.getElementById('admin-sidebar'),b=document.getElementById('sidebar-backdrop');if(!s)return;var o=s.classList.toggle('sidebar-open');if(b){b.classList.toggle('active',o);b.onclick=function(){s.classList.remove('sidebar-open');b.classList.remove('active');document.body.style.overflow='';};}document.body.style.overflow=o?'hidden':'';})()">
           <i data-lucide="menu"></i>
         </button>
         <div class="topnav-logo">
