@@ -495,5 +495,183 @@ function closeMobileNav(){
   })()
   </script>
 
+
+  <!-- ══ Agrupamento por cidade e status ══════════════════════════ -->
+  <script>
+  ;(function () {
+    'use strict'
+
+    var SB_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co'
+    var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua25wYnpkY3JoYmZvenp2eHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY1NjYsImV4cCI6MjA5NDQ0MjU2Nn0.5yX05Y4Nhp8UJlhFblK4z_1TRxBqJKrwOLQ91KxsLMM'
+
+    // Status labels e cores
+    var STATUS_LABELS = {
+      'pronto': 'Pronto para Morar',
+      'em_obra': 'Em Obra',
+      'lancamento': 'Lançamento'
+    }
+    var STATUS_ORDER = ['pronto', 'em_obra', 'lancamento']
+    var STATUS_DOT   = { 'pronto': 'pronto', 'em_obra': 'obra', 'lancamento': 'obra' }
+
+    // Cache: pid -> { city, construction_status }
+    var propIndex = {}
+    var indexLoaded = false
+
+    // Carrega o índice de cidade + status de todos os imóveis
+    function loadIndex () {
+      return fetch(
+        SB_URL + '/rest/v1/properties?select=id,city,construction_status&limit=2000',
+        { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } }
+      )
+      .then(function (r) { return r.json() })
+      .then(function (rows) {
+        rows.forEach(function (r) {
+          propIndex[String(r.id)] = {
+            city: (r.city || 'Outras Cidades').trim(),
+            status: (r.construction_status || '').toLowerCase().replace(/\s+/g,'_')
+          }
+        })
+        indexLoaded = true
+      })
+      .catch(function (err) { console.warn('[CityGroup] index load failed:', err) })
+    }
+
+    // Reagrupa os cards presentes no #properties
+    function regroupCards () {
+      var container = document.getElementById('properties')
+      if (!container) return
+
+      var cards = Array.from(container.querySelectorAll('.imovel-card-h'))
+      if (cards.length === 0) return
+      if (!indexLoaded) return
+
+      // Se não há nenhum pid no índice, não faz nada (evita loops)
+      var hasMapped = cards.some(function (c) { return propIndex[c.dataset.pid] })
+      if (!hasMapped) return
+
+      // Agrupa cards por cidade
+      var groups = {} // city -> { pronto:[], em_obra:[], lancamento:[], outros:[] }
+      cards.forEach(function (card) {
+        var info = propIndex[card.dataset.pid] || { city: 'Outras Cidades', status: '' }
+        var city = info.city || 'Outras Cidades'
+        if (!groups[city]) groups[city] = { pronto:[], em_obra:[], lancamento:[], outros:[] }
+        var st = info.status
+        if (st === 'pronto') groups[city].pronto.push(card)
+        else if (st === 'em_obra' || st === 'emobra' || st === 'em obra') groups[city].em_obra.push(card)
+        else if (st === 'lancamento' || st === 'lançamento') groups[city].lancamento.push(card)
+        else groups[city].outros.push(card)
+      })
+
+      // Ordena cidades (Itapema primeiro, depois alfabético)
+      var cityNames = Object.keys(groups).sort(function (a, b) {
+        if (a === 'Itapema') return -1
+        if (b === 'Itapema') return 1
+        return a.localeCompare(b, 'pt-BR')
+      })
+
+      // Reconstrói o DOM dentro do container
+      // Remove classe grid do container — ele vira wrapper de sections
+      container.className = 'imoveis-city-wrapper'
+
+      var frag = document.createDocumentFragment()
+      cityNames.forEach(function (city) {
+        var grp = groups[city]
+        var total = grp.pronto.length + grp.em_obra.length + grp.lancamento.length + grp.outros.length
+
+        var section = document.createElement('div')
+        section.className = 'city-section'
+
+        // Header da cidade
+        var hdr = document.createElement('div')
+        hdr.className = 'city-section-header'
+        hdr.innerHTML =
+          '<h2 class="city-section-name">' + city + '</h2>' +
+          '<span class="city-section-count">' + total + ' imóve' + (total===1?'l':'is') + '</span>'
+        section.appendChild(hdr)
+
+        // Sub-seções por status
+        var statusGroups = [
+          { key: 'pronto',    cards: grp.pronto },
+          { key: 'em_obra',   cards: grp.em_obra },
+          { key: 'lancamento',cards: grp.lancamento },
+          { key: 'outros',    cards: grp.outros }
+        ]
+
+        statusGroups.forEach(function (sg) {
+          if (sg.cards.length === 0) return
+          var label = STATUS_LABELS[sg.key] || 'Outros'
+          var dotCls = STATUS_DOT[sg.key] || 'obra'
+
+          var sub = document.createElement('div')
+          sub.className = 'status-subsection'
+
+          var subHdr = document.createElement('div')
+          subHdr.className = 'status-subsection-header'
+          subHdr.innerHTML =
+            '<span class="status-dot ' + dotCls + '"></span>' +
+            '<span>' + label + '</span>' +
+            '<span class="status-count">' + sg.cards.length + '</span>'
+          sub.appendChild(subHdr)
+
+          var grid = document.createElement('div')
+          grid.className = 'imoveis-grid-h'
+          sg.cards.forEach(function (c) { grid.appendChild(c) })
+          sub.appendChild(grid)
+          section.appendChild(sub)
+        })
+
+        frag.appendChild(section)
+      })
+
+      // Substitui conteúdo
+      container.innerHTML = ''
+      container.appendChild(frag)
+    }
+
+    // MutationObserver: detecta quando script.js popula #properties
+    var observer
+    var regroupTimer = null
+    function scheduleRegroup () {
+      if (regroupTimer) clearTimeout(regroupTimer)
+      regroupTimer = setTimeout(function () {
+        regroupCards()
+      }, 80)
+    }
+
+    function startObserver () {
+      var container = document.getElementById('properties')
+      if (!container) { setTimeout(startObserver, 200); return }
+
+      observer = new MutationObserver(function () {
+        scheduleRegroup()
+      })
+      observer.observe(container, { childList: true, subtree: false })
+      // Roda uma vez caso o container já tenha cards
+      scheduleRegroup()
+    }
+
+    // Inicia: carrega índice, depois começa a observar
+    loadIndex().then(function () {
+      startObserver()
+    })
+
+    // Re-agrupa quando filtros disparam renderPublic
+    var origRender = null
+    var renderCheckInterval = setInterval(function () {
+      if (typeof window.renderPublic === 'function') {
+        if (!origRender) {
+          origRender = window.renderPublic
+          window.renderPublic = function () {
+            origRender.apply(this, arguments)
+            scheduleRegroup()
+          }
+        }
+        clearInterval(renderCheckInterval)
+      }
+    }, 100)
+
+  })()
+  </script>
+
 </body>
 </html>
