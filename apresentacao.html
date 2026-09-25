@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Seleção de Imóveis · Isaac Corretor</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -148,6 +148,27 @@ img{display:block;width:100%}
   .sf-wa{width:100%;justify-content:center}
   .pf-inner{flex-direction:column;gap:6px}
   .h-corretor{display:none}
+}
+
+/* == LIGHTBOX ================================== */
+.lb-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.lb-overlay.open{opacity:1;pointer-events:all}
+.lb-img{max-width:calc(100vw - 80px);max-height:calc(100vh - 60px);object-fit:contain;border-radius:6px;user-select:none;display:block;margin:auto}
+.lb-close{position:fixed;top:14px;right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;border:none;line-height:1}
+.lb-arr{position:fixed;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;border:none;-webkit-tap-highlight-color:transparent}
+.lb-prev{left:10px}.lb-next{right:10px}
+.lb-counter{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.65);font-size:12px;font-weight:500;background:rgba(0,0,0,.45);padding:4px 14px;border-radius:20px;white-space:nowrap}
+.lb-hidden{display:none!important}
+.icard-photo{cursor:zoom-in}
+.icard-strip-img{cursor:zoom-in}
+@media(max-width:600px){
+  .icard-photo{aspect-ratio:4/3}
+  .icard-body{padding:14px 16px}
+  .icard-footer{padding:12px 16px}
+  .icard-strip{margin:0 -16px 14px;padding:0 16px}
+  .icard-title{font-size:15px}
+  .lb-img{max-width:100vw;max-height:calc(100vh - 90px)}
+  .lb-arr{width:38px;height:38px;font-size:20px}
 }
 </style>
 </head>
@@ -323,12 +344,13 @@ img{display:block;width:100%}
 
       /* Photo */
       if (hero) {
-        html += '<div class="icard-photo"><img src="'+esc(hero)+'" alt="'+esc(p.title||'')+'"'+(i===0?'':' loading="lazy"')+'>'
+        var imEnc = esc(JSON.stringify(im))
+        html += '<div class="icard-photo" onclick="lbOpen(this)" data-lb="'+imEnc+'" data-idx="0"><img src="'+esc(hero)+'" alt="'+esc(p.title||'')+'"'+(i===0?'':' loading="lazy"')+'>'
         if (im.length>1) html += '<div class="icard-photo-count">📷 '+im.length+'</div>'
         html += '</div>'
       }
 
-      /* Body */
+/* Body */
       html += '<div class="icard-body">'
       html += '<div class="icard-num">Imóvel '+(i+1)+' de '+props.length+'</div>'
       html += '<div class="icard-title">'+esc(p.title||'Imóvel')+'</div>'
@@ -350,7 +372,7 @@ img{display:block;width:100%}
       /* Strip gallery */
       if (rest.length>0) {
         html += '<div class="icard-strip">'
-        rest.slice(0,8).forEach(function(u){ html += '<div class="icard-strip-img"><img src="'+esc(u)+'" loading="lazy" alt=""></div>' })
+        rest.slice(0,8).forEach(function(u,si){ var imEnc=esc(JSON.stringify(im)); html += '<div class="icard-strip-img" onclick="lbOpen(this)" data-lb="'+imEnc+'" data-idx="'+(si+1)+'"><img src="'+esc(u)+'" loading="lazy" alt=""></div>' })
         html += '</div>'
       }
       html += '</div>'
@@ -394,5 +416,60 @@ img{display:block;width:100%}
   }
 })()
 </script>
+
+<!-- LIGHTBOX -->
+<div id="lb" class="lb-overlay">
+  <button class="lb-close" id="lb-close">&#x2715;</button>
+  <button class="lb-arr lb-prev" id="lb-prev">&#x2039;</button>
+  <img class="lb-img" id="lb-img" src="" alt="">
+  <button class="lb-arr lb-next" id="lb-next">&#x203a;</button>
+  <div class="lb-counter" id="lb-counter"></div>
+</div>
+<script>
+;(function(){
+  var ov=document.getElementById('lb'),im=document.getElementById('lb-img'),
+      ctr=document.getElementById('lb-counter'),bp=document.getElementById('lb-prev'),
+      bn=document.getElementById('lb-next');
+  var imgs=[],cur=0;
+  window.lbOpen=function(el){
+    var raw=el.getAttribute('data-lb');
+    var idx=parseInt(el.getAttribute('data-idx'))||0;
+    try{imgs=JSON.parse(raw.replace(/&quot;/g,'"'))}catch(e){return}
+    if(!imgs.length)return;
+    cur=idx;show();
+    ov.classList.add('open');document.body.style.overflow='hidden';
+  };
+  function show(){
+    im.src=imgs[cur]||'';
+    var many=imgs.length>1;
+    ctr.textContent=(cur+1)+' / '+imgs.length;
+    bp.classList.toggle('lb-hidden',!many);
+    bn.classList.toggle('lb-hidden',!many);
+    ctr.classList.toggle('lb-hidden',!many);
+  }
+  function close(){ov.classList.remove('open');document.body.style.overflow='';im.src='';}
+  function prev(){cur=(cur-1+imgs.length)%imgs.length;show();}
+  function next(){cur=(cur+1)%imgs.length;show();}
+  document.getElementById('lb-close').onclick=close;
+  bp.onclick=function(e){e.stopPropagation();prev();};
+  bn.onclick=function(e){e.stopPropagation();next();};
+  ov.addEventListener('click',function(e){if(e.target===ov||e.target===im)close();});
+  document.addEventListener('keydown',function(e){
+    if(!ov.classList.contains('open'))return;
+    if(e.key==='Escape'||e.key==='Esc')close();
+    if(e.key==='ArrowLeft')prev();
+    if(e.key==='ArrowRight')next();
+  });
+  var sx=null;
+  ov.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;},{passive:true});
+  ov.addEventListener('touchend',function(e){
+    if(sx===null)return;
+    var dx=e.changedTouches[0].clientX-sx;sx=null;
+    if(Math.abs(dx)<40)return;
+    if(dx<0)next();else prev();
+  },{passive:true});
+})();
+</script>
+
 </body>
 </html>
