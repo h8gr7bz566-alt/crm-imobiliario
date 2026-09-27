@@ -673,5 +673,218 @@ function closeMobileNav(){
   })()
   </script>
 
+  <!-- ══ Mapa Preciso: geocodificação por endereço completo ══ -->
+  <script>
+  ;(function () {
+    'use strict'
+
+    // Lookup rápido: bairros conhecidos por cidade (aceita formato "Cidade/SC" e "Cidade")
+    var _BAIRROS = {
+      'itapema': {
+        'meia praia':              { lat: -26.9426, lng: -48.6200 },
+        'morretes':                { lat: -26.8868, lng: -48.6028 },
+        'centro':                  { lat: -26.9073, lng: -48.6142 },
+        'tabuleiro dos oliveiras': { lat: -26.8840, lng: -48.5970 },
+        'tabuleiro':               { lat: -26.8840, lng: -48.5970 },
+        'alto são bento':          { lat: -26.8700, lng: -48.5950 },
+        'canto da praia':          { lat: -26.8620, lng: -48.5990 },
+        'ilhota':                  { lat: -26.9040, lng: -48.6090 },
+        'várzea':                  { lat: -26.9050, lng: -48.6100 },
+        '':                        { lat: -26.9075, lng: -48.6145 }
+      },
+      'balneário camboriú': {
+        'barra sul':   { lat: -26.9950, lng: -48.6338 },
+        'centro':      { lat: -26.9867, lng: -48.6374 },
+        'nova esperança': { lat: -26.9760, lng: -48.6350 },
+        '':            { lat: -26.9906, lng: -48.6348 }
+      },
+      'porto belo': {
+        'centro': { lat: -27.1556, lng: -48.5522 },
+        '':       { lat: -27.1556, lng: -48.5522 }
+      },
+      'ponta grossa': {
+        'uvaranas': { lat: -25.0855, lng: -50.1371 },
+        'centro':   { lat: -25.0945, lng: -50.1633 },
+        '':         { lat: -25.0945, lng: -50.1633 }
+      },
+      'carambeí': {
+        '': { lat: -24.9154, lng: -50.0956 }
+      }
+    }
+
+    // Normaliza nome de cidade: remove sufixos "/SC" "/PR" etc. e parentéticos
+    function _normCity(city) {
+      return (city || '')
+        .replace(/\s*\/[A-Z]{2}\s*$/, '')  // remove /SC /PR /RJ etc.
+        .replace(/\s*\([^)]*\)\s*$/, '')   // remove (SC) etc.
+        .trim().toLowerCase()
+    }
+
+    // Lookup instantâneo por bairro/cidade
+    function _lookup(p) {
+      var cidade = _normCity(p.city)
+      var bairro = (p.neighborhood || '').trim().toLowerCase()
+      var cityMap = _BAIRROS[cidade]
+      if (!cityMap) return null
+      return cityMap[bairro] || cityMap[''] || null
+    }
+
+    // Geocodifica com endereço completo (Nominatim), com fallback progressivo
+    async function _geocodeFull(p) {
+      var rua    = (p.rua    || '').trim()
+      var numero = (p.numero || '').trim()
+      var bairro = (p.neighborhood || '').trim()
+      var cidade = _normCity(p.city)
+      var estado = (p.state || '').trim()
+
+      // 1) Lookup instantâneo se não há rua cadastrada
+      if (!rua) {
+        var instant = _lookup(p)
+        if (instant) return {
+          lat: instant.lat + (Math.random()-0.5)*0.004,
+          lng: instant.lng + (Math.random()-0.5)*0.004
+        }
+      }
+
+      // 2) Cache de sessão
+      var cacheKey = 'geo_v3:' + [rua, numero, bairro, cidade].join('|').toLowerCase()
+      try {
+        var cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+          var c = JSON.parse(cached)
+          return { lat: c.lat + (Math.random()-0.5)*0.0003, lng: c.lng + (Math.random()-0.5)*0.0003 }
+        }
+      } catch(e) {}
+
+      // 3) Nominatim com fallback progressivo
+      var cidadeFull = cidade || ''
+      var queries = []
+      if (rua) {
+        queries.push([rua, numero, cidadeFull, estado, 'Brasil'].filter(Boolean).join(', '))
+        queries.push([rua, bairro, cidadeFull, estado, 'Brasil'].filter(Boolean).join(', '))
+      }
+      if (bairro) queries.push([bairro, cidadeFull, estado, 'Brasil'].filter(Boolean).join(', '))
+      queries.push([cidadeFull, estado, 'Brasil'].filter(Boolean).join(', '))
+
+      for (var i = 0; i < queries.length; i++) {
+        try {
+          var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='
+                    + encodeURIComponent(queries[i])
+          var res = await fetch(url, {
+            headers: { 'Accept-Language': 'pt-BR' },
+            signal: AbortSignal.timeout(6000)
+          })
+          var data = await res.json()
+          if (data && data[0]) {
+            var coord = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+            try { sessionStorage.setItem(cacheKey, JSON.stringify(coord)) } catch(e) {}
+            return { lat: coord.lat + (Math.random()-0.5)*0.0003, lng: coord.lng + (Math.random()-0.5)*0.0003 }
+          }
+        } catch(e) {}
+        if (i < queries.length - 1) await new Promise(function(r){ setTimeout(r, 350) })
+      }
+
+      // 4) Último recurso: lookup por bairro/cidade
+      var fallback = _lookup(p)
+      return fallback
+        ? { lat: fallback.lat + (Math.random()-0.5)*0.005, lng: fallback.lng + (Math.random()-0.5)*0.005 }
+        : null
+    }
+
+    // Formata preço para bubble (igual ao script.js)
+    function _fmtPrice(price) {
+      var str = String(price || '').trim()
+      var n
+      if (str.includes(',') && str.lastIndexOf(',') > str.lastIndexOf('.')) {
+        n = parseFloat(str.replace(/\./g, '').replace(',', '.'))
+      } else {
+        n = parseFloat(str.replace(/[^\d.]/g, ''))
+      }
+      if (!n || isNaN(n)) return 'Ver'
+      if (n >= 1e6) return 'R$' + (n/1e6).toFixed(1).replace('.0','') + 'M'
+      if (n >= 1e3) return 'R$' + Math.round(n/1e3) + 'K'
+      return 'R$' + n
+    }
+
+    var _running = false
+    var _timer   = null
+
+    async function _renderPrecise() {
+      if (_running) return
+      var L    = window.L
+      var map  = window._imMap
+      var props = window._cachedFilteredProps
+      if (!L || !map || !props || !props.length) return
+
+      _running = true
+      try {
+        // Remove markers aproximados do script.js
+        if (window._imMarkers) {
+          window._imMarkers.forEach(function(m) { try { m.remove() } catch(e) {} })
+          window._imMarkers = []
+        }
+
+        var bounds = []
+        var toShow = props.slice(0, 60)
+
+        for (var i = 0; i < toShow.length; i++) {
+          var p = toShow[i]
+          var coord = await _geocodeFull(p)
+          if (!coord) continue
+
+          var icon = L.divIcon({
+            className: 'im-marker-wrap',
+            html: '<div class="im-marker-bubble">' + _fmtPrice(p.price) + '</div>',
+            iconSize: [1, 1], iconAnchor: [0, 0]
+          })
+          var addedMarker = L.marker([coord.lat, coord.lng], { icon }).addTo(map)
+          addedMarker.on('click', (function(pid){ return function(){ window.location.href='/property.html?id='+pid }})(p.id))
+          window._imMarkers.push(addedMarker)
+          bounds.push([coord.lat, coord.lng])
+        }
+
+        if (bounds.length > 0) {
+          try { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 }) } catch(e) {}
+        }
+      } finally {
+        _running = false
+      }
+    }
+
+    function _schedule() {
+      if (_timer) clearTimeout(_timer)
+      _timer = setTimeout(_renderPrecise, 1200)
+    }
+
+    // Observa mapa ficando visível
+    function _watchMap() {
+      var col = document.getElementById('im-map-col')
+      if (!col) { setTimeout(_watchMap, 300); return }
+      new MutationObserver(function() {
+        if (col.classList.contains('visible')) _schedule()
+      }).observe(col, { attributes: true, attributeFilter: ['class'] })
+      if (col.classList.contains('visible')) _schedule()
+    }
+
+    // Hook em renderPublic para re-rodar quando filtros mudam
+    var _hookTries = 0
+    var _hookInt = setInterval(function() {
+      _hookTries++
+      if (typeof window.renderPublic === 'function') {
+        var _orig = window.renderPublic
+        window.renderPublic = function() {
+          var r = _orig.apply(this, arguments)
+          var col = document.getElementById('im-map-col')
+          if (col && col.classList.contains('visible')) _schedule()
+          return r
+        }
+        clearInterval(_hookInt)
+      } else if (_hookTries > 200) clearInterval(_hookInt)
+    }, 50)
+
+    _watchMap()
+  })()
+  </script>
+
 </body>
 </html>
