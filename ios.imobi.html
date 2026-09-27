@@ -516,7 +516,7 @@
       <section id="section-dashboard" class="admin-section hidden"></section>
 
       <!-- ── Imóveis ── -->
-      <section id="section-properties" class="admin-section">
+      <section id="section-properties" class="admin-section hidden">
         <div class="section-topbar">
           <div>
             <div class="section-title">Imóveis</div>
@@ -1797,8 +1797,7 @@
         setText('svgstat-vendas-sub', count + ' neg\u00f3cio' + (count !== 1 ? 's' : '') + ' fechado' + (count !== 1 ? 's' : ''))
       }
 
-      // Atualiza dashboard pós-login
-      renderDashboard()
+      // initDashboardSection() in script.js renders the full dashboard
     } catch (e) {
       console.warn('[stats] fetchAuthStats:', e)
     }
