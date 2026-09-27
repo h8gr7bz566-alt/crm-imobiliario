@@ -673,15 +673,19 @@ function closeMobileNav(){
   })()
   </script>
 
-  <!-- ══ Mapa Preciso: geocodificação por endereço completo ══ -->
+  <!-- ══ Mapa Preciso v5: geocodificação definitiva por cidade ══ -->
   <script>
   ;(function () {
     'use strict'
 
-    // Limpa cache geo_v3 com coords erradas
-    try { Object.keys(sessionStorage).filter(function(k){ return k.indexOf('geo_v3:')===0 || k.indexOf('geo_v4:')===0 }).forEach(function(k){ sessionStorage.removeItem(k) }) } catch(e) {}
+    // Limpa TODOS os caches de geocodificacao anteriores (eram errados)
+    try {
+      Object.keys(sessionStorage).filter(function(k){ return k.indexOf('geo_') === 0 })
+        .forEach(function(k){ sessionStorage.removeItem(k) })
+    } catch(e) {}
 
-    // Lookup rápido: bairros conhecidos por cidade (aceita formato "Cidade/SC" e "Cidade")
+    // Coordenadas de referência por bairro/cidade
+    // Chave: nome-da-cidade (normalizado, sem "(SC)" "/SC" etc.)
     var _BAIRROS = {
       'itapema': {
         'meia praia':              { lat: -26.9426, lng: -48.6200 },
@@ -696,10 +700,10 @@ function closeMobileNav(){
         '':                        { lat: -26.9075, lng: -48.6145 }
       },
       'balneário camboriú': {
-        'barra sul':   { lat: -26.9950, lng: -48.6338 },
-        'centro':      { lat: -26.9867, lng: -48.6374 },
+        'barra sul':      { lat: -26.9950, lng: -48.6338 },
+        'centro':         { lat: -26.9867, lng: -48.6374 },
         'nova esperança': { lat: -26.9760, lng: -48.6350 },
-        '':            { lat: -26.9906, lng: -48.6348 }
+        '':               { lat: -26.9906, lng: -48.6348 }
       },
       'porto belo': {
         'centro': { lat: -27.1556, lng: -48.5522 },
@@ -715,15 +719,15 @@ function closeMobileNav(){
       }
     }
 
-    // Normaliza nome de cidade: remove sufixos "/SC" "/PR" etc. e parentéticos
+    // Normaliza cidade: remove "(SC)", "/SC", etc.
     function _normCity(city) {
       return (city || '')
-        .replace(/\s*\/[A-Z]{2}\s*$/, '')  // remove /SC /PR /RJ etc.
-        .replace(/\s*\([^)]*\)\s*$/, '')   // remove (SC) etc.
+        .replace(/\s*\/[A-Za-z]{2}\s*$/, '')
+        .replace(/\s*\([^)]*\)\s*$/, '')
         .trim().toLowerCase()
     }
 
-    // Lookup instantâneo por bairro/cidade
+    // Lookup de coordenadas por bairro/cidade
     function _lookup(p) {
       var cidade = _normCity(p.city)
       var bairro = (p.neighborhood || '').trim().toLowerCase()
@@ -732,61 +736,61 @@ function closeMobileNav(){
       return cityMap[bairro] || cityMap[''] || null
     }
 
-    // Geocodifica com endereço completo (Nominatim), com fallback progressivo
+    // Detecta rua puramente numérica (ex: "291", "304", "Rua 291")
+    function _isNumberedStreet(rua) {
+      if (!rua) return true
+      // Remove prefixos comuns e verifica se o resto é só número
+      var cleaned = rua.replace(/^(rua|r\.|av\.|avenida|travessa|trav\.)\s*/i, '').trim()
+      return /^\d+$/.test(cleaned)
+    }
+
+    // Geocodificação com fallback progressivo
     async function _geocodeFull(p) {
       var rua    = (p.rua    || '').trim()
       var numero = (p.numero || '').trim()
       var bairro = (p.neighborhood || '').trim()
       var cidade = _normCity(p.city)
-      var estado = (p.state || '').trim()
 
-      // 1) Lookup instantâneo se não há rua cadastrada
-      if (!rua) {
-        var instant = _lookup(p)
-        if (instant) return {
-          lat: instant.lat + (Math.random()-0.5)*0.004,
-          lng: instant.lng + (Math.random()-0.5)*0.004
+      // Coord de referência do bairro (sempre disponível como fallback)
+      var ref = _lookup(p)
+      if (!ref) return null
+
+      // Para ruas numéricas ou sem rua: usar bairro com jitter maior
+      // (Nominatim não consegue localizar "Rua 291" numa cidade específica)
+      if (_isNumberedStreet(rua)) {
+        return {
+          lat: ref.lat + (Math.random()-0.5) * 0.006,
+          lng: ref.lng + (Math.random()-0.5) * 0.006
         }
       }
 
-      // 2) Cache de sessão
-      var cacheKey = 'geo_v4:' + [rua, numero, bairro, cidade].join('|').toLowerCase()
+      // Para ruas nomeadas: tentar Nominatim com viewbox restrito à cidade
+      var cacheKey = 'geo_v5:' + [rua, numero, bairro, cidade].join('|').toLowerCase()
       try {
-        var cached = sessionStorage.getItem(cacheKey)
-        if (cached) {
-          var c = JSON.parse(cached)
+        var stored = sessionStorage.getItem(cacheKey)
+        if (stored) {
+          var c = JSON.parse(stored)
           return { lat: c.lat + (Math.random()-0.5)*0.0003, lng: c.lng + (Math.random()-0.5)*0.0003 }
         }
       } catch(e) {}
 
-      // 3) Nominatim com fallback progressivo
-      var cidadeFull = cidade || ''
-      var queries = []
-      if (rua) {
-        queries.push([rua, numero, cidadeFull, estado, 'Brasil'].filter(Boolean).join(', '))
-        queries.push([rua, bairro, cidadeFull, estado, 'Brasil'].filter(Boolean).join(', '))
-      }
-      if (bairro) queries.push([bairro, cidadeFull, estado, 'Brasil'].filter(Boolean).join(', '))
-      queries.push([cidadeFull, estado, 'Brasil'].filter(Boolean).join(', '))
+      // Viewbox apertado ao redor do centro da cidade (~12km)
+      var dLat = 0.07, dLng = 0.10
+      var vb = '&viewbox=' + (ref.lng-dLng) + ',' + (ref.lat+dLat) + ',' + (ref.lng+dLng) + ',' + (ref.lat-dLat) + '&bounded=1'
+
+      var queries = [
+        [rua, numero, bairro, cidade, 'Brasil'].filter(Boolean).join(', '),
+        [rua, bairro, cidade, 'Brasil'].filter(Boolean).join(', '),
+        [rua, cidade, 'Brasil'].filter(Boolean).join(', ')
+      ]
 
       for (var i = 0; i < queries.length; i++) {
         try {
-          var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='
-                    + encodeURIComponent(queries[i])
-          var res = await fetch(url, {
-            headers: { 'Accept-Language': 'pt-BR' },
-            signal: AbortSignal.timeout(6000)
-          })
+          var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br' + vb + '&q=' + encodeURIComponent(queries[i])
+          var res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' }, signal: AbortSignal.timeout(6000) })
           var data = await res.json()
           if (data && data[0]) {
             var coord = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
-            // Valida: resultado deve estar proximo da cidade (max ~15km)
-            var cityRef = _lookup(p)
-            if (cityRef) {
-              var dLat = Math.abs(coord.lat - cityRef.lat)
-              var dLng = Math.abs(coord.lng - cityRef.lng)
-              if (dLat > 0.15 || dLng > 0.15) { continue } // fora da area, tenta proximo fallback
-            }
             try { sessionStorage.setItem(cacheKey, JSON.stringify(coord)) } catch(e) {}
             return { lat: coord.lat + (Math.random()-0.5)*0.0003, lng: coord.lng + (Math.random()-0.5)*0.0003 }
           }
@@ -794,14 +798,14 @@ function closeMobileNav(){
         if (i < queries.length - 1) await new Promise(function(r){ setTimeout(r, 350) })
       }
 
-      // 4) Último recurso: lookup por bairro/cidade
-      var fallback = _lookup(p)
-      return fallback
-        ? { lat: fallback.lat + (Math.random()-0.5)*0.005, lng: fallback.lng + (Math.random()-0.5)*0.005 }
-        : null
+      // Nominatim não encontrou: usar bairro com jitter
+      return {
+        lat: ref.lat + (Math.random()-0.5) * 0.006,
+        lng: ref.lng + (Math.random()-0.5) * 0.006
+      }
     }
 
-    // Formata preço para bubble (igual ao script.js)
+    // Formata preço para bubble (replicando lógica do script.js)
     function _fmtPrice(price) {
       var str = String(price || '').trim()
       var n
@@ -821,16 +825,16 @@ function closeMobileNav(){
 
     async function _renderPrecise() {
       if (_running) return
-      var L    = window.L
-      var map  = window._imMap
+      var L     = window.L
+      var map   = window._imMap
       var props = window._cachedFilteredProps
       if (!L || !map || !props || !props.length) return
 
       _running = true
       try {
-        // Remove markers aproximados do script.js
+        // Remove markers existentes
         if (window._imMarkers) {
-          window._imMarkers.forEach(function(m) { try { m.remove() } catch(e) {} })
+          window._imMarkers.forEach(function(m){ try { m.remove() } catch(e){} })
           window._imMarkers = []
         }
 
@@ -847,14 +851,14 @@ function closeMobileNav(){
             html: '<div class="im-marker-bubble">' + _fmtPrice(p.price) + '</div>',
             iconSize: [1, 1], iconAnchor: [0, 0]
           })
-          var addedMarker = L.marker([coord.lat, coord.lng], { icon }).addTo(map)
-          addedMarker.on('click', (function(pid){ return function(){ window.location.href='/property.html?id='+pid }})(p.id))
-          window._imMarkers.push(addedMarker)
+          var marker = L.marker([coord.lat, coord.lng], { icon }).addTo(map)
+          marker.on('click', (function(pid){ return function(){ window.location.href='/property.html?id='+pid }})(p.id))
+          window._imMarkers.push(marker)
           bounds.push([coord.lat, coord.lng])
         }
 
         if (bounds.length > 0) {
-          try { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 }) } catch(e) {}
+          try { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 }) } catch(e) {}
         }
       } finally {
         _running = false
@@ -863,7 +867,7 @@ function closeMobileNav(){
 
     function _schedule() {
       if (_timer) clearTimeout(_timer)
-      _timer = setTimeout(_renderPrecise, 1200)
+      _timer = setTimeout(_renderPrecise, 1000)
     }
 
     // Observa mapa ficando visível
@@ -877,9 +881,9 @@ function closeMobileNav(){
     }
 
     // Hook em renderPublic para re-rodar quando filtros mudam
-    var _hookTries = 0
-    var _hookInt = setInterval(function() {
-      _hookTries++
+    var _tries = 0
+    var _int = setInterval(function() {
+      _tries++
       if (typeof window.renderPublic === 'function') {
         var _orig = window.renderPublic
         window.renderPublic = function() {
@@ -888,8 +892,8 @@ function closeMobileNav(){
           if (col && col.classList.contains('visible')) _schedule()
           return r
         }
-        clearInterval(_hookInt)
-      } else if (_hookTries > 200) clearInterval(_hookInt)
+        clearInterval(_int)
+      } else if (_tries > 200) clearInterval(_int)
     }, 50)
 
     _watchMap()
