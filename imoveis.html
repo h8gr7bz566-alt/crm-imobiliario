@@ -673,41 +673,43 @@ function closeMobileNav(){
   })()
   </script>
 
-  <!-- ══ Mapa Preciso v5: geocodificação definitiva por cidade ══ -->
+  <!-- ══ Mapa DWV v6: coordenadas do banco + fallback por bairro ══ -->
   <script>
   ;(function () {
     'use strict'
 
-    // Limpa TODOS os caches de geocodificacao anteriores (eram errados)
+    // Limpa caches de geocodificação de versões anteriores
     try {
       Object.keys(sessionStorage).filter(function(k){ return k.indexOf('geo_') === 0 })
         .forEach(function(k){ sessionStorage.removeItem(k) })
     } catch(e) {}
 
-    // Coordenadas de referência por bairro/cidade
-    // Chave: nome-da-cidade (normalizado, sem "(SC)" "/SC" etc.)
+    // Coordenadas de referência por bairro/cidade — FALLBACK quando não há lat/lng no banco
+    // Todas as coordenadas posicionadas no interior dos bairros (longe do mar)
     var _BAIRROS = {
       'itapema': {
-        'meia praia':              { lat: -26.9426, lng: -48.6200 },
-        'morretes':                { lat: -26.8868, lng: -48.6028 },
-        'centro':                  { lat: -26.9073, lng: -48.6142 },
-        'tabuleiro dos oliveiras': { lat: -26.8840, lng: -48.5970 },
-        'tabuleiro':               { lat: -26.8840, lng: -48.5970 },
-        'alto são bento':          { lat: -26.8700, lng: -48.5950 },
-        'canto da praia':          { lat: -26.8620, lng: -48.5990 },
-        'ilhota':                  { lat: -26.9040, lng: -48.6090 },
-        'várzea':                  { lat: -26.9050, lng: -48.6100 },
-        '':                        { lat: -26.9075, lng: -48.6145 }
+        'meia praia':              { lat: -26.9420, lng: -48.6260 },
+        'morretes':                { lat: -26.8868, lng: -48.6160 },
+        'centro':                  { lat: -26.9073, lng: -48.6200 },
+        'tabuleiro dos oliveiras': { lat: -26.8840, lng: -48.6350 },
+        'tabuleiro':               { lat: -26.8840, lng: -48.6350 },
+        'alto são bento':          { lat: -26.8700, lng: -48.6380 },
+        'canto da praia':          { lat: -26.8620, lng: -48.6120 },
+        'ilhota':                  { lat: -26.9040, lng: -48.6220 },
+        'várzea':                  { lat: -26.9050, lng: -48.6230 },
+        'sertão do trombudo':      { lat: -26.9100, lng: -48.6500 },
+        '':                        { lat: -26.9075, lng: -48.6300 }
       },
       'balneário camboriú': {
-        'barra sul':      { lat: -26.9950, lng: -48.6338 },
-        'centro':         { lat: -26.9867, lng: -48.6374 },
-        'nova esperança': { lat: -26.9760, lng: -48.6350 },
-        '':               { lat: -26.9906, lng: -48.6348 }
+        'barra sul':      { lat: -26.9950, lng: -48.6380 },
+        'centro':         { lat: -26.9867, lng: -48.6420 },
+        'nova esperança': { lat: -26.9760, lng: -48.6390 },
+        'das nações':     { lat: -26.9800, lng: -48.6360 },
+        '':               { lat: -26.9906, lng: -48.6400 }
       },
       'porto belo': {
-        'centro': { lat: -27.1556, lng: -48.5522 },
-        '':       { lat: -27.1556, lng: -48.5522 }
+        'centro': { lat: -27.1556, lng: -48.5600 },
+        '':       { lat: -27.1556, lng: -48.5600 }
       },
       'ponta grossa': {
         'uvaranas': { lat: -25.0855, lng: -50.1371 },
@@ -716,6 +718,10 @@ function closeMobileNav(){
       },
       'carambeí': {
         '': { lat: -24.9154, lng: -50.0956 }
+      },
+      'camboriú': {
+        'centro': { lat: -27.0244, lng: -48.6538 },
+        '':       { lat: -27.0244, lng: -48.6538 }
       }
     }
 
@@ -727,7 +733,7 @@ function closeMobileNav(){
         .trim().toLowerCase()
     }
 
-    // Lookup de coordenadas por bairro/cidade
+    // Lookup de coordenadas por bairro/cidade (fallback)
     function _lookup(p) {
       var cidade = _normCity(p.city)
       var bairro = (p.neighborhood || '').trim().toLowerCase()
@@ -739,33 +745,41 @@ function closeMobileNav(){
     // Detecta rua puramente numérica (ex: "291", "304", "Rua 291")
     function _isNumberedStreet(rua) {
       if (!rua) return true
-      // Remove prefixos comuns e verifica se o resto é só número
       var cleaned = rua.replace(/^(rua|r\.|av\.|avenida|travessa|trav\.)\s*/i, '').trim()
       return /^\d+$/.test(cleaned)
     }
 
-    // Geocodificação com fallback progressivo
+    // Geocodificação: banco → Nominatim → bairro
     async function _geocodeFull(p) {
+      // ══ MÉTODO DWV: lat/lng armazenados no banco (definitivo) ══
+      var storedLat = parseFloat(p.lat)
+      var storedLng = parseFloat(p.lng)
+      if (!isNaN(storedLat) && !isNaN(storedLng) && storedLat !== 0 && storedLng !== 0) {
+        return {
+          lat: storedLat + (Math.random()-0.5) * 0.0004,
+          lng: storedLng + (Math.random()-0.5) * 0.0004
+        }
+      }
+
+      // Fallback: coordenadas do bairro
       var rua    = (p.rua    || '').trim()
       var numero = (p.numero || '').trim()
       var bairro = (p.neighborhood || '').trim()
       var cidade = _normCity(p.city)
 
-      // Coord de referência do bairro (sempre disponível como fallback)
       var ref = _lookup(p)
       if (!ref) return null
 
-      // Para ruas numéricas ou sem rua: usar bairro com jitter maior
-      // (Nominatim não consegue localizar "Rua 291" numa cidade específica)
+      // Para ruas numéricas ou sem rua: usar bairro (jitter pequeno, no interior)
       if (_isNumberedStreet(rua)) {
         return {
-          lat: ref.lat + (Math.random()-0.5) * 0.006,
-          lng: ref.lng + (Math.random()-0.5) * 0.006
+          lat: ref.lat + (Math.random()-0.5) * 0.0015,
+          lng: ref.lng + (Math.random()-0.5) * 0.0015
         }
       }
 
       // Para ruas nomeadas: tentar Nominatim com viewbox restrito à cidade
-      var cacheKey = 'geo_v5:' + [rua, numero, bairro, cidade].join('|').toLowerCase()
+      var cacheKey = 'geo_v6:' + [rua, numero, bairro, cidade].join('|').toLowerCase()
       try {
         var stored = sessionStorage.getItem(cacheKey)
         if (stored) {
@@ -774,7 +788,6 @@ function closeMobileNav(){
         }
       } catch(e) {}
 
-      // Viewbox apertado ao redor do centro da cidade (~12km)
       var dLat = 0.07, dLng = 0.10
       var vb = '&viewbox=' + (ref.lng-dLng) + ',' + (ref.lat+dLat) + ',' + (ref.lng+dLng) + ',' + (ref.lat-dLat) + '&bounded=1'
 
@@ -798,12 +811,13 @@ function closeMobileNav(){
         if (i < queries.length - 1) await new Promise(function(r){ setTimeout(r, 350) })
       }
 
-      // Nominatim não encontrou: usar bairro com jitter
+      // Último fallback: bairro com jitter pequeno
       return {
-        lat: ref.lat + (Math.random()-0.5) * 0.006,
-        lng: ref.lng + (Math.random()-0.5) * 0.006
+        lat: ref.lat + (Math.random()-0.5) * 0.0015,
+        lng: ref.lng + (Math.random()-0.5) * 0.0015
       }
     }
+
 
     // Formata preço para bubble (replicando lógica do script.js)
     function _fmtPrice(price) {
