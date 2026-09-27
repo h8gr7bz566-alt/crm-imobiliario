@@ -678,6 +678,9 @@ function closeMobileNav(){
   ;(function () {
     'use strict'
 
+    // Limpa cache geo_v3 com coords erradas
+    try { Object.keys(sessionStorage).filter(function(k){ return k.indexOf('geo_v3:')===0 || k.indexOf('geo_v4:')===0 }).forEach(function(k){ sessionStorage.removeItem(k) }) } catch(e) {}
+
     // Lookup rápido: bairros conhecidos por cidade (aceita formato "Cidade/SC" e "Cidade")
     var _BAIRROS = {
       'itapema': {
@@ -747,7 +750,7 @@ function closeMobileNav(){
       }
 
       // 2) Cache de sessão
-      var cacheKey = 'geo_v3:' + [rua, numero, bairro, cidade].join('|').toLowerCase()
+      var cacheKey = 'geo_v4:' + [rua, numero, bairro, cidade].join('|').toLowerCase()
       try {
         var cached = sessionStorage.getItem(cacheKey)
         if (cached) {
@@ -777,6 +780,13 @@ function closeMobileNav(){
           var data = await res.json()
           if (data && data[0]) {
             var coord = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+            // Valida: resultado deve estar proximo da cidade (max ~15km)
+            var cityRef = _lookup(p)
+            if (cityRef) {
+              var dLat = Math.abs(coord.lat - cityRef.lat)
+              var dLng = Math.abs(coord.lng - cityRef.lng)
+              if (dLat > 0.15 || dLng > 0.15) { continue } // fora da area, tenta proximo fallback
+            }
             try { sessionStorage.setItem(cacheKey, JSON.stringify(coord)) } catch(e) {}
             return { lat: coord.lat + (Math.random()-0.5)*0.0003, lng: coord.lng + (Math.random()-0.5)*0.0003 }
           }

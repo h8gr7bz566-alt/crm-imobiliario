@@ -1467,7 +1467,14 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
     gap: 6px;
     min-width: 0;
   }
-  .im-pill-bar-right { flex-shrink: 0; }
+  .im-pill-bar-right {
+    flex-shrink: 0;
+    position: sticky;
+    right: 0;
+    background: #111827;
+    padding-left: 8px;
+    box-shadow: -8px 0 10px #111827;
+  }
   .im-pill select { font-size: 11.5px; padding: 6px 24px 6px 10px; }
   .im-pill { min-width: fit-content; }
 
