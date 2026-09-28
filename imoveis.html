@@ -1032,7 +1032,7 @@ function closeMobileNav(){
 
     fetch(
       SUPA_URL+'/rest/v1/properties?'+
-      'status=eq.published'+
+      'state=eq.published'+
       '&select=id,title,reference_code,category,property_type,city,neighborhood,photos,price,area_m2,bedrooms,parking_spots,construction_status'+
       '&order=city.asc,reference_code.asc'+
       '&limit=500',
