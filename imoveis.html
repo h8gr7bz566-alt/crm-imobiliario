@@ -1057,228 +1057,215 @@ function closeMobileNav(){
   var SUPA_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co';
   var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua25wYnpkY3JoYmZvenp2eHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY1NjYsImV4cCI6MjA5NDQ0MjU2Nn0.5yX05Y4Nhp8UJlhFblK4z_1TRxBqJKrwOLQ91KxsLMM';
   var H = { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY };
-  var CITY_ORDER = ['Balneário Camboriú','Itapema','Porto Belo','Ponta Grossa'];
+  var CITY_ORDER = ['Itapema','Balneário Camboriu','Ponta Grossa','Carambei'];
   var EM_OBRA_STATUS = ['em-obra','em_obra','lancamento','lançamento','pre-lancamento','pré-lançamento'];
-  var ALL_PROPS = []; // cache global
+  var PAGE = 6; // cards por cidade por carga
+  var ALL_PROPS = [];
 
   function fmt(n){
     if(!n) return 'Consultar';
-    var clean = String(n).replace(/\./g,'').replace(',','.');
-    var num = parseFloat(clean);
-    if(isNaN(num)) return 'Consultar';
-    return 'R$\u00a0' + num.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
-  }
-  function priceNum(n){
-    if(!n) return 0;
-    var clean = String(n).replace(/\./g,'').replace(',','.');
-    return parseFloat(clean) || 0;
+    var num = parseFloat(String(n).replace(/\./g,'').replace(',','.'));
+    return isNaN(num) ? 'Consultar' : 'R ' + num.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
   }
   function badge(s){
     var m={'pronto':'Pronto','lancamento':'Lançamento','pre-lancamento':'Pré-lançamento','em-obra':'Em Obra','em_obra':'Em Obra','pré-lançamento':'Pré-lançamento'};
-    return m[(s||'').toLowerCase()] || '';
+    return m[(s||'').toLowerCase()]||'';
   }
-  function getPhotos(p){
-    var src = p.images || [];
-    if(Array.isArray(src)) return src;
-    try{ return JSON.parse(src||'[]'); }catch(e){ return []; }
+  function getImg(p){
+    var imgs = p.images||[];
+    if(!Array.isArray(imgs)){ try{ imgs=JSON.parse(imgs||'[]'); }catch(e){ imgs=[]; } }
+    return p.cover_image||imgs[0]||'';
   }
-  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
   function isSala(p){ return /sala\s*comercial/i.test(p.title||''); }
-  function isEmObra(p){ return EM_OBRA_STATUS.indexOf((p.construction_status||'').toLowerCase()) !== -1; }
+  function isEmObra(p){ return EM_OBRA_STATUS.indexOf((p.construction_status||'').toLowerCase())!==-1; }
   function normCity(c){ return (c||'').trim().replace(/\s*\([A-Z]{2}\)\s*$/,''); }
-  function normStatus(s){ var k=(s||'').toLowerCase().replace('_','-'); return k==='pré-lançamento'?'pre-lancamento':k==='lançamento'?'lancamento':k; }
+  function normStatus(s){ return (s||'').toLowerCase().replace(/[_\/]/g,'-'); }
+  function priceNum(p){
+    var num = parseFloat(String(p.price||0).replace(/\./g,'').replace(',','.'));
+    return isNaN(num)?0:num;
+  }
 
+  // Card compacto: simples, leve, sem blur
   function buildCard(p){
-    var imgs = getPhotos(p);
-    var img = p.cover_image || imgs[0] || '';
-    var b = badge(p.construction_status||'');
-    var area = p.area ? p.area+' m²' : '';
-    var beds = p.bedrooms ? p.bedrooms+' dorm.' : '';
-    var park = p.parking ? p.parking+(p.parking===1?' vaga':' vagas') : '';
-    var ref = p.reference || '';
-    return '<a href="property.html?id='+p.id+'" class="imovel-card-h" style="text-decoration:none;display:block;">'+
-      '<div class="icard-h-img-wrap">'+
-        (img ? '<img class="icard-img" src="'+img+'" alt="'+esc(p.title)+'" loading="lazy" decoding="async">'
-        : '<div style="width:100%;height:100%;background:#1a2940;"></div>')+
-        (b ? '<div class="icard-h-img-badge">'+b+'</div>' : '')+
+    var img = getImg(p);
+    var b   = badge(p.construction_status||'');
+    var beds = p.bedrooms ? p.bedrooms+' dorm.' : '';
+    var park = p.parking  ? p.parking+' vaga'+(p.parking>1?'s':'') : '';
+    var area = p.area     ? p.area+' m²' : '';
+    return '<a href="property.html?id='+p.id+'" class="iof-card">'+
+      '<div class="iof-card-img">'+
+        (img ? '<img src="'+img+'" alt="'+esc(p.title)+'" loading="lazy" decoding="async">'
+             : '<div class="iof-card-noimg"></div>')+
+        (b ? '<span class="iof-card-badge">'+b+'</span>' : '')+
       '</div>'+
-      '<div class="icard-h-body">'+
-        '<span class="icard-h-ref">'+esc(ref)+'</span>'+
-        '<div class="icard-h-title">'+esc(p.title||'')+'</div>'+
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:11.5px;color:rgba(255,255,255,.45);">'+
-          (area?'<span>'+area+'</span>':'')+(beds?'<span>'+beds+'</span>':'')+(park?'<span>'+park+'</span>':'')+
+      '<div class="iof-card-body">'+
+        '<div class="iof-card-title">'+esc(p.title||'')+'</div>'+
+        '<div class="iof-card-specs">'+
+          (area?'<span>'+area+'</span>':'')+
+          (beds?'<span>'+beds+'</span>':'')+
+          (park?'<span>'+park+'</span>':'')+
         '</div>'+
-        '<div style="margin-top:10px;font-size:15px;font-weight:700;color:#b8962e;">'+fmt(p.price)+'</div>'+
-        '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;">'+esc(p.neighborhood||'')+' · '+esc(p.city||'')+'</div>'+
+        '<div class="iof-card-price">'+fmt(p.price)+'</div>'+
+        '<div class="iof-card-loc">'+esc(p.neighborhood||'')+' · '+esc(normCity(p.city||''))+'</div>'+
       '</div>'+
     '</a>';
   }
 
-  function renderAll(props){
-    var salas = props.filter(isSala);
-    var regular = props.filter(function(p){ return !isSala(p); });
-    var emObra = regular.filter(isEmObra);
+  // Renderiza um bloco de cidade com paginacao
+  function renderCityBlock(city, items, container){
+    var block = document.createElement('div');
+    block.className = 'iof-city-block';
+    var offset = 0;
 
-    // City grids — lazy render via IntersectionObserver
+    var hdr = document.createElement('div');
+    hdr.className = 'city-carousel-hdr';
+    hdr.innerHTML =
+      '<div><span class="city-carousel-label">Imóveis Disponíveis</span>'+
+      '<h2 class="city-carousel-title">'+esc(city)+'</h2></div>'+
+      '<span class="city-carousel-count">'+items.length+' imóve'+(items.length===1?'l':'is')+'</span>';
+
+    var grid = document.createElement('div');
+    grid.className = 'iof-grid';
+
+    var moreWrap = document.createElement('div');
+    moreWrap.className = 'iof-more-wrap';
+    var moreBtn = document.createElement('button');
+    moreBtn.className = 'iof-more-btn';
+    moreWrap.appendChild(moreBtn);
+
+    function loadMore(){
+      var end = Math.min(offset + PAGE, items.length);
+      var frag = document.createDocumentFragment();
+      for(var i = offset; i < end; i++){
+        var tmp = document.createElement('div');
+        tmp.innerHTML = buildCard(items[i]);
+        frag.appendChild(tmp.firstChild);
+      }
+      grid.appendChild(frag);
+      offset = end;
+      var restante = items.length - offset;
+      if(restante > 0){
+        moreBtn.textContent = 'Ver mais '+restante+' imóve'+(restante===1?'l':'is')+' em '+city;
+        moreWrap.style.display = '';
+      } else {
+        moreWrap.style.display = 'none';
+      }
+    }
+
+    moreBtn.addEventListener('click', loadMore);
+    block.appendChild(hdr);
+    block.appendChild(grid);
+    block.appendChild(moreWrap);
+    container.appendChild(block);
+    loadMore(); // carrega primeiros 6
+    return block;
+  }
+
+  function renderAll(props){
+    var salas   = props.filter(isSala);
+    var resto   = props.filter(function(p){ return !isSala(p); });
+    var emObra  = resto.filter(isEmObra);
+    var prontos = resto.filter(function(p){ return !isEmObra(p); });
+
+    // Resultado
+    var total = props.length;
+    var bar = document.getElementById('f-results-bar');
+    if(bar) bar.textContent = total > 0 ? total+' imóve'+(total===1?'l':'is')+' encontrado'+(total===1?'':'s') : 'Nenhum imóvel encontrado';
+
+    // City grids (prontos)
     var byCity = {};
-    regular.forEach(function(p){
-      var c = normCity(p.city) || 'Outras';
+    prontos.forEach(function(p){
+      var c = normCity(p.city)||'Outras';
       if(!byCity[c]) byCity[c] = [];
       byCity[c].push(p);
     });
     var section = document.getElementById('city-carousels-section');
     if(section){
       section.innerHTML = '';
-      var seen = {}, cities = [];
+      var seen={}, cities=[];
       CITY_ORDER.forEach(function(c){ if(byCity[c]&&!seen[c]){ seen[c]=1; cities.push(c); } });
-      Object.keys(byCity).sort().forEach(function(c){ if(!seen[c]){ seen[c]=1; cities.push(c); } });
-
-      if(cities.length === 0){
-        section.innerHTML = '<div style="max-width:1280px;margin:0 auto;padding:48px 24px;text-align:center;color:rgba(255,255,255,.4);font-size:15px;">Nenhum imóvel encontrado para os filtros selecionados.</div>';
+      Object.keys(byCity).sort().forEach(function(c){ if(!seen[c]&&byCity[c].length){ seen[c]=1; cities.push(c); } });
+      if(cities.length===0){
+        section.innerHTML='<p style="text-align:center;color:rgba(255,255,255,.4);padding:48px;">Nenhum imóvel encontrado.</p>';
       } else {
-        // Usa IntersectionObserver: cria estrutura vazia, preenche só quando entra na tela
-        var lazyObs = new IntersectionObserver(function(entries){
-          entries.forEach(function(e){
-            if(!e.isIntersecting) return;
-            renderCityBlock(e.target);
-          });
-        }, { rootMargin: '250px' });
-
-        var PAGE_SIZE = 18; // cards por cidade na primeira carga
-
-        function renderCityBlock(block){
-          if(block._rendered) return;
-          block._rendered = true;
-          lazyObs.unobserve(block);
-          var grid = block.querySelector('.city-grid');
-          var btn  = block.querySelector('.city-load-more');
-          if(!grid || !block._items) return;
-          var items = block._items;
-          var shown = Math.min(PAGE_SIZE, items.length);
-          // Renderiza primeiros PAGE_SIZE em batches
-          var i = 0;
-          function batch(){
-            var frag = document.createDocumentFragment();
-            var end = Math.min(i + 9, shown);
-            for(; i < end; i++){
-              var tmp = document.createElement('div');
-              tmp.innerHTML = buildCard(items[i]);
-              frag.appendChild(tmp.firstChild);
-            }
-            grid.appendChild(frag);
-            if(i < shown) requestAnimationFrame(batch);
-            else if(btn) btn.style.display = items.length > shown ? '' : 'none';
-          }
-          batch();
-          // Botão "Ver mais"
-          if(btn){
-            btn._offset = shown;
-            btn.addEventListener('click', function(){
-              var start = btn._offset;
-              var end2  = Math.min(start + PAGE_SIZE, items.length);
-              var frag2 = document.createDocumentFragment();
-              for(var j = start; j < end2; j++){
-                var tmp2 = document.createElement('div');
-                tmp2.innerHTML = buildCard(items[j]);
-                frag2.appendChild(tmp2.firstChild);
-              }
-              grid.appendChild(frag2);
-              btn._offset = end2;
-              if(btn._offset >= items.length) btn.style.display = 'none';
-            });
-          }
-        }
-
-        cities.forEach(function(city){
-          var items = byCity[city];
-          var block = document.createElement('div');
-          block.className = 'city-carousel-block';
-          block._items = items;
-          block._rendered = false;
-          var restante = Math.max(0, items.length - PAGE_SIZE);
-          block.innerHTML =
-            '<div class="city-carousel-hdr">'+
-              '<div><span class="city-carousel-label">Imóveis Disponíveis</span>'+
-              '<h2 class="city-carousel-title">'+esc(city)+'</h2></div>'+
-              '<span class="city-carousel-count">'+items.length+' imóve'+(items.length===1?'l':'is')+'</span>'+
-            '</div>'+
-            '<div class="city-grid"></div>'+
-            '<div style="text-align:center;margin-top:24px;display:none;" class="city-load-more">'+
-              '<button onclick="" style="background:transparent;border:1px solid rgba(201,168,76,.4);color:#c9a84c;padding:10px 28px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;letter-spacing:.04em;">'+
-                'Ver mais '+(restante > 0 ? '+'+restante : '')+' imóveis de '+esc(city)+
-              '</button>'+
-            '</div>';
-          section.appendChild(block);
-          lazyObs.observe(block);
-        });
-
-        // Primeira cidade: renderiza imediatamente
-        var first = section.querySelector('.city-carousel-block');
-        if(first) renderCityBlock(first);
+        cities.forEach(function(c){ renderCityBlock(c, byCity[c], section); });
       }
     }
 
     // Em Obra
-    var emObraSection = document.getElementById('em-obra-section');
-    var emObraGrid = document.getElementById('em-obra-grid');
-    var emObraCount = document.getElementById('em-obra-count');
-    if(emObraSection&&emObraGrid){
-      if(emObra.length===0){ emObraSection.style.display='none'; }
+    var eoSec  = document.getElementById('em-obra-section');
+    var eoGrid = document.getElementById('em-obra-grid');
+    var eoCnt  = document.getElementById('em-obra-count');
+    if(eoSec&&eoGrid){
+      if(emObra.length===0){ eoSec.style.display='none'; }
       else {
-        emObraSection.style.display='';
-        emObraGrid.innerHTML = emObra.map(buildCard).join('');
-        if(emObraCount) emObraCount.textContent = emObra.length+' empreendimento'+(emObra.length===1?'':'s');
+        eoSec.style.display='';
+        eoGrid.innerHTML='';
+        if(eoCnt) eoCnt.textContent=emObra.length+' empreendimento'+(emObra.length===1?'':'s');
+        // Paginado também
+        var eoOffset=0;
+        function loadEo(){
+          var end=Math.min(eoOffset+PAGE,emObra.length);
+          var frag=document.createDocumentFragment();
+          for(var i=eoOffset;i<end;i++){
+            var tmp=document.createElement('div');
+            tmp.innerHTML=buildCard(emObra[i]);
+            frag.appendChild(tmp.firstChild);
+          }
+          eoGrid.appendChild(frag);
+          eoOffset=end;
+          var rest=emObra.length-eoOffset;
+          var eoMore=document.getElementById('eo-more-btn');
+          if(!eoMore){
+            eoMore=document.createElement('div');
+            eoMore.id='eo-more-btn';
+            eoMore.style.cssText='text-align:center;margin-top:24px;';
+            var b2=document.createElement('button');
+            b2.className='iof-more-btn';
+            b2.addEventListener('click',loadEo);
+            eoMore.appendChild(b2);
+            eoGrid.parentNode.appendChild(eoMore);
+          }
+          if(rest>0){
+            eoMore.querySelector('button').textContent='Ver mais '+rest+' em obra';
+            eoMore.style.display='';
+          } else { eoMore.style.display='none'; }
+        }
+        loadEo();
       }
     }
 
     // Salas
-    var salasSection = document.getElementById('salas-section');
-    var salasGrid = document.getElementById('salas-grid');
-    var salasCount = document.getElementById('salas-count');
-    if(salasSection&&salasGrid){
-      if(salas.length===0){ salasSection.style.display='none'; }
+    var salSec  = document.getElementById('salas-section');
+    var salGrid = document.getElementById('salas-grid');
+    var salCnt  = document.getElementById('salas-count');
+    if(salSec&&salGrid){
+      if(salas.length===0){ salSec.style.display='none'; }
       else {
-        salasSection.style.display='';
-        salasGrid.innerHTML = salas.map(buildCard).join('');
-        if(salasCount) salasCount.textContent = salas.length+' imóve'+(salas.length===1?'l':'is')+' disponíve'+(salas.length===1?'l':'is');
+        salSec.style.display='';
+        salGrid.innerHTML=salas.slice(0,6).map(buildCard).join('');
+        if(salCnt) salCnt.textContent=salas.length+' sala'+(salas.length===1?'':'s')+' comercia'+(salas.length===1?'l':'is');
       }
-    }
-
-    // Results bar
-    var bar = document.getElementById('f-results-bar');
-    if(bar){
-      var total = props.length;
-      bar.textContent = total > 0 ? total+' imóve'+(total===1?'l':'is')+' encontrado'+(total===1?'':'s') : '';
     }
   }
 
-  // Filter function — exposed globally
   window.applyFilters = function(){
-    var city = (document.getElementById('f-city')||{}).value || '';
-    var status = (document.getElementById('f-status')||{}).value || '';
-    var beds = (document.getElementById('f-bedrooms')||{}).value || '';
-    var park = (document.getElementById('f-parking')||{}).value || '';
-    var price = (document.getElementById('f-price')||{}).value || '';
+    var city    = (document.getElementById('f-city')||{}).value||'';
+    var status  = (document.getElementById('f-status')||{}).value||'';
+    var beds    = parseInt((document.getElementById('f-bedrooms')||{}).value||'0')||0;
+    var parking = parseInt((document.getElementById('f-parking')||{}).value||'0')||0;
+    var priceR  = (document.getElementById('f-price')||{}).value||'';
     var filtered = ALL_PROPS.filter(function(p){
       if(city && normCity(p.city) !== city) return false;
-      if(status){
-        var ps = normStatus(p.construction_status||'');
-        if(ps !== status) return false;
-      }
-      if(beds){
-        var b = parseInt(p.bedrooms||0);
-        if(beds==='5'){ if(b<5) return false; } else { if(b !== parseInt(beds)) return false; }
-      }
-      if(park){
-        var pk = parseInt(p.parking||0);
-        if(park==='4'){ if(pk<4) return false; } else { if(pk !== parseInt(park)) return false; }
-      }
-      if(price){
-        var pn = priceNum(p.price);
-        var parts = price.split('-');
-        var min = parseFloat(parts[0])||0;
-        var max = parts[1]===''? Infinity : (parseFloat(parts[1])||Infinity);
-        if(pn < min || pn > max) return false;
+      if(status && normStatus(p.construction_status) !== normStatus(status)) return false;
+      if(beds && (p.bedrooms||0) < beds) return false;
+      if(parking && (p.parking||0) < parking) return false;
+      if(priceR){
+        var parts = priceR.split('-');
+        var pn = priceNum(p);
+        if(parts[0] && pn < parseInt(parts[0])) return false;
+        if(parts[1] && pn > parseInt(parts[1])) return false;
       }
       return true;
     });
@@ -1287,54 +1274,46 @@ function closeMobileNav(){
 
   window.clearFilters = function(){
     ['f-city','f-status','f-bedrooms','f-parking','f-price'].forEach(function(id){
-      var el = document.getElementById(id); if(el) el.value='';
+      var el=document.getElementById(id); if(el) el.value='';
     });
     renderAll(ALL_PROPS);
   };
 
   fetch(
-    SUPA_URL+'/rest/v1/properties?'+
-    'published=eq.true'+
+    SUPA_URL+'/rest/v1/properties?published=eq.true'+
     '&select=id,title,reference,city,neighborhood,images,cover_image,price,area,bedrooms,parking,construction_status'+
-    '&order=city.asc,reference.asc'+
-    '&limit=500',
+    '&order=city.asc,reference.asc&limit=500',
     { headers: H }
   ).then(function(r){ return r.json(); }).then(function(props){
     if(!Array.isArray(props)) return;
     ALL_PROPS = props;
-
-    // Populate city select
-    var citySelect = document.getElementById('f-city');
-    if(citySelect){
-      var cities = {};
+    var cs = document.getElementById('f-city');
+    if(cs){
+      var cities={};
       props.forEach(function(p){ var c=normCity(p.city); if(c) cities[c]=1; });
       Object.keys(cities).sort().forEach(function(c){
-        var o = document.createElement('option'); o.value=c; o.textContent=c; citySelect.appendChild(o);
+        var o=document.createElement('option'); o.value=c; o.textContent=c; cs.appendChild(o);
       });
     }
-
-    // Lê ?city= da URL e pré-filtra
     var urlParams = new URLSearchParams(window.location.search);
     var urlCity = urlParams.get('city');
     if(urlCity){
-      var cs = document.getElementById('f-city');
-      if(cs){
-        // Garante que a option existe
-        if(!cs.querySelector('option[value="'+urlCity+'"]')){
-          var o = document.createElement('option'); o.value=urlCity; o.textContent=urlCity; cs.appendChild(o);
+      var cs2=document.getElementById('f-city');
+      if(cs2){
+        if(!cs2.querySelector('option[value="'+urlCity+'"]')){
+          var o2=document.createElement('option'); o2.value=urlCity; o2.textContent=urlCity; cs2.appendChild(o2);
         }
-        cs.value = urlCity;
+        cs2.value=urlCity;
       }
-      // Scroll suave até a grade
       setTimeout(function(){
-        var sec = document.getElementById('city-carousels-section');
+        var sec=document.getElementById('city-carousels-section');
         if(sec) sec.scrollIntoView({behavior:'smooth',block:'start'});
-      }, 300);
+      },300);
       applyFilters();
     } else {
       renderAll(ALL_PROPS);
     }
-  }).catch(function(e){ console.warn('[Grids] erro:', e); });
+  }).catch(function(e){ console.warn('[Grids] erro:',e); });
 })();
   </script>
 

@@ -2109,3 +2109,122 @@ html { scroll-behavior: smooth; }
     background: rgba(6,10,20,0.98) !important;
   }
 }
+
+/* ── Cards compactos iof-card (imoveis.html) ─────────── */
+.iof-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px 8px;
+}
+@media (min-width: 700px)  { .iof-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 24px 12px; } }
+@media (min-width: 1100px) { .iof-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.iof-card {
+  display: block;
+  text-decoration: none;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(10,18,38,0.92);
+  border: 1px solid rgba(255,255,255,0.07);
+  transition: transform .2s, box-shadow .2s;
+}
+.iof-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.45), 0 0 0 1px rgba(201,168,76,.12);
+}
+.iof-card-img {
+  position: relative;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  background: #0a1628;
+}
+.iof-card-img img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+.iof-card-noimg {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg,#0d1e36,#1a2940);
+}
+.iof-card-badge {
+  position: absolute; top: 8px; left: 8px;
+  background: linear-gradient(135deg,#b8962e,#e0c25a);
+  color: #07101f; font-size: 9px; font-weight: 800;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 3px 7px; border-radius: 4px;
+}
+.iof-card-body {
+  padding: 10px 12px 12px;
+}
+.iof-card-title {
+  font-size: 12px; font-weight: 600; color: #fff;
+  line-height: 1.3; margin-bottom: 5px;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.iof-card-specs {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  font-size: 10px; color: rgba(255,255,255,.4);
+  margin-bottom: 6px;
+}
+.iof-card-specs span::after { content: '·'; margin-left: 5px; }
+.iof-card-specs span:last-child::after { content: ''; }
+.iof-card-price {
+  font-size: 13px; font-weight: 700; color: #c9a84c;
+}
+.iof-card-loc {
+  font-size: 10px; color: rgba(255,255,255,.3);
+  margin-top: 2px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Botão Ver mais */
+.iof-more-wrap {
+  text-align: center;
+  padding: 16px 0 8px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.iof-more-btn {
+  background: transparent;
+  border: 1px solid rgba(201,168,76,.35);
+  color: #c9a84c;
+  padding: 10px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  transition: border-color .2s, background .2s;
+}
+.iof-more-btn:hover {
+  border-color: #c9a84c;
+  background: rgba(201,168,76,.06);
+}
+
+/* Bloco por cidade */
+.iof-city-block {
+  padding: 36px 0 8px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.iof-city-block:last-child { border-bottom: none; }
+
+/* Em obra e salas usam o mesmo grid compacto */
+.em-obra-grid, .salas-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+@media (min-width: 700px) {
+  .em-obra-grid, .salas-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 16px !important;
+    padding: 0 24px;
+  }
+}
