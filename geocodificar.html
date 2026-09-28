@@ -17,11 +17,10 @@
     .btn-primary { background: #2563eb; color: white; }
     .btn-primary:hover { background: #1d4ed8; }
     .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
-    .btn-danger { background: #dc2626; color: white; }
     .btn-stop { background: #f59e0b; color: #0f1c2e; }
     .progress-bar { height: 8px; background: #1e3a5f; border-radius: 4px; margin: 12px 0; overflow: hidden; }
     .progress-fill { height: 100%; background: #2563eb; border-radius: 4px; transition: width 0.3s; }
-    .log { background: #0a1628; border-radius: 8px; padding: 12px; max-height: 300px; overflow-y: auto; font-size: 0.78rem; font-family: monospace; line-height: 1.6; }
+    .log { background: #0a1628; border-radius: 8px; padding: 12px; max-height: 320px; overflow-y: auto; font-size: 0.78rem; font-family: monospace; line-height: 1.7; }
     .log-ok   { color: #34d399; }
     .log-warn { color: #fbbf24; }
     .log-err  { color: #f87171; }
@@ -37,8 +36,12 @@
     .stat { background: #0f1c2e; padding: 10px 16px; border-radius: 8px; text-align: center; min-width: 80px; }
     .stat-n { font-size: 1.4rem; font-weight: 700; color: #60a5fa; }
     .stat-l { font-size: 0.7rem; color: #64748b; }
-    #login-section { max-width: 400px; margin: 60px auto; }
-    .sql-box { background: #0a1628; border: 1px solid #334155; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.82rem; color: #7dd3fc; white-space: pre; overflow-x: auto; margin-bottom: 12px; }
+    #login-section { max-width: 440px; margin: 60px auto; }
+    .tip { background: #0f2d1f; border: 1px solid #166534; border-radius: 8px; padding: 12px 16px; font-size: 0.82rem; color: #86efac; margin-bottom: 16px; line-height: 1.6; }
+    .tip a { color: #4ade80; }
+    .key-field { display: flex; gap: 8px; align-items: center; }
+    .key-field input { margin: 0; }
+    #toggle-key { padding: 8px 14px; font-size: 0.8rem; background: #334155; color: #e2e8f0; flex-shrink: 0; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -46,7 +49,7 @@
 <!-- LOGIN -->
 <div id="login-section">
   <h1>🗺 Geocodificar Imóveis</h1>
-  <p class="subtitle">Ferramenta administrativa — salva lat/lng de cada imóvel no Supabase</p>
+  <p class="subtitle">Salva lat/lng exatos de cada imóvel no Supabase via Google Maps</p>
   <div class="card">
     <h2>Entrar no CRM</h2>
     <label>E-mail</label>
@@ -59,36 +62,39 @@
 </div>
 
 <!-- MAIN APP -->
-<div id="app-section" style="display:none; max-width: 900px; margin: 0 auto;">
-  <h1>🗺 Geocodificar Imóveis</h1>
-  <p class="subtitle">Salva lat/lng de cada imóvel no Supabase — método DWV</p>
+<div id="app-section" style="display:none; max-width: 960px; margin: 0 auto;">
+  <h1>🗺 Geocodificar Imóveis com Google Maps</h1>
+  <p class="subtitle">Geocodifica cada endereço via Google Maps API e salva lat/lng no Supabase</p>
 
-  <!-- SQL STEP -->
-  <div class="card" id="sql-card">
-    <h2>Passo 1 — Adicionar colunas ao Supabase</h2>
-    <p style="color:#94a3b8;font-size:0.82rem;margin-bottom:12px;">
-      Execute esse SQL no <strong>Supabase Dashboard → SQL Editor</strong> antes de geocodificar.
-      Se já tiver rodado, pode pular.
-    </p>
-    <div class="sql-box">ALTER TABLE public.properties
-  ADD COLUMN IF NOT EXISTS lat  double precision,
-  ADD COLUMN IF NOT EXISTS lng  double precision;</div>
-    <button class="btn-primary" onclick="document.getElementById('sql-card').style.display='none';document.getElementById('geo-card').style.display='block';">
-      ✓ Já rodei o SQL — continuar
-    </button>
+  <!-- API KEY -->
+  <div class="card">
+    <h2>Google Maps API Key</h2>
+    <div class="tip">
+      Para obter a chave: <a href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> →
+      <strong>Enable APIs</strong> → ative <em>Geocoding API</em> →
+      <strong>Credentials</strong> → <em>Create Credentials → API Key</em><br>
+      O volume dos seus imóveis cabe no tier gratuito do Google ($200/mês de crédito).
+    </div>
+    <label>API Key do Google Maps</label>
+    <div class="key-field">
+      <input type="password" id="api-key" placeholder="AIzaSy...">
+      <button id="toggle-key" onclick="toggleKey()">👁</button>
+    </div>
+    <button class="btn-primary" id="btn-test-key" onclick="testKey()">Testar chave</button>
+    <p id="key-status" style="font-size:0.82rem;margin-top:8px;"></p>
   </div>
 
-  <!-- GEOCODING STEP -->
-  <div class="card" id="geo-card" style="display:none;">
-    <h2>Passo 2 — Geocodificar imóveis</h2>
+  <!-- GEOCODING -->
+  <div class="card" id="geo-card">
+    <h2>Geocodificação em lote</h2>
     <div class="stats">
       <div class="stat"><div class="stat-n" id="st-total">–</div><div class="stat-l">Total</div></div>
       <div class="stat"><div class="stat-n" id="st-done">0</div><div class="stat-l">Geocodificados</div></div>
       <div class="stat"><div class="stat-n" id="st-skip">0</div><div class="stat-l">Já tinham coords</div></div>
-      <div class="stat"><div class="stat-n" id="st-err">0</div><div class="stat-l">Erros</div></div>
+      <div class="stat"><div class="stat-n" id="st-err">0</div><div class="stat-l">Sem resultado</div></div>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
       <button class="btn-primary" id="btn-start" onclick="startGeocode()">▶ Iniciar geocodificação</button>
       <button class="btn-stop" id="btn-stop" onclick="stopGeocode()" style="display:none;">⏹ Parar</button>
       <label style="display:flex;align-items:center;gap:6px;margin:0;color:#94a3b8;font-size:0.82rem;">
@@ -98,11 +104,11 @@
     <div class="log" id="log"></div>
   </div>
 
-  <!-- RESULTS TABLE -->
+  <!-- RESULTS -->
   <div class="card" id="results-card" style="display:none;margin-top:16px;">
-    <h2>Imóveis geocodificados</h2>
+    <h2>Resultados</h2>
     <div style="overflow-x:auto;">
-      <table id="results-table">
+      <table>
         <thead><tr><th>ID</th><th>Endereço</th><th>Cidade</th><th>Bairro</th><th>Lat</th><th>Lng</th><th>Status</th></tr></thead>
         <tbody id="results-body"></tbody>
       </table>
@@ -116,8 +122,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 let ACCESS_TOKEN = null
 let _stopFlag = false
+let allProps = []
 
-// ─── AUTH ───────────────────────────────────────────────────────────────────
+// ─── AUTH ────────────────────────────────────────────────────────────────────
 async function doLogin() {
   const email = document.getElementById('email').value.trim()
   const password = document.getElementById('password').value
@@ -125,7 +132,6 @@ async function doLogin() {
   errEl.textContent = ''
   document.getElementById('btn-login').disabled = true
   document.getElementById('btn-login').textContent = 'Entrando…'
-
   try {
     const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: 'POST',
@@ -145,171 +151,161 @@ async function doLogin() {
   }
 }
 
-// ─── LOAD PROPERTIES ────────────────────────────────────────────────────────
-let allProps = []
 async function loadProperties() {
-  const r = await sbGet('/rest/v1/properties?select=id,rua,numero,city,neighborhood,lat,lng&order=id.asc&limit=1000')
+  const r = await sbGet('/rest/v1/properties?select=id,rua,numero,city,neighborhood,lat,lng&order=id.asc&limit=2000')
   allProps = await r.json()
   document.getElementById('st-total').textContent = allProps.length
-  document.getElementById('geo-card').style.display = 'block'
-  document.getElementById('sql-card').style.display = 'block'
 }
 
-// ─── GEOCODING ──────────────────────────────────────────────────────────────
-const _CITY_MAP = {
-  'itapema':             { lat: -26.9075, lng: -48.6300 },
-  'balneário camboriú': { lat: -26.9906, lng: -48.6400 },
-  'porto belo':          { lat: -27.1556, lng: -48.5600 },
-  'ponta grossa':        { lat: -25.0945, lng: -50.1633 },
-  'carambeí':            { lat: -24.9154, lng: -50.0956 },
-  'camboriú':            { lat: -27.0244, lng: -48.6538 }
+// ─── KEY TEST ────────────────────────────────────────────────────────────────
+function toggleKey() {
+  const inp = document.getElementById('api-key')
+  inp.type = inp.type === 'password' ? 'text' : 'password'
 }
 
-function normCity(c) {
-  return (c || '').replace(/\s*\/[A-Za-z]{2}\s*$/, '').replace(/\s*\([^)]*\)\s*$/, '').trim().toLowerCase()
-}
-
-// Distância em graus (aproximada) entre dois pontos
-function _distDeg(la1, lo1, la2, lo2) {
-  return Math.sqrt(Math.pow(la2 - la1, 2) + Math.pow((lo2 - lo1) * Math.cos(la1 * Math.PI / 180), 2))
-}
-
-async function nominatim(query, ref, maxDistDeg) {
-  maxDistDeg = maxDistDeg || 0.15 // ~15km máximo
-  // Bounded viewbox apertado ao redor da cidade (±0.10° lat, ±0.15° lng)
-  const dLat = 0.10, dLng = 0.15
-  const vb = `&viewbox=${ref.lng-dLng},${ref.lat+dLat},${ref.lng+dLng},${ref.lat-dLat}&bounded=1`
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=3&countrycodes=br${vb}&q=${encodeURIComponent(query)}`
-  const r = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' }, signal: AbortSignal.timeout(8000) })
-  const data = await r.json()
-  if (!data || !data.length) return null
-  // Validar cada resultado: rejeitar se estiver >maxDistDeg longe do centro da cidade
-  for (const item of data) {
-    const lat = parseFloat(item.lat), lng = parseFloat(item.lon)
-    const dist = _distDeg(ref.lat, ref.lng, lat, lng)
-    if (dist <= maxDistDeg) return { lat, lng }
-    log('warn', `  ⚠ Coord de "${item.display_name.substring(0,40)}" rejeitada (${(dist*111).toFixed(1)}km do centro)`)
+async function testKey() {
+  const key = document.getElementById('api-key').value.trim()
+  const status = document.getElementById('key-status')
+  if (!key) { status.textContent = '⚠ Cole a API Key primeiro.'; status.style.color = '#fbbf24'; return }
+  status.textContent = 'Testando…'; status.style.color = '#93c5fd'
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=Rua+do+Ouvidor,+Rio+de+Janeiro,+Brasil&key=${key}`
+    const r = await fetch(url)
+    const d = await r.json()
+    if (d.status === 'OK') {
+      status.textContent = '✓ Chave válida! Pode iniciar a geocodificação.'
+      status.style.color = '#34d399'
+    } else if (d.status === 'REQUEST_DENIED') {
+      status.textContent = '✗ Chave inválida ou Geocoding API não habilitada. Verifique o Google Cloud Console.'
+      status.style.color = '#f87171'
+    } else {
+      status.textContent = `Status: ${d.status} — ${d.error_message || ''}`
+      status.style.color = '#fbbf24'
+    }
+  } catch (e) {
+    status.textContent = '✗ Erro de rede: ' + e.message
+    status.style.color = '#f87171'
   }
-  return null
 }
 
-async function geocodeProp(p) {
-  const cidade = normCity(p.city)
-  const ref = _CITY_MAP[cidade]
-  if (!ref) return null
+// ─── GOOGLE MAPS GEOCODING ────────────────────────────────────────────────────
+function normCity(c) {
+  return (c || '').replace(/\s*\/[A-Za-z]{2}\s*$/, '').replace(/\s*\([^)]*\)\s*$/, '').trim()
+}
 
-  const rua    = (p.rua || '').trim()
+async function geocodeGoogle(address, key) {
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${key}&region=br&language=pt-BR&components=country:BR`
+  const r = await fetch(url)
+  const d = await r.json()
+  if (d.status !== 'OK' || !d.results || !d.results.length) return null
+  const loc = d.results[0].geometry.location
+  return { lat: loc.lat, lng: loc.lng, formatted: d.results[0].formatted_address }
+}
+
+// Tenta do mais específico ao menos específico
+async function geocodeProp(p, key) {
+  const rua    = (p.rua    || '').trim()
   const numero = (p.numero || '').trim()
   const bairro = (p.neighborhood || '').trim()
+  const cidade = normCity(p.city)
 
-  // Rua numérica ou sem rua: usar centro da cidade
-  const cleaned = rua.replace(/^(rua|r\.|av\.|avenida|travessa|trav\.)\s*/i, '').trim()
-  const isNumbered = !rua || /^\d+$/.test(cleaned)
+  const queries = []
 
-  if (isNumbered) {
-    // Para ruas numéricas: tentar bairro+cidade com viewbox apertado
-    // (Nominatim tem dados errados para Itapema/Meia Praia; validação de distância rejeita resultados ruins)
-    if (bairro) {
-      const c = await nominatim(`${bairro}, ${cidade}, SC, Brasil`, ref, 0.12)
-      if (c) return c
-      await sleep(600)
-    }
-    // Tentar só a cidade
-    const c2 = await nominatim(`${cidade}, SC, Brasil`, ref, 0.05)
-    if (c2) return c2
-    return null // fallback de bairro usado pelo mapa
+  if (rua) {
+    // Com número
+    if (numero) queries.push(`${rua}, ${numero}, ${bairro}, ${cidade}, SC, Brasil`)
+    // Sem número
+    queries.push(`${rua}, ${bairro}, ${cidade}, SC, Brasil`)
+    queries.push(`${rua}, ${cidade}, SC, Brasil`)
   }
+  // Por bairro
+  if (bairro) queries.push(`${bairro}, ${cidade}, SC, Brasil`)
+  // Por cidade
+  queries.push(`${cidade}, SC, Brasil`)
 
-  // Rua nomeada: tentar vários formatos
-  const queries = [
-    [rua, numero, bairro, cidade, 'SC', 'Brasil'].filter(Boolean).join(', '),
-    [rua, bairro, cidade, 'SC', 'Brasil'].filter(Boolean).join(', '),
-    [rua, cidade, 'SC', 'Brasil'].filter(Boolean).join(', ')
-  ]
-
-  for (let i = 0; i < queries.length; i++) {
-    const c = await nominatim(queries[i], ref)
-    if (c) return c
-    if (i < queries.length - 1) await sleep(600)
+  for (const q of queries) {
+    const result = await geocodeGoogle(q, key)
+    if (result) return { ...result, query: q }
+    await sleep(50) // pequeno delay entre tentativas
   }
   return null
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
-// ─── RUN ────────────────────────────────────────────────────────────────────
-let counters = { done: 0, skip: 0, err: 0 }
-
+// ─── RUN ─────────────────────────────────────────────────────────────────────
 async function startGeocode() {
+  const key = document.getElementById('api-key').value.trim()
+  if (!key) { alert('Cole a API Key do Google Maps primeiro!'); return }
+
   _stopFlag = false
-  counters = { done: 0, skip: 0, err: 0 }
+  let done = 0, skip = 0, err = 0
   document.getElementById('btn-start').style.display = 'none'
   document.getElementById('btn-stop').style.display = 'inline-block'
   document.getElementById('results-card').style.display = 'block'
   document.getElementById('results-body').innerHTML = ''
   document.getElementById('log').innerHTML = ''
+  document.getElementById('st-done').textContent = '0'
+  document.getElementById('st-skip').textContent = '0'
+  document.getElementById('st-err').textContent = '0'
 
   const overwrite = document.getElementById('chk-overwrite').checked
   const total = allProps.length
 
-  log('info', `Iniciando geocodificação de ${total} imóveis…`)
+  log('info', `Iniciando geocodificação de ${total} imóveis via Google Maps…`)
 
   for (let i = 0; i < allProps.length; i++) {
-    if (_stopFlag) { log('warn', '⏹ Pausado pelo usuário.'); break }
+    if (_stopFlag) { log('warn', '⏹ Pausado.'); break }
 
     const p = allProps[i]
-    const pct = Math.round((i / total) * 100)
-    document.getElementById('progress-fill').style.width = pct + '%'
+    document.getElementById('progress-fill').style.width = Math.round((i / total) * 100) + '%'
 
-    // Já tem coords e não está forçando sobrescrita
     if (!overwrite && p.lat && p.lng) {
-      counters.skip++
-      document.getElementById('st-skip').textContent = counters.skip
+      skip++
+      document.getElementById('st-skip').textContent = skip
       addRow(p.id, p.rua, p.city, p.neighborhood, p.lat, p.lng, 'skip')
       continue
     }
 
-    const addr = [p.rua, p.numero, p.neighborhood, normCity(p.city)].filter(Boolean).join(', ')
-    log('info', `[${i+1}/${total}] ${addr || '(sem endereço)'}`)
+    const rua = [p.rua, p.numero].filter(Boolean).join(', ')
+    const addr = [rua, p.neighborhood, normCity(p.city), 'SC'].filter(Boolean).join(', ')
+    log('info', `[${i+1}/${total}] ${addr}`)
 
     try {
-      const coord = await geocodeProp(p)
-      if (coord) {
-        // Salvar no Supabase
-        await sbPatch(`/rest/v1/properties?id=eq.${p.id}`, { lat: coord.lat, lng: coord.lng })
-        counters.done++
-        document.getElementById('st-done').textContent = counters.done
-        addRow(p.id, p.rua, p.city, p.neighborhood, coord.lat.toFixed(6), coord.lng.toFixed(6), 'ok')
-        log('ok', `  ✓ lat=${coord.lat.toFixed(5)}, lng=${coord.lng.toFixed(5)}`)
+      const result = await geocodeProp(p, key)
+      if (result) {
+        await sbPatch(`/rest/v1/properties?id=eq.${p.id}`, { lat: result.lat, lng: result.lng })
+        done++
+        document.getElementById('st-done').textContent = done
+        addRow(p.id, p.rua, p.city, p.neighborhood, result.lat.toFixed(6), result.lng.toFixed(6), 'ok')
+        log('ok', `  ✓ ${result.formatted} → lat=${result.lat.toFixed(5)}, lng=${result.lng.toFixed(5)}`)
       } else {
-        counters.err++
-        document.getElementById('st-err').textContent = counters.err
+        err++
+        document.getElementById('st-err').textContent = err
         addRow(p.id, p.rua, p.city, p.neighborhood, '–', '–', 'err')
-        log('warn', `  ⚠ Não geocodificado (coordenada de bairro usada no mapa)`)
+        log('warn', `  ⚠ Google Maps não encontrou endereço`)
       }
-    } catch(e) {
-      counters.err++
-      document.getElementById('st-err').textContent = counters.err
+    } catch (e) {
+      err++
+      document.getElementById('st-err').textContent = err
       addRow(p.id, p.rua, p.city, p.neighborhood, '–', '–', 'err')
       log('err', `  ✗ Erro: ${e.message}`)
     }
 
-    await sleep(1100) // respeitar rate limit do Nominatim (1 req/s)
+    await sleep(50) // Google Maps aguenta até 50 req/s no plano gratuito
   }
 
   document.getElementById('progress-fill').style.width = '100%'
   document.getElementById('btn-stop').style.display = 'none'
   document.getElementById('btn-start').style.display = 'inline-block'
   document.getElementById('btn-start').textContent = '▶ Rodar novamente'
-  log('ok', `✅ Concluído — ${counters.done} geocodificados, ${counters.skip} já tinham coords, ${counters.err} sem resultado.`)
-  log('info', 'Recarregue imoveis.html para ver os pins no lugar certo.')
+  log('ok', `✅ Concluído — ${done} geocodificados, ${skip} já tinham coords, ${err} sem resultado.`)
+  log('info', 'Recarregue omarcorretor.com.br/imoveis.html para ver os pins no lugar exato.')
 }
 
-function stopGeocode() {
-  _stopFlag = true
-}
+function stopGeocode() { _stopFlag = true }
 
-// ─── UI HELPERS ─────────────────────────────────────────────────────────────
+// ─── UI ──────────────────────────────────────────────────────────────────────
 function log(type, msg) {
   const el = document.getElementById('log')
   const line = document.createElement('div')
@@ -320,13 +316,17 @@ function log(type, msg) {
 }
 
 function addRow(id, rua, city, bairro, lat, lng, status) {
-  const badge = { ok: '<span class="badge badge-ok">✓ salvo</span>', skip: '<span class="badge badge-pending">já tinha</span>', err: '<span class="badge badge-err">sem coord</span>' }[status]
+  const badges = {
+    ok:   '<span class="badge badge-ok">✓ salvo</span>',
+    skip: '<span class="badge badge-pending">já tinha</span>',
+    err:  '<span class="badge badge-err">sem coord</span>'
+  }
   const tr = document.createElement('tr')
-  tr.innerHTML = `<td>${id}</td><td>${rua||'–'}</td><td>${normCity(city)||'–'}</td><td>${bairro||'–'}</td><td>${lat}</td><td>${lng}</td><td>${badge}</td>`
+  tr.innerHTML = `<td>${id}</td><td>${rua||'–'}</td><td>${normCity(city)||'–'}</td><td>${bairro||'–'}</td><td>${lat}</td><td>${lng}</td><td>${badges[status]}</td>`
   document.getElementById('results-body').appendChild(tr)
 }
 
-// ─── SUPABASE HELPERS ────────────────────────────────────────────────────────
+// ─── SUPABASE ────────────────────────────────────────────────────────────────
 function sbHeaders() {
   return {
     'apikey': SUPABASE_ANON_KEY,
@@ -335,9 +335,7 @@ function sbHeaders() {
     'Prefer': 'return=minimal'
   }
 }
-function sbGet(path) {
-  return fetch(SUPABASE_URL + path, { headers: sbHeaders() })
-}
+function sbGet(path) { return fetch(SUPABASE_URL + path, { headers: sbHeaders() }) }
 function sbPatch(path, body) {
   return fetch(SUPABASE_URL + path, { method: 'PATCH', headers: sbHeaders(), body: JSON.stringify(body) })
 }
