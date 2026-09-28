@@ -688,7 +688,7 @@ function setLang(lang){
   var SUPA_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co';
   var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua25wYnpkY3JoYmZvenp2eHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY1NjYsImV4cCI6MjA5NDQ0MjU2Nn0.5yX05Y4Nhp8UJlhFblK4z_1TRxBqJKrwOLQ91KxsLMM';
   var H = { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY };
-  var CITY_ORDER = ['Balneário Camboriu','Itapema','Porto Belo','Ponta Grossa'];
+  var CITY_ORDER = ['Itapema','Balneário Camboriu','Ponta Grossa','Carambei'];
   var MAX_PER_CITY = 6;
   var EM_OBRA_STATUS = ['em-obra','em_obra','lancamento','lançamento','pre-lancamento','pré-lançamento'];
 
@@ -836,19 +836,31 @@ function setLang(lang){
       });
     }
 
-    // ── Em Obra & Lançamentos ──
-    var eoSection = document.getElementById('idx-emobra-section');
-    var eoGrid    = document.getElementById('idx-emobra-grid');
-    var eoCount   = document.getElementById('idx-emobra-count');
-    if(eoSection && eoGrid){
-      if(emobra.length === 0){
-        eoSection.style.display = 'none';
-      } else {
-        eoSection.style.display = '';
-        eoGrid.innerHTML = emobra.map(buildCard).join('');
-        if(eoCount) eoCount.textContent = emobra.length+' imóve'+(emobra.length===1?'l':'is');
-      }
+    // ── Em Obra & Lançamentos ── (carrossel dentro da mesma seção)
+    if(section && emobra.length > 0){
+      var eoTrackId = 'idx-ctrack-emobra';
+      var eoBlock = document.createElement('div');
+      eoBlock.className = 'city-carousel-block';
+      eoBlock.innerHTML =
+        '<div class="city-carousel-hdr">'+
+          '<div>'+
+            '<span class="city-carousel-label">Investimento</span>'+
+            '<h2 class="city-carousel-title">Em Obra &amp; Lançamentos</h2>'+
+          '</div>'+
+          '<span class="city-carousel-count">'+emobra.length+' imóve'+(emobra.length===1?'l':'is')+'</span>'+
+        '</div>'+
+        '<div class="city-carousel-viewport">'+
+          '<div class="city-carousel-track" id="'+eoTrackId+'">'+
+            emobra.map(buildCard).join('')+
+          '</div>'+
+        '</div>';
+      if(footer) section.insertBefore(eoBlock, footer);
+      else section.appendChild(eoBlock);
+      startCarousel(eoTrackId, emobra.length);
     }
+    // Esconder seção separada de em obra (não usada mais)
+    var eoSection = document.getElementById('idx-emobra-section');
+    if(eoSection) eoSection.style.display = 'none';
 
     // ── Salas comerciais ──
     var salasSection = document.getElementById('salas-section');
