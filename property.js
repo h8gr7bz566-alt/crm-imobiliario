@@ -154,13 +154,19 @@ function renderProperty(p) {
     detailsBlock.classList.remove('hidden')
   }
 
-  // Botão WhatsApp
-  const msg = encodeURIComponent(`Olá Isaac, tenho interesse no imóvel *${p.title}* que vi no seu site. Poderia me passar mais informações?`)
-  const waHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`
+  // Botão WhatsApp — mensagem com link OG para gerar card com foto no WhatsApp
+  const ogUrl = propId ? `https://omarcorretor.com.br/api/og?id=${propId}` : window.location.href
+  const refTag = p.reference ? ` (ref. #${p.reference})` : ''
+  const waMsg = encodeURIComponent(
+    `Olá Isaac, tenho interesse no imóvel *${p.title}*${refTag} que vi no seu site. Poderia me passar mais informações?\n\n${ogUrl}`
+  )
+  const waHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}`
   document.getElementById('prop-whatsapp').href = waHref
   // share WA direct
   const shareWaBtn = document.getElementById('pv2-share-wa')
   if (shareWaBtn) shareWaBtn.dataset.waHref = waHref
+  // guarda ogUrl para o shareProperty
+  window._propOgUrl = ogUrl
 
   renderGallery()
 
@@ -217,9 +223,9 @@ window.shareWhatsAppDirect = function() {
 // ─── Compartilhar com preview OG ─────────────────────────────────────────
 window.shareProperty = function() {
   const id  = new URLSearchParams(window.location.search).get('id')
-  const url = id
+  const url = window._propOgUrl || (id
     ? `https://omarcorretor.com.br/property.html?id=${id}`
-    : window.location.href
+    : window.location.href)
   if (navigator.share) {
     navigator.share({ url }).catch(() => {})
   } else {
