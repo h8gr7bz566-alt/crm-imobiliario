@@ -1098,8 +1098,7 @@ function closeMobileNav(){
     var ref = p.reference || '';
     return '<a href="property.html?id='+p.id+'" class="imovel-card-h" style="text-decoration:none;display:block;">'+
       '<div class="icard-h-img-wrap">'+
-        (img ? '<div class="icard-img-bg" style="background-image:url('+img+');"></div>'+
-          '<img class="icard-img" src="'+img+'" alt="'+esc(p.title)+'" loading="lazy">'
+        (img ? '<img class="icard-img" src="'+img+'" alt="'+esc(p.title)+'" loading="lazy" decoding="async">'
         : '<div style="width:100%;height:100%;background:#1a2940;"></div>')+
         (b ? '<div class="icard-h-img-badge">'+b+'</div>' : '')+
       '</div>'+
@@ -1120,7 +1119,7 @@ function closeMobileNav(){
     var regular = props.filter(function(p){ return !isSala(p); });
     var emObra = regular.filter(isEmObra);
 
-    // City grids
+    // City grids — lazy render via IntersectionObserver
     var byCity = {};
     regular.forEach(function(p){
       var c = normCity(p.city) || 'Outras';
@@ -1133,21 +1132,64 @@ function closeMobileNav(){
       var seen = {}, cities = [];
       CITY_ORDER.forEach(function(c){ if(byCity[c]&&!seen[c]){ seen[c]=1; cities.push(c); } });
       Object.keys(byCity).sort().forEach(function(c){ if(!seen[c]){ seen[c]=1; cities.push(c); } });
-      cities.forEach(function(city){
-        var items = byCity[city];
-        var block = document.createElement('div');
-        block.className = 'city-carousel-block';
-        block.innerHTML =
-          '<div class="city-carousel-hdr">'+
-            '<div><span class="city-carousel-label">Imóveis Disponíveis</span>'+
-            '<h2 class="city-carousel-title">'+esc(city)+'</h2></div>'+
-            '<span class="city-carousel-count">'+items.length+' imóve'+(items.length===1?'l':'is')+'</span>'+
-          '</div>'+
-          '<div class="city-grid">'+items.map(buildCard).join('')+'</div>';
-        section.appendChild(block);
-      });
+
       if(cities.length === 0){
         section.innerHTML = '<div style="max-width:1280px;margin:0 auto;padding:48px 24px;text-align:center;color:rgba(255,255,255,.4);font-size:15px;">Nenhum imóvel encontrado para os filtros selecionados.</div>';
+      } else {
+        // Usa IntersectionObserver: cria estrutura vazia, preenche só quando entra na tela
+        var lazyObs = new IntersectionObserver(function(entries){
+          entries.forEach(function(e){
+            if(!e.isIntersecting) return;
+            var block = e.target;
+            if(block._rendered) return;
+            block._rendered = true;
+            lazyObs.unobserve(block);
+            var grid = block.querySelector('.city-grid');
+            if(grid && block._items) {
+              // Renderiza em batch com requestAnimationFrame para não travar
+              var items = block._items;
+              var BATCH = 12;
+              var i = 0;
+              function renderBatch(){
+                var frag = document.createDocumentFragment();
+                var end = Math.min(i + BATCH, items.length);
+                for(; i < end; i++){
+                  var div = document.createElement('div');
+                  div.innerHTML = buildCard(items[i]);
+                  frag.appendChild(div.firstChild);
+                }
+                grid.appendChild(frag);
+                if(i < items.length) requestAnimationFrame(renderBatch);
+              }
+              renderBatch();
+            }
+          });
+        }, { rootMargin: '200px' });
+
+        cities.forEach(function(city){
+          var items = byCity[city];
+          var block = document.createElement('div');
+          block.className = 'city-carousel-block';
+          block._items = items;
+          block._rendered = false;
+          // Esqueleto leve: só o header + grid vazio (sem cards ainda)
+          block.innerHTML =
+            '<div class="city-carousel-hdr">'+
+              '<div><span class="city-carousel-label">Imóveis Disponíveis</span>'+
+              '<h2 class="city-carousel-title">'+esc(city)+'</h2></div>'+
+              '<span class="city-carousel-count">'+items.length+' imóve'+(items.length===1?'l':'is')+'</span>'+
+            '</div>'+
+            '<div class="city-grid"></div>';
+          section.appendChild(block);
+          lazyObs.observe(block);
+        });
+
+        // Primeira cidade: renderiza imediatamente (já está visível)
+        var first = section.querySelector('.city-carousel-block');
+        if(first){ first._rendered = true; lazyObs.unobserve(first);
+          var g = first.querySelector('.city-grid');
+          if(g && first._items) g.innerHTML = first._items.map(buildCard).join('');
+        }
       }
     }
 
