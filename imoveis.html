@@ -1140,31 +1140,54 @@ function closeMobileNav(){
         var lazyObs = new IntersectionObserver(function(entries){
           entries.forEach(function(e){
             if(!e.isIntersecting) return;
-            var block = e.target;
-            if(block._rendered) return;
-            block._rendered = true;
-            lazyObs.unobserve(block);
-            var grid = block.querySelector('.city-grid');
-            if(grid && block._items) {
-              // Renderiza em batch com requestAnimationFrame para não travar
-              var items = block._items;
-              var BATCH = 12;
-              var i = 0;
-              function renderBatch(){
-                var frag = document.createDocumentFragment();
-                var end = Math.min(i + BATCH, items.length);
-                for(; i < end; i++){
-                  var div = document.createElement('div');
-                  div.innerHTML = buildCard(items[i]);
-                  frag.appendChild(div.firstChild);
-                }
-                grid.appendChild(frag);
-                if(i < items.length) requestAnimationFrame(renderBatch);
-              }
-              renderBatch();
-            }
+            renderCityBlock(e.target);
           });
-        }, { rootMargin: '200px' });
+        }, { rootMargin: '250px' });
+
+        var PAGE_SIZE = 18; // cards por cidade na primeira carga
+
+        function renderCityBlock(block){
+          if(block._rendered) return;
+          block._rendered = true;
+          lazyObs.unobserve(block);
+          var grid = block.querySelector('.city-grid');
+          var btn  = block.querySelector('.city-load-more');
+          if(!grid || !block._items) return;
+          var items = block._items;
+          var shown = Math.min(PAGE_SIZE, items.length);
+          // Renderiza primeiros PAGE_SIZE em batches
+          var i = 0;
+          function batch(){
+            var frag = document.createDocumentFragment();
+            var end = Math.min(i + 9, shown);
+            for(; i < end; i++){
+              var tmp = document.createElement('div');
+              tmp.innerHTML = buildCard(items[i]);
+              frag.appendChild(tmp.firstChild);
+            }
+            grid.appendChild(frag);
+            if(i < shown) requestAnimationFrame(batch);
+            else if(btn) btn.style.display = items.length > shown ? '' : 'none';
+          }
+          batch();
+          // Botão "Ver mais"
+          if(btn){
+            btn._offset = shown;
+            btn.addEventListener('click', function(){
+              var start = btn._offset;
+              var end2  = Math.min(start + PAGE_SIZE, items.length);
+              var frag2 = document.createDocumentFragment();
+              for(var j = start; j < end2; j++){
+                var tmp2 = document.createElement('div');
+                tmp2.innerHTML = buildCard(items[j]);
+                frag2.appendChild(tmp2.firstChild);
+              }
+              grid.appendChild(frag2);
+              btn._offset = end2;
+              if(btn._offset >= items.length) btn.style.display = 'none';
+            });
+          }
+        }
 
         cities.forEach(function(city){
           var items = byCity[city];
@@ -1172,24 +1195,26 @@ function closeMobileNav(){
           block.className = 'city-carousel-block';
           block._items = items;
           block._rendered = false;
-          // Esqueleto leve: só o header + grid vazio (sem cards ainda)
+          var restante = Math.max(0, items.length - PAGE_SIZE);
           block.innerHTML =
             '<div class="city-carousel-hdr">'+
               '<div><span class="city-carousel-label">Imóveis Disponíveis</span>'+
               '<h2 class="city-carousel-title">'+esc(city)+'</h2></div>'+
               '<span class="city-carousel-count">'+items.length+' imóve'+(items.length===1?'l':'is')+'</span>'+
             '</div>'+
-            '<div class="city-grid"></div>';
+            '<div class="city-grid"></div>'+
+            '<div style="text-align:center;margin-top:24px;display:none;" class="city-load-more">'+
+              '<button onclick="" style="background:transparent;border:1px solid rgba(201,168,76,.4);color:#c9a84c;padding:10px 28px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;letter-spacing:.04em;">'+
+                'Ver mais '+(restante > 0 ? '+'+restante : '')+' imóveis de '+esc(city)+
+              '</button>'+
+            '</div>';
           section.appendChild(block);
           lazyObs.observe(block);
         });
 
-        // Primeira cidade: renderiza imediatamente (já está visível)
+        // Primeira cidade: renderiza imediatamente
         var first = section.querySelector('.city-carousel-block');
-        if(first){ first._rendered = true; lazyObs.unobserve(first);
-          var g = first.querySelector('.city-grid');
-          if(g && first._items) g.innerHTML = first._items.map(buildCard).join('');
-        }
+        if(first) renderCityBlock(first);
       }
     }
 
