@@ -54,7 +54,43 @@ fbq('track', 'PageView');
     .hero-ai-search { margin-bottom: 24px !important; }
   }
   </style>
-  </head>
+  
+  <!-- ── Carousel por Cidade (Início) ──────────────────────────────── -->
+  <style id="carousel-styles">
+  .city-carousels-section{background:#08111e;padding:44px 0 56px;}
+  .city-carousel-block{max-width:1280px;margin:0 auto 52px;padding:0 24px;}
+  .city-carousel-block:last-child{margin-bottom:0;}
+  .city-carousel-hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
+  .city-carousel-label{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#b8962e;display:block;margin-bottom:4px;}
+  .city-carousel-title{font-size:24px;font-weight:800;color:#fff;margin:0;}
+  .city-carousel-count{font-size:12px;color:rgba(255,255,255,.35);white-space:nowrap;}
+  .city-carousel-viewport{overflow:hidden;}
+  .city-carousel-track{display:flex;gap:16px;transition:transform .55s cubic-bezier(.4,0,.2,1);will-change:transform;}
+  .city-carousel-track .imovel-card-h{flex:0 0 calc(33.333% - 11px);min-width:0;}
+  @media(max-width:900px){.city-carousel-track .imovel-card-h{flex:0 0 calc(50% - 8px);}}
+  @media(max-width:560px){.city-carousel-track .imovel-card-h{flex:0 0 calc(88%);}}
+  .city-carousels-footer{max-width:1280px;margin:48px auto 0;padding:0 24px;text-align:center;}
+  .ver-todos-btn{display:inline-flex;align-items:center;gap:8px;background:#b8962e;color:#fff;font-size:14px;font-weight:700;letter-spacing:.04em;text-decoration:none;padding:14px 36px;border-radius:6px;transition:background .2s,transform .15s;}
+  .ver-todos-btn:hover{background:#d4aa3a;transform:translateY(-1px);}
+  .salas-section{background:#0b1724;padding:48px 0 56px;border-top:1px solid rgba(255,255,255,.07);}
+  .salas-inner{max-width:1280px;margin:0 auto;padding:0 24px;}
+  .salas-hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;gap:12px;flex-wrap:wrap;}
+  .salas-label{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#b8962e;display:block;margin-bottom:4px;}
+  .salas-title{font-size:24px;font-weight:800;color:#fff;margin:0;}
+  .salas-count{font-size:12px;color:rgba(255,255,255,.35);}
+  .salas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
+  /* card reutilizado do script.js */
+  .icard-h-img-wrap{position:relative;width:100%;aspect-ratio:16/10;overflow:hidden;border-radius:8px 8px 0 0;background:#0d1e36;}
+  .icard-img{width:100%;height:100%;object-fit:cover;display:block;}
+  .icard-img-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(8px);transform:scale(1.1);opacity:.5;}
+  .icard-h-img-badge{position:absolute;top:10px;left:10px;background:#b8962e;color:#fff;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 8px;border-radius:4px;}
+  .icard-h-body{background:#0d1e36;border-radius:0 0 8px 8px;padding:14px 16px 18px;}
+  .icard-h-ref{font-size:10px;color:rgba(255,255,255,.3);font-family:monospace;}
+  .icard-h-title{font-size:14px;font-weight:600;color:#fff;line-height:1.35;margin-top:4px;}
+  .imovel-card-h{border-radius:8px;overflow:hidden;transition:transform .2s,box-shadow .2s;}
+  .imovel-card-h:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,.45);}
+  </style>
+</head>
 <body>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=660044113549849&ev=PageView&noscript=1"/></noscript>
 
@@ -209,10 +245,40 @@ fbq('track', 'PageView');
 
 </section>
 
+
+<!-- ═══════════════════════════════════════════════════════════
+     CARROSSÉIS POR CIDADE — DESTAQUES
+════════════════════════════════════════════════════════════ -->
+<section class="city-carousels-section" id="city-carousels-section">
+  <!-- Blocos preenchidos pelo JS abaixo -->
+  <div class="city-carousels-footer">
+    <a href="imoveis.html" class="ver-todos-btn">
+      Ver todos os imóveis
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SALAS COMERCIAIS — DESTAQUES
+════════════════════════════════════════════════════════════ -->
+<section class="salas-section" id="salas-section" style="display:none;">
+  <div class="salas-inner">
+    <div class="salas-hdr">
+      <div>
+        <span class="salas-label">Comercial</span>
+        <h2 class="salas-title">Salas Comerciais</h2>
+      </div>
+      <span class="salas-count" id="salas-count"></span>
+    </div>
+    <div class="salas-grid" id="salas-grid"></div>
+  </div>
+</section>
+
 <!-- ═══════════════════════════════════════════════════════════
      IMÓVEIS — LAYOUT PLAY-STYLE (filtros + cards horizontais)
 ════════════════════════════════════════════════════════════ -->
-<section id="vendas-section" style="background:#f0f2f5;">
+<section id="vendas-section" style="background:#f0f2f5;display:none;">
 
   <!-- Banner compacto -->
   <div style="background:#0d1e36;padding:24px 24px 16px;">
@@ -576,6 +642,176 @@ function setLang(lang){
     }
   })
 })()
+</script>
+
+
+<!-- ── Carrosséis por Cidade JS (Início) ──────────────────────────── -->
+<script>
+;(function(){
+  'use strict';
+  var SUPA_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co';
+  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua25wYnpkY3JoYmZvenp2eHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY1NjYsImV4cCI6MjA5NDQ0MjU2Nn0.5yX05Y4Nhp8UJlhFblK4z_1TRxBqJKrwOLQ91KxsLMM';
+  var H = { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY };
+  var CITY_ORDER = ['Balneário Camboriú','Itapema','Porto Belo','Ponta Grossa'];
+  var MAX_PER_CITY = 6; // máximo de destaques por cidade na aba início
+
+  function fmt(n){
+    if(!n) return 'Consultar';
+    var clean = String(n).replace(/\./g,'').replace(',','.');
+    var num = parseFloat(clean);
+    if(isNaN(num)) return 'Consultar';
+    return 'R$ ' + num.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+  }
+  function badge(s){
+    var m={'pronto':'Pronto','lancamento':'Lançamento','pre-lancamento':'Pré-lançamento','em-obra':'Em Obra','em_obra':'Em Obra','pré-lançamento':'Pré-lançamento'};
+    return m[(s||'').toLowerCase()] || '';
+  }
+  function getPhotos(p){
+    var src = p.images || p.photos || [];
+    if(Array.isArray(src)) return src;
+    try{ return JSON.parse(src||'[]'); }catch(e){ return []; }
+  }
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+  function buildCard(p){
+    var imgs = getPhotos(p);
+    var img = p.cover_image || imgs[0] || '';
+    var b = badge(p.construction_status||'');
+    var area = (p.area||p.area_m2) ? (p.area||p.area_m2)+' m²' : '';
+    var beds = p.bedrooms ? p.bedrooms+' dorm.' : '';
+    var park = (p.parking||p.parking_spots) ? (p.parking||p.parking_spots)+(((p.parking||p.parking_spots))===1?' vaga':' vagas') : '';
+    var ref = p.reference || p.reference_code || '';
+    return '<a href="property.html?id='+p.id+'" class="imovel-card-h" style="text-decoration:none;display:block;">'+
+      '<div class="icard-h-img-wrap">'+
+        (img ? '<div class="icard-img-bg" style="background-image:url(''+img+'');"></div>'+
+          '<img class="icard-img" src="'+img+'" alt="'+esc(p.title)+'" loading="lazy">'
+        : '<div style="width:100%;height:100%;background:#1a2940;"></div>')+
+        (b ? '<div class="icard-h-img-badge">'+b+'</div>' : '')+
+      '</div>'+
+      '<div class="icard-h-body">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'+
+          '<span class="icard-h-ref">'+esc(ref)+'</span>'+
+        '</div>'+
+        '<div class="icard-h-title">'+esc(p.title||'')+'</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:11.5px;color:rgba(255,255,255,.45);">'+
+          (area ? '<span>'+area+'</span>' : '')+
+          (beds ? '<span>'+beds+'</span>' : '')+
+          (park ? '<span>'+park+'</span>' : '')+
+        '</div>'+
+        '<div style="margin-top:10px;font-size:15px;font-weight:700;color:#b8962e;">'+fmt(p.price)+'</div>'+
+        '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;">'+esc(p.neighborhood||'')+' · '+esc(p.city||'')+'</div>'+
+      '</div>'+
+    '</a>';
+  }
+
+  function startCarousel(trackId, total){
+    var VISIBLE = 3;
+    if(total <= VISIBLE) return;
+    var track = document.getElementById(trackId);
+    if(!track) return;
+    var cur = 0;
+    var maxPos = total - VISIBLE;
+    function step(){
+      cur++;
+      if(cur > maxPos){
+        track.style.transition = 'none';
+        track.style.transform = 'translateX(0)';
+        cur = 0;
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            track.style.transition = 'transform .55s cubic-bezier(.4,0,.2,1)';
+          });
+        });
+        return;
+      }
+      var card = track.querySelector('.imovel-card-h');
+      if(!card) return;
+      var w = card.offsetWidth + 16;
+      track.style.transform = 'translateX(-'+(cur * w)+'px)';
+    }
+    setInterval(step, 4000);
+  }
+
+  function isSala(p){
+    return /sala\s*comercial/i.test(p.title||'') || /sala\s*comercial/i.test(p.category||'');
+  }
+
+  fetch(
+    SUPA_URL+'/rest/v1/properties?'+
+    'published=eq.true'+
+    '&select=id,title,reference,city,neighborhood,images,cover_image,price,area,bedrooms,parking,construction_status'+
+    '&order=id.desc'+
+    '&limit=500',
+    { headers: H }
+  ).then(function(r){ return r.json(); }).then(function(props){
+    if(!Array.isArray(props)) return;
+
+    var salas = props.filter(isSala);
+    var regular = props.filter(function(p){ return !isSala(p); });
+
+    // Agrupar por cidade (normalizar nome)
+    var byCity = {};
+    regular.forEach(function(p){
+      var c = (p.city||'Outras').trim().replace(/\s*\([A-Z]{2}\)\s*$/,'');
+      if(!byCity[c]) byCity[c] = [];
+      byCity[c].push(p);
+    });
+
+    var section = document.getElementById('city-carousels-section');
+    var footer = section ? section.querySelector('.city-carousels-footer') : null;
+    if(section){
+      var seen = {};
+      var cities = [];
+      CITY_ORDER.forEach(function(c){
+        var norm = c.replace(/\s*\([A-Z]{2}\)\s*$/,'');
+        if(byCity[norm] && byCity[norm].length > 0 && !seen[norm]){ seen[norm]=1; cities.push(norm); }
+      });
+      Object.keys(byCity).forEach(function(c){
+        if(!seen[c] && byCity[c].length > 0){ seen[c]=1; cities.push(c); }
+      });
+
+      cities.forEach(function(city, idx){
+        var allItems = byCity[city];
+        // Mostrar apenas os mais recentes (já ordenados por id.desc)
+        var items = allItems.slice(0, MAX_PER_CITY);
+        var trackId = 'idx-ctrack-' + idx;
+        var block = document.createElement('div');
+        block.className = 'city-carousel-block';
+        block.innerHTML =
+          '<div class="city-carousel-hdr">'+
+            '<div>'+
+              '<span class="city-carousel-label">Destaques</span>'+
+              '<h2 class="city-carousel-title">'+esc(city)+'</h2>'+
+            '</div>'+
+            '<span class="city-carousel-count">'+items.length+' de '+allItems.length+' imóve'+(allItems.length===1?'l':'is')+'</span>'+
+          '</div>'+
+          '<div class="city-carousel-viewport">'+
+            '<div class="city-carousel-track" id="'+trackId+'">'+
+              items.map(buildCard).join('')+
+            '</div>'+
+          '</div>';
+        // Inserir antes do rodapé (botão Ver todos)
+        if(footer) section.insertBefore(block, footer);
+        else section.appendChild(block);
+        startCarousel(trackId, items.length);
+      });
+    }
+
+    // Salas comerciais
+    var salasSection = document.getElementById('salas-section');
+    var salasGrid = document.getElementById('salas-grid');
+    var salasCount = document.getElementById('salas-count');
+    if(salasSection && salasGrid){
+      if(salas.length === 0){
+        salasSection.style.display = 'none';
+      } else {
+        salasSection.style.display = '';
+        salasGrid.innerHTML = salas.slice(0,6).map(buildCard).join('');
+        if(salasCount) salasCount.textContent = salas.length+' imóve'+(salas.length===1?'l':'is')+' disponíve'+(salas.length===1?'l':'is');
+      }
+    }
+  }).catch(function(e){ console.warn('[Carousels Index] erro:', e); });
+})();
 </script>
 
 </body>
