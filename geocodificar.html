@@ -251,11 +251,13 @@ function normBairro(b) {
 }
 
 function isNumberedStreet(rua) {
-  return /^rua\s+\d+/i.test((rua || '').trim())
+  const r = (rua || '').trim()
+  // Aceita: "Rua 238", "rua238", "238" (apenas número), "R. 238"
+  return /^(rua\s*|r\.\s*)?\d+$/i.test(r)
 }
 
 function streetNumber(rua) {
-  const m = (rua || '').match(/^rua\s+(\d+)/i)
+  const m = (rua || '').trim().match(/(\d+)/)
   return m ? m[1] : null
 }
 
@@ -317,14 +319,18 @@ async function geocodeProp(p) {
   const cityLat = cityRef ? cityRef.lat : null
   const cityLng = cityRef ? cityRef.lng : null
 
-  if (ruaOrig && !/^rua\s+\d+/i.test(ruaOrig)) {
+  // Itapema: pular Nominatim para ruas numeradas (OSM não tem esses dados)
+  // Para ruas COM NOME em Itapema, usar distância máxima bem apertada (0.08° ≈ 9km)
+  const maxDist = (city === 'itapema') ? 0.08 : 0.3
+
+  if (ruaOrig && !isNumberedStreet(ruaOrig)) {
     const queries = []
     if (numero) queries.push(`${ruaOrig}, ${numero}, ${p.neighborhood}, ${city}, SC, Brasil`)
     queries.push(`${ruaOrig}, ${p.neighborhood}, ${city}, SC, Brasil`)
     queries.push(`${ruaOrig}, ${city}, SC, Brasil`)
 
     for (const q of queries) {
-      const coords = await nominatim(q, cityLat, cityLng, 0.3)
+      const coords = await nominatim(q, cityLat, cityLng, maxDist)
       if (coords) return { ...coords, method: 'nominatim', detail: q }
       await sleep(1100) // Nominatim: max 1 req/s
     }
