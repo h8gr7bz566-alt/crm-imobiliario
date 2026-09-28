@@ -64,6 +64,19 @@ fbq('track', 'PageView');
   .city-carousel-label{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#b8962e;display:block;margin-bottom:4px;}
   .city-carousel-title{font-size:24px;font-weight:800;color:#fff;margin:0;}
   .city-carousel-count{font-size:12px;color:rgba(255,255,255,.35);white-space:nowrap;}
+  a.city-carousel-count{text-decoration:none;border-bottom:1px dashed rgba(255,255,255,.2);transition:color .2s,border-color .2s;}
+  a.city-carousel-count:hover{color:#b8962e;border-color:#b8962e;}
+  .idx-emobra-section{background:#08111e;padding:48px 0 56px;border-top:2px solid #b8962e;}
+  .idx-emobra-inner{max-width:1280px;margin:0 auto;padding:0 24px;}
+  .idx-emobra-hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}
+  .idx-emobra-label{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#b8962e;}
+  .idx-emobra-title{font-size:26px;font-weight:800;color:#fff;margin:4px 0 0;}
+  .idx-emobra-count{font-size:13px;color:rgba(255,255,255,.5);}
+  .idx-emobra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  @media(max-width:900px){.idx-emobra-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:560px){.idx-emobra-grid{grid-template-columns:1fr;}}
+  #idx-emobra-section .icard-h-title{color:#fff !important;}
+  #idx-emobra-section .icard-h-ref{color:rgba(255,255,255,.5) !important;}
   .city-carousel-viewport{overflow:hidden;}
   .city-carousel-track{display:flex;gap:16px;transition:transform .55s cubic-bezier(.4,0,.2,1);will-change:transform;}
   .city-carousel-track .imovel-card-h{flex:0 0 calc(33.333% - 11px);min-width:0;}
@@ -492,6 +505,24 @@ fbq('track', 'PageView');
   </div>
 </section>
 
+<!-- Em Obra & Lancamentos (Inicio) -->
+<section class="idx-emobra-section" id="idx-emobra-section" style="display:none;">
+  <div class="idx-emobra-inner">
+    <div class="idx-emobra-hdr">
+      <div>
+        <span class="idx-emobra-label">Investimento</span>
+        <h2 class="idx-emobra-title">Em Obra &amp; Lançamentos</h2>
+      </div>
+      <span class="idx-emobra-count" id="idx-emobra-count"></span>
+    </div>
+    <div class="idx-emobra-grid" id="idx-emobra-grid"></div>
+    <div style="text-align:center;margin-top:36px;">
+      <a href="imoveis.html" class="ver-todos-btn">Ver todos os em obra e lançamentos →</a>
+    </div>
+  </div>
+</section>
+
+
 <!-- ═══════════════════════════════════════════════════════════
      FOOTER
 ════════════════════════════════════════════════════════════ -->
@@ -650,22 +681,23 @@ function setLang(lang){
 </script>
 
 
-<!-- ── Carrosséis por Cidade JS (Início) ──────────────────────────── -->
+<!-- ── Carrosséis por Cidade JS (Início) ────────────────────────────── -->
 <script>
 ;(function(){
   'use strict';
   var SUPA_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co';
   var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua25wYnpkY3JoYmZvenp2eHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY1NjYsImV4cCI6MjA5NDQ0MjU2Nn0.5yX05Y4Nhp8UJlhFblK4z_1TRxBqJKrwOLQ91KxsLMM';
   var H = { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY };
-  var CITY_ORDER = ['Balneário Camboriú','Itapema','Porto Belo','Ponta Grossa'];
-  var MAX_PER_CITY = 6; // máximo de destaques por cidade na aba início
+  var CITY_ORDER = ['Balneário Camboriu','Itapema','Porto Belo','Ponta Grossa'];
+  var MAX_PER_CITY = 6;
+  var EM_OBRA_STATUS = ['em-obra','em_obra','lancamento','lançamento','pre-lancamento','pré-lançamento'];
 
   function fmt(n){
     if(!n) return 'Consultar';
     var clean = String(n).replace(/\./g,'').replace(',','.');
     var num = parseFloat(clean);
     if(isNaN(num)) return 'Consultar';
-    return 'R$ ' + num.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+    return 'R$ ' + num.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
   }
   function badge(s){
     var m={'pronto':'Pronto','lancamento':'Lançamento','pre-lancamento':'Pré-lançamento','em-obra':'Em Obra','em_obra':'Em Obra','pré-lançamento':'Pré-lançamento'};
@@ -677,6 +709,9 @@ function setLang(lang){
     try{ return JSON.parse(src||'[]'); }catch(e){ return []; }
   }
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function isSala(p){ return /sala\s*comercial/i.test(p.title||''); }
+  function isEmObra(p){ return EM_OBRA_STATUS.indexOf((p.construction_status||'').toLowerCase()) !== -1; }
+  function normCity(c){ return (c||'').trim().replace(/\s*\([A-Z]{2}\)\s*$/,''); }
 
   function buildCard(p){
     var imgs = getPhotos(p);
@@ -737,10 +772,6 @@ function setLang(lang){
     setInterval(step, 4000);
   }
 
-  function isSala(p){
-    return /sala\s*comercial/i.test(p.title||'') || /sala\s*comercial/i.test(p.category||'');
-  }
-
   fetch(
     SUPA_URL+'/rest/v1/properties?'+
     'published=eq.true'+
@@ -751,13 +782,15 @@ function setLang(lang){
   ).then(function(r){ return r.json(); }).then(function(props){
     if(!Array.isArray(props)) return;
 
-    var salas = props.filter(isSala);
-    var regular = props.filter(function(p){ return !isSala(p); });
+    var salas   = props.filter(isSala);
+    var resto   = props.filter(function(p){ return !isSala(p); });
+    var emobra  = resto.filter(isEmObra);
+    var prontos = resto.filter(function(p){ return !isEmObra(p); });
 
-    // Agrupar por cidade (normalizar nome)
+    // ── Carroséis por cidade (só prontos) ──
     var byCity = {};
-    regular.forEach(function(p){
-      var c = (p.city||'Outras').trim().replace(/\s*\([A-Z]{2}\)\s*$/,'');
+    prontos.forEach(function(p){
+      var c = normCity(p.city) || 'Outras';
       if(!byCity[c]) byCity[c] = [];
       byCity[c].push(p);
     });
@@ -765,10 +798,9 @@ function setLang(lang){
     var section = document.getElementById('city-carousels-section');
     var footer = section ? section.querySelector('.city-carousels-footer') : null;
     if(section){
-      var seen = {};
-      var cities = [];
+      var seen = {}, cities = [];
       CITY_ORDER.forEach(function(c){
-        var norm = c.replace(/\s*\([A-Z]{2}\)\s*$/,'');
+        var norm = normCity(c);
         if(byCity[norm] && byCity[norm].length > 0 && !seen[norm]){ seen[norm]=1; cities.push(norm); }
       });
       Object.keys(byCity).forEach(function(c){
@@ -777,9 +809,10 @@ function setLang(lang){
 
       cities.forEach(function(city, idx){
         var allItems = byCity[city];
-        // Mostrar apenas os mais recentes (já ordenados por id.desc)
         var items = allItems.slice(0, MAX_PER_CITY);
         var trackId = 'idx-ctrack-' + idx;
+        // Encode city name for URL
+        var cityParam = encodeURIComponent(city);
         var block = document.createElement('div');
         block.className = 'city-carousel-block';
         block.innerHTML =
@@ -788,24 +821,39 @@ function setLang(lang){
               '<span class="city-carousel-label">Destaques</span>'+
               '<h2 class="city-carousel-title">'+esc(city)+'</h2>'+
             '</div>'+
-            '<span class="city-carousel-count">'+items.length+' de '+allItems.length+' imóve'+(allItems.length===1?'l':'is')+'</span>'+
+            '<a href="imoveis.html?city='+cityParam+'" class="city-carousel-count">'+
+              items.length+' de '+allItems.length+' imóve'+(allItems.length===1?'l':'is')+
+            '</a>'+
           '</div>'+
           '<div class="city-carousel-viewport">'+
             '<div class="city-carousel-track" id="'+trackId+'">'+
               items.map(buildCard).join('')+
             '</div>'+
           '</div>';
-        // Inserir antes do rodapé (botão Ver todos)
         if(footer) section.insertBefore(block, footer);
         else section.appendChild(block);
         startCarousel(trackId, items.length);
       });
     }
 
-    // Salas comerciais
+    // ── Em Obra & Lançamentos ──
+    var eoSection = document.getElementById('idx-emobra-section');
+    var eoGrid    = document.getElementById('idx-emobra-grid');
+    var eoCount   = document.getElementById('idx-emobra-count');
+    if(eoSection && eoGrid){
+      if(emobra.length === 0){
+        eoSection.style.display = 'none';
+      } else {
+        eoSection.style.display = '';
+        eoGrid.innerHTML = emobra.map(buildCard).join('');
+        if(eoCount) eoCount.textContent = emobra.length+' imóve'+(emobra.length===1?'l':'is');
+      }
+    }
+
+    // ── Salas comerciais ──
     var salasSection = document.getElementById('salas-section');
-    var salasGrid = document.getElementById('salas-grid');
-    var salasCount = document.getElementById('salas-count');
+    var salasGrid    = document.getElementById('salas-grid');
+    var salasCount   = document.getElementById('salas-count');
     if(salasSection && salasGrid){
       if(salas.length === 0){
         salasSection.style.display = 'none';

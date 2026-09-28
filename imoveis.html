@@ -1246,7 +1246,27 @@ function closeMobileNav(){
       });
     }
 
-    renderAll(ALL_PROPS);
+    // Lê ?city= da URL e pré-filtra
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlCity = urlParams.get('city');
+    if(urlCity){
+      var cs = document.getElementById('f-city');
+      if(cs){
+        // Garante que a option existe
+        if(!cs.querySelector('option[value="'+urlCity+'"]')){
+          var o = document.createElement('option'); o.value=urlCity; o.textContent=urlCity; cs.appendChild(o);
+        }
+        cs.value = urlCity;
+      }
+      // Scroll suave até a grade
+      setTimeout(function(){
+        var sec = document.getElementById('city-carousels-section');
+        if(sec) sec.scrollIntoView({behavior:'smooth',block:'start'});
+      }, 300);
+      applyFilters();
+    } else {
+      renderAll(ALL_PROPS);
+    }
   }).catch(function(e){ console.warn('[Grids] erro:', e); });
 })();
   </script>
