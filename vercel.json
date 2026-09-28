@@ -32,6 +32,19 @@
       ]
     },
     {
+      "source": "/(imoveis|imoveis.html|index|index.html|property|property.html|servicos|servicos.html|geocodificar|geocodificar.html|apresentacao|apresentacao.html)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, max-age=0"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [
         {
