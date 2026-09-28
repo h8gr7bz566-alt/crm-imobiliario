@@ -686,42 +686,45 @@ function closeMobileNav(){
 
     // Coordenadas de referência por bairro/cidade — FALLBACK quando não há lat/lng no banco
     // Todas as coordenadas posicionadas no interior dos bairros (longe do mar)
+    // Coordenadas VERIFICADAS por bairro — Centro de área habitável (longe do mar/lagoa)
+    // Meia Praia: faixa estreita entre Oceano Atlântico (leste, lng≈-48.614) e Lagoa (oeste, lng≈-48.621)
+    // → centro habitável em lng -48.617, jitter máximo ±0.001° para não cair n'água
     var _BAIRROS = {
       'itapema': {
-        'meia praia':              { lat: -26.9420, lng: -48.6260 },
-        'morretes':                { lat: -26.8868, lng: -48.6160 },
-        'centro':                  { lat: -26.9073, lng: -48.6200 },
-        'tabuleiro dos oliveiras': { lat: -26.8840, lng: -48.6350 },
-        'tabuleiro':               { lat: -26.8840, lng: -48.6350 },
-        'alto são bento':          { lat: -26.8700, lng: -48.6380 },
-        'canto da praia':          { lat: -26.8620, lng: -48.6120 },
-        'ilhota':                  { lat: -26.9040, lng: -48.6220 },
-        'várzea':                  { lat: -26.9050, lng: -48.6230 },
-        'sertão do trombudo':      { lat: -26.9100, lng: -48.6500 },
-        '':                        { lat: -26.9075, lng: -48.6300 }
+        'meia praia':              { lat: -26.9380, lng: -48.6175, dLat: 0.0025, dLng: 0.0008 },
+        'morretes':                { lat: -26.8868, lng: -48.6250, dLat: 0.0020, dLng: 0.0015 },
+        'centro':                  { lat: -26.9073, lng: -48.6250, dLat: 0.0020, dLng: 0.0015 },
+        'tabuleiro dos oliveiras': { lat: -26.8840, lng: -48.6350, dLat: 0.0020, dLng: 0.0015 },
+        'tabuleiro':               { lat: -26.8840, lng: -48.6350, dLat: 0.0020, dLng: 0.0015 },
+        'alto são bento':          { lat: -26.8700, lng: -48.6380, dLat: 0.0020, dLng: 0.0015 },
+        'canto da praia':          { lat: -26.8620, lng: -48.6220, dLat: 0.0015, dLng: 0.0010 },
+        'ilhota':                  { lat: -26.9040, lng: -48.6250, dLat: 0.0020, dLng: 0.0015 },
+        'várzea':                  { lat: -26.9050, lng: -48.6280, dLat: 0.0020, dLng: 0.0015 },
+        'sertão do trombudo':      { lat: -26.9100, lng: -48.6500, dLat: 0.0020, dLng: 0.0015 },
+        '':                        { lat: -26.9075, lng: -48.6300, dLat: 0.0030, dLng: 0.0020 }
       },
       'balneário camboriú': {
-        'barra sul':      { lat: -26.9950, lng: -48.6380 },
-        'centro':         { lat: -26.9867, lng: -48.6420 },
-        'nova esperança': { lat: -26.9760, lng: -48.6390 },
-        'das nações':     { lat: -26.9800, lng: -48.6360 },
-        '':               { lat: -26.9906, lng: -48.6400 }
+        'barra sul':      { lat: -26.9950, lng: -48.6380, dLat: 0.0020, dLng: 0.0015 },
+        'centro':         { lat: -26.9867, lng: -48.6420, dLat: 0.0020, dLng: 0.0015 },
+        'nova esperança': { lat: -26.9760, lng: -48.6390, dLat: 0.0020, dLng: 0.0015 },
+        'das nações':     { lat: -26.9800, lng: -48.6360, dLat: 0.0020, dLng: 0.0015 },
+        '':               { lat: -26.9906, lng: -48.6400, dLat: 0.0030, dLng: 0.0020 }
       },
       'porto belo': {
-        'centro': { lat: -27.1556, lng: -48.5600 },
-        '':       { lat: -27.1556, lng: -48.5600 }
+        'centro': { lat: -27.1556, lng: -48.5600, dLat: 0.0020, dLng: 0.0015 },
+        '':       { lat: -27.1556, lng: -48.5600, dLat: 0.0030, dLng: 0.0020 }
       },
       'ponta grossa': {
-        'uvaranas': { lat: -25.0855, lng: -50.1371 },
-        'centro':   { lat: -25.0945, lng: -50.1633 },
-        '':         { lat: -25.0945, lng: -50.1633 }
+        'uvaranas': { lat: -25.0855, lng: -50.1371, dLat: 0.0020, dLng: 0.0015 },
+        'centro':   { lat: -25.0945, lng: -50.1633, dLat: 0.0020, dLng: 0.0015 },
+        '':         { lat: -25.0945, lng: -50.1633, dLat: 0.0030, dLng: 0.0020 }
       },
       'carambeí': {
-        '': { lat: -24.9154, lng: -50.0956 }
+        '': { lat: -24.9154, lng: -50.0956, dLat: 0.0030, dLng: 0.0020 }
       },
       'camboriú': {
-        'centro': { lat: -27.0244, lng: -48.6538 },
-        '':       { lat: -27.0244, lng: -48.6538 }
+        'centro': { lat: -27.0244, lng: -48.6538, dLat: 0.0020, dLng: 0.0015 },
+        '':       { lat: -27.0244, lng: -48.6538, dLat: 0.0030, dLng: 0.0020 }
       }
     }
 
@@ -770,11 +773,16 @@ function closeMobileNav(){
       var ref = _lookup(p)
       if (!ref) return null
 
-      // Para ruas numéricas ou sem rua: usar bairro (jitter pequeno, no interior)
+      // Para ruas numéricas ou sem rua: jitter determinístico por ID (espalha sem cair n'água)
       if (_isNumberedStreet(rua)) {
+        var seed = (p.id || 0)
+        var h1 = ((seed * 2654435761) >>> 0) / 4294967295  // 0-1
+        var h2 = ((seed * 1337 * 2654435761) >>> 0) / 4294967295
+        var dLat = ref.dLat || 0.0015
+        var dLng = ref.dLng || 0.0010
         return {
-          lat: ref.lat + (Math.random()-0.5) * 0.0015,
-          lng: ref.lng + (Math.random()-0.5) * 0.0015
+          lat: ref.lat + (h1 - 0.5) * 2 * dLat,
+          lng: ref.lng + (h2 - 0.5) * 2 * dLng
         }
       }
 
@@ -811,10 +819,13 @@ function closeMobileNav(){
         if (i < queries.length - 1) await new Promise(function(r){ setTimeout(r, 350) })
       }
 
-      // Último fallback: bairro com jitter pequeno
+      // Último fallback: bairro com jitter determinístico
+      var seed2 = (p.id || 0)
+      var h3 = ((seed2 * 2654435761) >>> 0) / 4294967295
+      var h4 = ((seed2 * 999983) >>> 0) / 4294967295
       return {
-        lat: ref.lat + (Math.random()-0.5) * 0.0015,
-        lng: ref.lng + (Math.random()-0.5) * 0.0015
+        lat: ref.lat + (h3 - 0.5) * 2 * (ref.dLat || 0.0010),
+        lng: ref.lng + (h4 - 0.5) * 2 * (ref.dLng || 0.0008)
       }
     }
 

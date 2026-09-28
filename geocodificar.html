@@ -169,13 +169,27 @@ function normCity(c) {
   return (c || '').replace(/\s*\/[A-Za-z]{2}\s*$/, '').replace(/\s*\([^)]*\)\s*$/, '').trim().toLowerCase()
 }
 
-async function nominatim(query, ref) {
-  const dLat = 0.08, dLng = 0.12
+// Distância em graus (aproximada) entre dois pontos
+function _distDeg(la1, lo1, la2, lo2) {
+  return Math.sqrt(Math.pow(la2 - la1, 2) + Math.pow((lo2 - lo1) * Math.cos(la1 * Math.PI / 180), 2))
+}
+
+async function nominatim(query, ref, maxDistDeg) {
+  maxDistDeg = maxDistDeg || 0.15 // ~15km máximo
+  // Bounded viewbox apertado ao redor da cidade (±0.10° lat, ±0.15° lng)
+  const dLat = 0.10, dLng = 0.15
   const vb = `&viewbox=${ref.lng-dLng},${ref.lat+dLat},${ref.lng+dLng},${ref.lat-dLat}&bounded=1`
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br${vb}&q=${encodeURIComponent(query)}`
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=3&countrycodes=br${vb}&q=${encodeURIComponent(query)}`
   const r = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' }, signal: AbortSignal.timeout(8000) })
   const data = await r.json()
-  if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+  if (!data || !data.length) return null
+  // Validar cada resultado: rejeitar se estiver >maxDistDeg longe do centro da cidade
+  for (const item of data) {
+    const lat = parseFloat(item.lat), lng = parseFloat(item.lon)
+    const dist = _distDeg(ref.lat, ref.lng, lat, lng)
+    if (dist <= maxDistDeg) return { lat, lng }
+    log('warn', `  ⚠ Coord de "${item.display_name.substring(0,40)}" rejeitada (${(dist*111).toFixed(1)}km do centro)`)
+  }
   return null
 }
 
@@ -193,13 +207,17 @@ async function geocodeProp(p) {
   const isNumbered = !rua || /^\d+$/.test(cleaned)
 
   if (isNumbered) {
-    // Para ruas numéricas, Nominatim falha — tentar bairro + cidade
+    // Para ruas numéricas: tentar bairro+cidade com viewbox apertado
+    // (Nominatim tem dados errados para Itapema/Meia Praia; validação de distância rejeita resultados ruins)
     if (bairro) {
-      const c = await nominatim(`${bairro}, ${cidade}, SC, Brasil`, ref)
+      const c = await nominatim(`${bairro}, ${cidade}, SC, Brasil`, ref, 0.12)
       if (c) return c
       await sleep(600)
     }
-    return null // retorna null para indicar que usou fallback de bairro
+    // Tentar só a cidade
+    const c2 = await nominatim(`${cidade}, SC, Brasil`, ref, 0.05)
+    if (c2) return c2
+    return null // fallback de bairro usado pelo mapa
   }
 
   // Rua nomeada: tentar vários formatos

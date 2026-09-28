@@ -18,6 +18,7 @@ export default defineConfig({
         servicos:     resolve(__dirname, 'servicos.html'),
         demo:         resolve(__dirname, 'demo.html'),
         apresentacao: resolve(__dirname, 'apresentacao.html'),
+        geocodificar: resolve(__dirname, 'geocodificar.html'),
       },
       external: []
     }
