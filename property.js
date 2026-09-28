@@ -169,12 +169,36 @@ function renderProperty(p) {
   window._propOgUrl = ogUrl
 
   renderGallery()
+  setTimeout(startAutoplay, 1000)
 
   document.getElementById('prop-loading').classList.add('hidden')
   document.getElementById('prop-content').classList.remove('hidden')
 }
 
 // ─── Galeria ──────────────────────────────────────────────────────────────
+let _autoplayTimer = null
+
+function startAutoplay() {
+  if (images.length <= 1) return
+  stopAutoplay()
+  _autoplayTimer = setInterval(() => {
+    currentIdx = (currentIdx + 1) % images.length
+    renderGallery()
+    scrollThumbIntoView()
+  }, 4500)
+}
+
+function stopAutoplay() {
+  if (_autoplayTimer) { clearInterval(_autoplayTimer); _autoplayTimer = null }
+}
+
+function scrollThumbIntoView() {
+  const thumbsEl = document.getElementById('gallery-thumbs')
+  if (!thumbsEl) return
+  const active = thumbsEl.querySelector('.gallery-thumb.active')
+  if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+}
+
 function renderGallery() {
   const mainImg  = document.getElementById('gallery-main-img')
   const counter  = document.getElementById('gallery-counter')
@@ -200,8 +224,10 @@ function renderGallery() {
 
   thumbsEl.querySelectorAll('.gallery-thumb').forEach(thumb => {
     thumb.addEventListener('click', () => {
+      stopAutoplay()
       currentIdx = parseInt(thumb.dataset.idx, 10)
       renderGallery()
+      startAutoplay()
     })
   })
 }
@@ -244,13 +270,25 @@ window.shareProperty = function() {
 document.addEventListener('DOMContentLoaded', () => {
   loadProperty()
 
+  const galleryWrap = document.querySelector('.pv2-gallery')
+  if (galleryWrap) {
+    galleryWrap.addEventListener('mouseenter', stopAutoplay)
+    galleryWrap.addEventListener('mouseleave', startAutoplay)
+  }
+
   document.getElementById('gallery-prev').addEventListener('click', () => {
+    stopAutoplay()
     currentIdx = (currentIdx - 1 + images.length) % images.length
     renderGallery()
+    scrollThumbIntoView()
+    startAutoplay()
   })
 
   document.getElementById('gallery-next').addEventListener('click', () => {
+    stopAutoplay()
     currentIdx = (currentIdx + 1) % images.length
     renderGallery()
+    scrollThumbIntoView()
+    startAutoplay()
   })
 })

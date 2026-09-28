@@ -1542,9 +1542,9 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
 .pv2-gallery-main {
   border-radius: 0 !important;
   aspect-ratio: unset !important;
-  height: 58vw !important;
-  max-height: 580px !important;
-  min-height: 280px !important;
+  height: 38vw !important;
+  max-height: 420px !important;
+  min-height: 220px !important;
 }
 .pv2-thumbs {
   background: #0a1221;
