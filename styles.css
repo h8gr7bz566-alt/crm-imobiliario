@@ -1852,3 +1852,231 @@ body.prop-page { background: var(--off-white, #f5f7fa); }
 
   .pv2-back-inner { padding: 10px 16px; }
 }
+
+
+/* ═══════════════════════════════════════════════════════
+   TECH PREMIUM — redesign 2026
+   Glassmorphism · Gradient mesh · Syne headings · Glow
+═══════════════════════════════════════════════════════ */
+
+/* ── Fonts ──────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ── Updated design tokens ──────────────────────────── */
+:root {
+  --gold:        #c9a84c;
+  --gold-glow:   rgba(201,168,76,0.25);
+  --gold-glow-sm:rgba(201,168,76,0.12);
+  --glass-bg:    rgba(10,18,38,0.55);
+  --glass-border:rgba(255,255,255,0.08);
+  --glass-blur:  blur(20px);
+  --navy-deep:   #060e1c;
+  --mesh-a:      radial-gradient(ellipse 80% 60% at 15% 30%, rgba(201,168,76,0.07) 0%, transparent 60%);
+  --mesh-b:      radial-gradient(ellipse 60% 50% at 85% 70%, rgba(30,60,120,0.25) 0%, transparent 60%);
+  --syne:        'Syne', 'Inter', system-ui, sans-serif;
+}
+
+/* ── Global body font ────────────────────────────────── */
+body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+/* ── Section headings → Syne ─────────────────────────── */
+.section-title,
+.hero-v2-title,
+.city-carousel-title,
+.em-obra-title,
+.idx-emobra-title,
+.salas-title,
+h1, h2 {
+  font-family: var(--syne) !important;
+  letter-spacing: -0.02em;
+}
+
+/* ── Info bar: darker + frosted ─────────────────────── */
+.info-bar {
+  background: var(--navy-deep) !important;
+  border-bottom: 1px solid rgba(201,168,76,0.12) !important;
+}
+
+/* ── Sticky header: glass on scroll ─────────────────── */
+.main-header {
+  background: rgba(8,14,28,0.75) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+.main-header.scrolled {
+  background: rgba(6,10,20,0.90) !important;
+  box-shadow: 0 2px 40px rgba(0,0,0,0.5), 0 1px 0 rgba(201,168,76,0.08) !important;
+}
+
+/* ── Hero: deeper overlay + gradient glow ────────────── */
+.hero-v2-overlay {
+  background: linear-gradient(
+    155deg,
+    rgba(6,14,28,.90) 0%,
+    rgba(10,22,45,.78) 45%,
+    rgba(6,14,28,.65) 100%
+  ) !important;
+}
+.hero-v2-title {
+  text-shadow: 0 2px 40px rgba(0,0,0,0.6);
+}
+
+/* ── Gold buttons: gradient + glow ──────────────────── */
+.btn-gold, .ver-todos-btn, .main-nav-wa-btn, .iof-btn-search {
+  background: linear-gradient(135deg, #b8962e 0%, #e0c25a 50%, #b8962e 100%) !important;
+  background-size: 200% 100% !important;
+  transition: background-position .4s, transform .15s, box-shadow .2s !important;
+  box-shadow: 0 4px 20px rgba(201,168,76,0.25) !important;
+}
+.btn-gold:hover, .ver-todos-btn:hover, .main-nav-wa-btn:hover, .iof-btn-search:hover {
+  background-position: 100% 0 !important;
+  box-shadow: 0 6px 28px rgba(201,168,76,0.45) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Eyebrow labels: glow ────────────────────────────── */
+.section-eyebrow, .city-carousel-label, .em-obra-label, .idx-emobra-label, .salas-label {
+  color: var(--gold) !important;
+  text-shadow: 0 0 20px rgba(201,168,76,0.4);
+  letter-spacing: .14em;
+}
+
+/* ── City carousel section: gradient mesh background ── */
+#city-carousels-section,
+.city-carousels-section {
+  background:
+    var(--mesh-a),
+    var(--mesh-b),
+    linear-gradient(180deg, #07101f 0%, #0b1628 100%) !important;
+  position: relative;
+}
+
+/* ── Em Obra section: dark with gold border ──────────── */
+.idx-emobra-section {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201,168,76,0.06) 0%, transparent 60%),
+    linear-gradient(180deg, #060e1c 0%, #080f1e 100%) !important;
+  border-top: 1px solid rgba(201,168,76,0.2) !important;
+}
+
+/* ── Salas section ────────────────────────────────────── */
+.salas-section {
+  background:
+    var(--mesh-b),
+    linear-gradient(180deg, #07101f 0%, #0a1628 100%) !important;
+  border-top: 1px solid var(--glass-border) !important;
+}
+
+/* ── Property card (horizontal): glassmorphism ───────── */
+.imovel-card-h {
+  background: rgba(10,18,38,0.6) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  transition: transform .25s, box-shadow .25s, border-color .25s !important;
+}
+.imovel-card-h:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.15) !important;
+  border-color: rgba(201,168,76,0.2) !important;
+}
+
+/* Card body dark glass */
+.icard-h-body {
+  background: rgba(8,14,28,0.85) !important;
+  border-top: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+/* Card price gold glow */
+.icard-h-body [style*="color:#b8962e"],
+.icard-h-body [style*="color: #b8962e"] {
+  text-shadow: 0 0 16px rgba(201,168,76,0.35);
+}
+
+/* Badge refinado */
+.icard-h-img-badge {
+  background: linear-gradient(135deg, #b8962e, #e0c25a) !important;
+  color: #07101f !important;
+  font-weight: 800 !important;
+  letter-spacing: .1em !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 12px rgba(201,168,76,0.4) !important;
+}
+
+/* ── City carousel header ────────────────────────────── */
+.city-carousel-title {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.025em !important;
+}
+
+/* ── Filter bar (imoveis.html): glass ────────────────── */
+.iof-bar {
+  background: rgba(6,10,20,0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(201,168,76,0.1) !important;
+}
+.iof-select {
+  background: rgba(10,18,38,0.7) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 8px !important;
+  color: rgba(255,255,255,0.9) !important;
+  transition: border-color .2s !important;
+}
+.iof-select:focus {
+  border-color: rgba(201,168,76,0.5) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.1) !important;
+}
+.iof-group label {
+  font-size: 10px !important;
+  letter-spacing: .1em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,0.4) !important;
+  font-weight: 600 !important;
+}
+.iof-btn-clear {
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  border-radius: 8px !important;
+  backdrop-filter: blur(8px) !important;
+}
+.iof-btn-clear:hover {
+  border-color: rgba(201,168,76,0.4) !important;
+  color: var(--gold) !important;
+}
+
+/* ── Grid sections (imoveis.html): gradient mesh ─────── */
+#city-carousels-section {
+  background:
+    var(--mesh-a),
+    var(--mesh-b),
+    linear-gradient(180deg, #07101f 0%, #0b1628 100%) !important;
+}
+.em-obra-section {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201,168,76,0.06) 0%, transparent 60%),
+    #060e1c !important;
+  border-top: 1px solid rgba(201,168,76,0.18) !important;
+}
+
+/* ── Footer: deeper ──────────────────────────────────── */
+.footer-v2, .site-footer {
+  background: #040810 !important;
+  border-top: 1px solid rgba(201,168,76,0.1) !important;
+}
+
+/* ── Scrollbar: dark premium ─────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #060e1c; }
+::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.35); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201,168,76,0.6); }
+
+/* ── Selection color ─────────────────────────────────── */
+::selection { background: rgba(201,168,76,0.25); color: #fff; }
+
+/* ── Smooth scroll ───────────────────────────────────── */
+html { scroll-behavior: smooth; }
