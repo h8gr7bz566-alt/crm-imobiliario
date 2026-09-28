@@ -59,6 +59,29 @@ fbq('track', 'PageView');
   }
   </style>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style id="carousel-styles">
+/* ── City Carousels ──────────────────────────────────────────── */
+.city-carousels-section{background:#08111e;padding:44px 0 56px;}
+.city-carousel-block{max-width:1280px;margin:0 auto 52px;padding:0 24px;}
+.city-carousel-block:last-child{margin-bottom:0;}
+.city-carousel-hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;}
+.city-carousel-label{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#b8962e;display:block;margin-bottom:5px;}
+.city-carousel-title{font-size:24px;font-weight:800;color:#fff;margin:0;line-height:1.1;}
+.city-carousel-count{font-size:12px;color:rgba(255,255,255,.35);padding-bottom:3px;}
+.city-carousel-viewport{overflow:hidden;}
+.city-carousel-track{display:flex;gap:16px;transition:transform .55s cubic-bezier(.4,0,.2,1);will-change:transform;}
+.city-carousel-track .imovel-card-h{flex:0 0 calc(33.333% - 11px);min-width:0;}
+@media(max-width:900px){.city-carousel-track .imovel-card-h{flex:0 0 calc(50% - 8px);}}
+@media(max-width:560px){.city-carousel-track .imovel-card-h{flex:0 0 calc(88%);}}
+/* ── Salas Comerciais ────────────────────────────────────────── */
+.salas-section{background:#0b1724;padding:48px 0 56px;border-top:1px solid rgba(255,255,255,.07);}
+.salas-section-inner{max-width:1280px;margin:0 auto;padding:0 24px;}
+.salas-hdr-wrap{margin-bottom:28px;}
+.salas-section-label{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#b8962e;display:block;margin-bottom:6px;}
+.salas-section-title{font-size:24px;font-weight:800;color:#fff;margin:0;}
+.salas-section-sub{font-size:13px;color:rgba(255,255,255,.35);margin:6px 0 0;}
+.salas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
+</style>
 </head>
 <body>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=660044113549849&ev=PageView&noscript=1"/></noscript>
@@ -151,7 +174,12 @@ function closeMobileNav(){
 </script>
 
 
-  <!-- ── Banner compacto ──────────────────────────────────────────────── -->
+  <!-- ── Carousels por Cidade ──────────────────────────────────── -->
+  <section class="city-carousels-section" id="city-carousels-section">
+    <!-- populado pelo script de carousels -->
+  </section>
+
+    <!-- ── Banner compacto ──────────────────────────────────────────────── -->
   <div style="background:#0d1e36;padding:28px 24px 20px;">
     <div style="max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
       <div>
@@ -239,7 +267,19 @@ function closeMobileNav(){
     </div>
   </div>
 
-  <footer class="footer-v2">
+  <!-- ── Salas Comerciais ─────────────────────────────────────── -->
+  <section class="salas-section" id="salas-section" style="display:none;">
+    <div class="salas-section-inner">
+      <div class="salas-hdr-wrap">
+        <span class="salas-section-label">Comercial</span>
+        <h2 class="salas-section-title">Salas Comerciais</h2>
+        <p class="salas-section-sub" id="salas-count"></p>
+      </div>
+      <div class="salas-grid" id="salas-grid"></div>
+    </div>
+  </section>
+
+    <footer class="footer-v2">
   <div class="footer-v2-top">
     <div class="footer-col footer-col-brand">
       <a href="index.html" class="footer-logo">
@@ -901,6 +941,164 @@ function closeMobileNav(){
 
     _watchMap()
   })()
+  </script>
+
+  <!-- ── Carousels + Salas Comerciais ──────────────────────────── -->
+  <script>
+  ;(function(){
+    'use strict';
+    var SUPA_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co';
+    var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua25wYnpkY3JoYmZvenp2eHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY1NjYsImV4cCI6MjA5NDQ0MjU2Nn0.5yX05Y4Nhp8UJlhFblK4z_1TRxBqJKrwOLQ91KxsLMM';
+    var H = { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY };
+    var CITY_ORDER = ['Balneário Camboriú','Itapema','Porto Belo','Ponta Grossa'];
+
+    function fmt(n){ return n ? 'R$\u00a0' + Number(n).toLocaleString('pt-BR') : 'Consultar'; }
+    function badge(s){
+      var m={'pronto':'Pronto','lancamento':'Lançamento','pre-lancamento':'Pré-lançamento','em-obra':'Em Obra','em_obra':'Em Obra','pré-lançamento':'Pré-lançamento'};
+      return m[(s||'').toLowerCase()] || '';
+    }
+    function getPhotos(p){
+      if(Array.isArray(p.photos)) return p.photos;
+      try{ return JSON.parse(p.photos||'[]'); }catch(e){ return []; }
+    }
+    function esc(s){ return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+    function buildCard(p){
+      var imgs = getPhotos(p);
+      var img = imgs[0] || '';
+      var b = badge(p.construction_status||'');
+      var area = p.area_m2 ? p.area_m2+' m\u00b2' : '';
+      var beds = p.bedrooms ? p.bedrooms+' dorm.' : '';
+      var park = p.parking_spots ? p.parking_spots+(p.parking_spots===1?' vaga':' vagas') : '';
+      return '<a href="property.html?id='+p.id+'" class="imovel-card-h" style="text-decoration:none;display:block;">'+
+        '<div class="icard-h-img-wrap">'+
+          (img
+            ? '<div class="icard-img-bg" style="background-image:url(\''+img+'\');"></div>'+
+              '<img class="icard-img" src="'+img+'" alt="'+esc(p.title)+'" loading="lazy">'
+            : '<div style="width:100%;height:100%;background:#1a2940;display:flex;align-items:center;justify-content:center;">'+
+                '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="rgba(255,255,255,.18)" stroke="none"/><path d="M21 15l-5-5L5 21"/></svg>'+
+              '</div>')+
+          (b ? '<div class="icard-h-img-badge">'+b+'</div>' : '')+
+        '</div>'+
+        '<div class="icard-h-body">'+
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'+
+            '<span class="icard-h-ref">'+esc(p.reference_code||'')+'</span>'+
+            (p.category ? '<span class="icard-h-cat">'+esc(p.category)+'</span>' : '')+
+          '</div>'+
+          '<div class="icard-h-title">'+esc(p.title||'')+'</div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:11.5px;color:rgba(255,255,255,.45);">'+
+            (area ? '<span>'+area+'</span>' : '')+
+            (beds ? '<span>'+beds+'</span>' : '')+
+            (park ? '<span>'+park+'</span>' : '')+
+          '</div>'+
+          '<div style="margin-top:10px;font-size:15px;font-weight:700;color:#b8962e;">'+fmt(p.price)+'</div>'+
+          '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;">'+esc(p.neighborhood||'')+' · '+esc(p.city||'')+'</div>'+
+        '</div>'+
+      '</a>';
+    }
+
+    function startCarousel(trackId, total){
+      var VISIBLE = 3;
+      if(total <= VISIBLE) return;
+      var track = document.getElementById(trackId);
+      if(!track) return;
+      var cur = 0;
+      var maxPos = total - VISIBLE;
+
+      function step(){
+        cur++;
+        if(cur > maxPos){
+          track.style.transition = 'none';
+          track.style.transform = 'translateX(0)';
+          cur = 0;
+          requestAnimationFrame(function(){
+            requestAnimationFrame(function(){
+              track.style.transition = 'transform .55s cubic-bezier(.4,0,.2,1)';
+            });
+          });
+          return;
+        }
+        var card = track.querySelector('.imovel-card-h');
+        if(!card) return;
+        var w = card.offsetWidth + 16;
+        track.style.transform = 'translateX(-'+(cur * w)+'px)';
+      }
+      setInterval(step, 4000);
+    }
+
+    function isSala(p){
+      return /sala\s*comercial/i.test(p.category||'') || /sala\s*comercial/i.test(p.property_type||'');
+    }
+
+    fetch(
+      SUPA_URL+'/rest/v1/properties?'+
+      'status=eq.published'+
+      '&select=id,title,reference_code,category,property_type,city,neighborhood,photos,price,area_m2,bedrooms,parking_spots,construction_status'+
+      '&order=city.asc,reference_code.asc'+
+      '&limit=500',
+      { headers: H }
+    ).then(function(r){ return r.json(); }).then(function(props){
+      if(!Array.isArray(props)) return;
+      var salas = props.filter(isSala);
+      var regular = props.filter(function(p){ return !isSala(p); });
+
+      // ── Carousels ──────────────────────────────────────────────
+      var byCity = {};
+      regular.forEach(function(p){
+        var c = (p.city||'Outras').trim();
+        if(!byCity[c]) byCity[c] = [];
+        byCity[c].push(p);
+      });
+
+      var section = document.getElementById('city-carousels-section');
+      if(section){
+        var cities = CITY_ORDER.filter(function(c){ return byCity[c] && byCity[c].length > 0; });
+        Object.keys(byCity).forEach(function(c){
+          if(CITY_ORDER.indexOf(c) === -1 && byCity[c].length > 0) cities.push(c);
+        });
+
+        if(cities.length === 0){
+          section.style.display = 'none';
+        } else {
+          cities.forEach(function(city, idx){
+            var items = byCity[city];
+            var trackId = 'ctrack-' + idx;
+            var block = document.createElement('div');
+            block.className = 'city-carousel-block';
+            block.innerHTML =
+              '<div class="city-carousel-hdr">'+
+                '<div>'+
+                  '<span class="city-carousel-label">Imóveis Disponíveis</span>'+
+                  '<h2 class="city-carousel-title">'+esc(city)+'</h2>'+
+                '</div>'+
+                '<span class="city-carousel-count">'+items.length+' imóve'+(items.length===1?'l':'is')+'</span>'+
+              '</div>'+
+              '<div class="city-carousel-viewport">'+
+                '<div class="city-carousel-track" id="'+trackId+'">'+
+                  items.map(buildCard).join('')+
+                '</div>'+
+              '</div>';
+            section.appendChild(block);
+            startCarousel(trackId, items.length);
+          });
+        }
+      }
+
+      // ── Salas Comerciais ────────────────────────────────────────
+      var salasSection = document.getElementById('salas-section');
+      var salasGrid = document.getElementById('salas-grid');
+      var salasCount = document.getElementById('salas-count');
+      if(salasSection && salasGrid){
+        if(salas.length === 0){
+          salasSection.style.display = 'none';
+        } else {
+          salasSection.style.display = '';
+          salasGrid.innerHTML = salas.map(buildCard).join('');
+          if(salasCount) salasCount.textContent = salas.length+' imóve'+(salas.length===1?'l':'is')+' disponíve'+(salas.length===1?'l':'is');
+        }
+      }
+    }).catch(function(e){ console.warn('[Carousels] erro:', e); });
+  })();
   </script>
 
 </body>
