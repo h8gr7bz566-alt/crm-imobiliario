@@ -1001,7 +1001,7 @@ function closeMobileNav(){
     try{ return JSON.parse(src||'[]'); }catch(e){ return []; }
   }
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-  function isSala(p){ return /sala\s*comercial/i.test(p.title||'') || /sala\s*comercial/i.test(p.category||''); }
+  function isSala(p){ return /sala\s*comercial/i.test(p.title||''); }
   function isEmObra(p){ return EM_OBRA_STATUS.indexOf((p.construction_status||'').toLowerCase()) !== -1; }
   function normCity(c){ return (c||'').trim().replace(/\s*\([A-Z]{2}\)\s*$/,''); }
 
@@ -1037,7 +1037,7 @@ function closeMobileNav(){
   fetch(
     SUPA_URL+'/rest/v1/properties?'+
     'published=eq.true'+
-    '&select=id,title,reference,city,neighborhood,images,cover_image,price,area,bedrooms,parking,construction_status,category'+
+    '&select=id,title,reference,city,neighborhood,images,cover_image,price,area,bedrooms,parking,construction_status'+
     '&order=city.asc,reference.asc'+
     '&limit=500',
     { headers: H }
