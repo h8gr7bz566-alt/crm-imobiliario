@@ -952,7 +952,13 @@ function closeMobileNav(){
     var H = { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY };
     var CITY_ORDER = ['Balneário Camboriú','Balneário Camboriú (SC)','Itapema','Itapema (SC)','Porto Belo','Ponta Grossa'];
 
-    function fmt(n){ return n ? 'R$\u00a0' + Number(n).toLocaleString('pt-BR') : 'Consultar'; }
+    function fmt(n){
+      if(!n) return 'Consultar';
+      var clean = String(n).replace(/\./g,'').replace(',','.');
+      var num = parseFloat(clean);
+      if(isNaN(num)) return 'Consultar';
+      return 'R$\u00a0' + num.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+    }
     function badge(s){
       var m={'pronto':'Pronto','lancamento':'Lançamento','pre-lancamento':'Pré-lançamento','em-obra':'Em Obra','em_obra':'Em Obra','pré-lançamento':'Pré-lançamento'};
       return m[(s||'').toLowerCase()] || '';
@@ -1050,7 +1056,7 @@ function closeMobileNav(){
       // ── Carousels ──────────────────────────────────────────────
       var byCity = {};
       regular.forEach(function(p){
-        var c = (p.city||'Outras').trim();
+        var c = (p.city||'Outras').trim().replace(/\s*\([A-Z]{2}\)\s*$/,'');
         if(!byCity[c]) byCity[c] = [];
         byCity[c].push(p);
       });
