@@ -683,7 +683,7 @@ function setLang(lang){
     var ref = p.reference || p.reference_code || '';
     return '<a href="property.html?id='+p.id+'" class="imovel-card-h" style="text-decoration:none;display:block;">'+
       '<div class="icard-h-img-wrap">'+
-        (img ? '<div class="icard-img-bg" style="background-image:url(''+img+'');"></div>'+
+        (img ? '<div class="icard-img-bg" style="background-image:url('+img+');"></div>'+
           '<img class="icard-img" src="'+img+'" alt="'+esc(p.title)+'" loading="lazy">'
         : '<div style="width:100%;height:100%;background:#1a2940;"></div>')+
         (b ? '<div class="icard-h-img-badge">'+b+'</div>' : '')+
