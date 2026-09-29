@@ -196,7 +196,10 @@ function scrollThumbIntoView() {
   const thumbsEl = document.getElementById('gallery-thumbs')
   if (!thumbsEl) return
   const active = thumbsEl.querySelector('.gallery-thumb.active')
-  if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  if (!active) return
+  // Rola só o container de miniaturas horizontalmente — sem mexer no scroll da página
+  const targetLeft = active.offsetLeft - (thumbsEl.offsetWidth / 2) + (active.offsetWidth / 2)
+  thumbsEl.scrollTo({ left: targetLeft, behavior: 'smooth' })
 }
 
 function renderGallery() {
