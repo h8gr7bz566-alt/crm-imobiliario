@@ -14,7 +14,7 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://onknpbzdcrhbfozzvxtz.supabase.co/rest/v1/imoveis?select=id&limit=1" \
+            "https://hfcohzumcxnquqkocwwj.supabase.co/rest/v1/properties?select=id&limit=1" \
             -H "apikey: $SUPABASE_KEY" \
             -H "Authorization: Bearer $SUPABASE_KEY")
           echo "Supabase status: $STATUS"

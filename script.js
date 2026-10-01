@@ -16,7 +16,7 @@ let WHATSAPP_URL    = `https://wa.me/${WHATSAPP_NUMBER}`
 // ─── Reescreve URLs do Supabase Storage para passar pelo Cloudflare CDN ─────
 // Em produção, /img/* é proxiado pelo Worker img-proxy (cacheia 1 ano).
 // Reduz drasticamente o egress do Supabase.
-const SUPABASE_STORAGE_HOST = 'onknpbzdcrhbfozzvxtz.supabase.co'
+const SUPABASE_STORAGE_HOST = 'hfcohzumcxnquqkocwwj.supabase.co'
 const SUPABASE_STORAGE_PREFIX = '/storage/v1/object/public/'
 function rewriteImageUrl(url) {
   if (!url || typeof url !== 'string') return url
@@ -560,20 +560,15 @@ function compressToBlob(file, maxW = 1000, quality = 0.70) {
   })
 }
 
-// ─── Upload para Supabase Storage (bucket "imoveis") ─────────────────────
+// ─── Upload para Cloudflare R2 (Worker upload-imoveis) ───────────────────
 async function uploadToStorage(file) {
   const blob = await compressToBlob(file)
   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
 
-  const { error } = await supabase.storage
-    .from('imoveis')
-    .upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false })
-
-  if (error) throw error
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('imoveis')
-    .getPublicUrl(path)
+  const _fd0 = new FormData(); _fd0.append('file', blob, 'upload.jpg'); _fd0.append('path', path)
+  const _r0 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd0 })
+  const { publicUrl, error } = await _r0.json()
+  if (error) throw new Error(error)
 
   return publicUrl
 }
@@ -1181,7 +1176,7 @@ function attachAdminForm() {
         console.error('Erro no upload:', err)
         submitBtn.disabled    = false
         submitBtn.textContent = editingId ? 'Salvar Alterações' : 'Salvar Imóvel'
-        alert('Erro ao enviar fotos.\nVerifique se o bucket "imoveis" existe no Supabase Storage e se as políticas de upload estão configuradas.')
+        alert('Erro ao enviar fotos.\nVerifique sua conexão e tente novamente.')
         return
       }
     }
@@ -4410,7 +4405,7 @@ function closeImportModal() {
 }
 
 // ─── Edge Function helper ────────────────────────────────────────────────────
-const EDGE_FN_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/invite-user'
+const EDGE_FN_URL = 'https://hfcohzumcxnquqkocwwj.supabase.co/functions/v1/invite-user'
 
 async function callEdgeFunction(body) {
   const res = await fetch(EDGE_FN_URL, {
@@ -7530,7 +7525,7 @@ async function loadTenantPanelTab(tenant, tab) {
 
   // ── SITE & API ──
   if (tab === 'api') {
-    const base       = 'https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/public-api'
+    const base       = 'https://hfcohzumcxnquqkocwwj.supabase.co/functions/v1/public-api'
     const rawDomain  = (tenant.domain || '').replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').trim()
     const siteUrl    = rawDomain ? `https://${rawDomain}` : `https://omarcorretor.com.br/demo.html?key=${tenant.id}`
     const siteLabel  = rawDomain ? `🌐 Site da Imobiliária` : `🌐 Site Demonstração`
@@ -7606,7 +7601,7 @@ function openEditTenantModal(tenant) {
   const modal = document.createElement('div')
   modal.id = 'sa-edit-tenant-modal'
   modal.className = 'sa-modal-backdrop'
-  const BASE_API = 'https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/public-api'
+  const BASE_API = 'https://hfcohzumcxnquqkocwwj.supabase.co/functions/v1/public-api'
   modal.innerHTML = `
     <div class="sa-modal" style="max-width:560px;">
       <div class="sa-modal-header">

@@ -7,7 +7,7 @@ Edge Functions são executadas no runtime Deno do Supabase. Usam a `service_role
 ## URL Base
 
 ```
-https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/
+https://hfcohzumcxnquqkocwwj.supabase.co/functions/v1/
 ```
 
 ## Função: `invite-user`
@@ -49,7 +49,7 @@ Content-Type: application/json
 
 **Chamada no frontend (`script.js`):**
 ```javascript
-const EDGE_FN_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co/functions/v1/invite-user'
+const EDGE_FN_URL = 'https://hfcohzumcxnquqkocwwj.supabase.co/functions/v1/invite-user'
 
 async function callEdgeFunction(body) {
   const res = await fetch(EDGE_FN_URL, {
@@ -103,10 +103,10 @@ supabase login
 supabase functions new nome-da-funcao
 
 # Deploy
-supabase functions deploy nome-da-funcao --project-ref onknpbzdcrhbfozzvxtz
+supabase functions deploy nome-da-funcao --project-ref hfcohzumcxnquqkocwwj
 
 # Variáveis de ambiente da função
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=... --project-ref onknpbzdcrhbfozzvxtz
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=... --project-ref hfcohzumcxnquqkocwwj
 ```
 
 ## Variáveis de Ambiente das Funções

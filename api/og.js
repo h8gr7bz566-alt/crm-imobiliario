@@ -2,8 +2,8 @@
 // Usa fetch nativo (Node 18+) — sem dependência do supabase-js
 
 // Credenciais hardcoded como fallback (anon key é pública — já exposta no bundle)
-const FALLBACK_URL = 'https://onknpbzdcrhbfozzvxtz.supabase.co'
-const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua25wYnpkY3JoYmZvenp2eHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY1NjYsImV4cCI6MjA5NDQ0MjU2Nn0.5yX05Y4Nhp8UJlhFblK4z_1TRxBqJKrwOLQ91KxsLMM'
+const FALLBACK_URL = 'https://hfcohzumcxnquqkocwwj.supabase.co'
+const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmY29oenVtY3hucXVxa29jd3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4NjE5NDIsImV4cCI6MjEwNjQzNzk0Mn0.shrz0LsQy9YaAXVcTpqtVUv16E--I2Qi_6N4raYYI6g'
 
 function esc(str) {
   return String(str ?? '')
