@@ -1779,10 +1779,10 @@ function openChangePhotoModal() {
     try {
       const blob = await compressToBlob(file, 400, 0.85)
       const path = `avatars/${currentProfile.id}-${Date.now()}.jpg`
-      const { error: upErr } = await supabase.storage.from('imoveis')
-        .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
-      if (upErr) throw upErr
-      const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
+      const _fd1 = new FormData(); _fd1.append('file', blob, 'upload.jpg'); _fd1.append('path', path)
+      const _r1 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd1 })
+      const { publicUrl, error: upErr } = await _r1.json()
+      if (upErr) throw new Error(upErr)
       await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentProfile.id)
       currentProfile = { ...currentProfile, avatar_url: publicUrl }
       renderSidebarUser(currentProfile)
@@ -4493,11 +4493,11 @@ async function initSettings(profile) {
       try {
         const blob = await compressToBlob(file, 400, 0.85)
         const path = `avatars/${currentProfile.id}-${Date.now()}.jpg`
-        const { error: upErr } = await supabase.storage.from('imoveis')
-          .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+        const _fd2 = new FormData(); _fd2.append('file', blob, 'upload.jpg'); _fd2.append('path', path)
+        const _r2 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd2 })
+        const { publicUrl: _pu2, error: upErr } = await _r2.json()
         if (!upErr) {
-          const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
-          avatar_url = publicUrl
+          avatar_url = _pu2
         }
       } catch (err) { console.error('Avatar upload:', err) }
     }
@@ -5529,11 +5529,10 @@ async function applyWatermarkToUrl(imageUrl) {
           canvas.toBlob(async blob => {
             try {
               const path = `wm-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-              const { error } = await supabase.storage.from('imoveis').upload(path, blob, {
-                contentType: 'image/jpeg', cacheControl: '31536000', upsert: false
-              })
+              const _fd3 = new FormData(); _fd3.append('file', blob, 'upload.jpg'); _fd3.append('path', path)
+              const _r3 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd3 })
+              const { publicUrl, error } = await _r3.json()
               if (error) { console.error('Upload watermark error:', error); resolve(imageUrl); return }
-              const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
               resolve(publicUrl)
             } catch(e) { console.error('Watermark upload exception:', e); resolve(imageUrl) }
           }, 'image/jpeg', 0.82)
@@ -5574,10 +5573,10 @@ function showSaveMsg(el, ok) {
 async function uploadImageToStorage(file, folder = 'assets') {
   const blob = await compressToBlob(file, 1200, 0.85)
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-  const { error } = await supabase.storage.from('imoveis')
-    .upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false })
-  if (error) throw error
-  const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
+  const _fd4 = new FormData(); _fd4.append('file', blob, 'upload.jpg'); _fd4.append('path', path)
+  const _r4 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd4 })
+  const { publicUrl, error } = await _r4.json()
+  if (error) throw new Error(error)
   return publicUrl
 }
 
@@ -7866,10 +7865,11 @@ await fetch(\`\${API}/leads?key=\${KEY}\`, {
       try {
         const blob = await compressToBlob(logoFile, 256, 0.85)
         const path = `tenant-logos/${tenant.id}-${Date.now()}.jpg`
-        const { error: upErr } = await supabase.storage.from('imoveis').upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+        const _fd5 = new FormData(); _fd5.append('file', blob, 'upload.jpg'); _fd5.append('path', path)
+        const _r5 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd5 })
+        const { publicUrl: _pu5, error: upErr } = await _r5.json()
         if (!upErr) {
-          const { data: { publicUrl } } = supabase.storage.from('imoveis').getPublicUrl(path)
-          logo_url = publicUrl
+          logo_url = _pu5
         }
       } catch (err) { console.error('Logo upload:', err) }
     }
