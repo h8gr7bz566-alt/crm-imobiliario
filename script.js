@@ -475,6 +475,22 @@ async function loginAdmin(email, password) {
   return _authData?.session || null
 }
 
+// ─── Notificação push de eventos do CRM (não-bloqueante) ─────────────────
+async function _crmNotify(event, data = {}) {
+  try {
+    await fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, tenantId: currentProfile?.tenant_id || null, ...data }),
+    })
+  } catch (e) { console.warn('[notify] falhou:', e) }
+}
+
+// ─── Tenant do usuário logado (usado na importação de leads) ─────────────
+function getTenantId() {
+  return currentProfile?.tenant_id || getSettingsTenantId()
+}
+
 // ─── Auto-logout por inatividade (sem mouse/teclado por 2h) ───────────────
 let _secIdleTimer = null
 function _secMarkActivity() {
@@ -8981,7 +8997,7 @@ function _dbRenderOriginChart(leads) {
   const canvas = document.getElementById('db-origin-chart')
   const legendEl = document.getElementById('db-origin-legend')
   if (!canvas || !window.Chart) return
-  if (window._dbOriginChartInstance) { window._dbOriginChartInstance.destroy(); _dbOriginChartInstance = null }
+  if (window._dbOriginChartInstance) { window._dbOriginChartInstance.destroy(); window._dbOriginChartInstance = null }
 
   // Count by source
   const sources = {}

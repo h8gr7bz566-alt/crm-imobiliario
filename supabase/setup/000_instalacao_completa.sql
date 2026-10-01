@@ -227,8 +227,10 @@ CREATE TABLE IF NOT EXISTS public.crm_lead_statuses (
   color      text DEFAULT '#6b7280',
   is_final   boolean DEFAULT false,
   sort_order int DEFAULT 0,
+  position   int DEFAULT 0,               -- usado na importação de leads
   tenant_id  uuid
 );
+ALTER TABLE public.crm_lead_statuses ADD COLUMN IF NOT EXISTS position int DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS public.integrations (
   key        text PRIMARY KEY,
