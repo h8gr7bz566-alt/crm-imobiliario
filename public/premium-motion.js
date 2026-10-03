@@ -23,7 +23,7 @@
 
     /* ── 2. Revelação ao rolar ───────────────────────────────── */
     var REVEAL_SEL = [
-      '.city-carousel-hdr', '.imovel-card-h', '.iof-card', '.ver-todos-btn',
+      '.city-carousel-hdr', '.city-carousel-viewport', '.imoveis-grid-h > .imovel-card-h', '.iof-card', '.ver-todos-btn',
       '.sobre-photo-wrap', '.sobre-text', '.sobre-stats',
       '.dep-card-v2', '.section-title', '.section-eyebrow',
       '.pv2-body-left > *', '.pv2-body-right > *',
