@@ -4,7 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>IOS imobi — Gerenciamento de Imóveis</title>
-  <link rel="stylesheet" href="admin.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="admin.css">
 <link rel="stylesheet" href="premium-admin.css">
   <script type="module" src="./script.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
@@ -528,17 +531,17 @@
 
         <div class="stats-row">
           <div class="stat-card">
-            <div class="stat-card-icon">🏠</div>
+            <div class="stat-card-icon"><svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
             <div class="stat-card-value" id="stat-total">—</div>
             <div class="stat-card-label">Total de Imóveis</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon">✅</div>
+            <div class="stat-card-icon"><svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div>
             <div class="stat-card-value" id="stat-published">—</div>
             <div class="stat-card-label">Publicados</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon">💬</div>
+            <div class="stat-card-icon"><svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></div>
             <div class="stat-card-value" id="stat-leads">—</div>
             <div class="stat-card-label">Leads Recebidos</div>
           </div>
@@ -650,7 +653,7 @@
               </div>
             </div>
             <div class="filter-actions">
-              <button type="button" id="f-search-btn" class="btn-primary">🔍 Buscar</button>
+              <button type="button" id="f-search-btn" class="btn-primary"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Buscar</button>
               <button type="button" id="f-clear-btn" class="btn-cancel">Limpar Filtros</button>
             </div>
           </div>
@@ -883,7 +886,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="18" height="18"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
               </button>
               <div class="rd-leadpage-more-menu hidden" id="rd-lp-more-menu" style="position:absolute;top:44px;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:50;overflow:hidden">
-                <button id="rd-lp-delete" style="display:block;width:100%;text-align:left;padding:10px 14px;background:transparent;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#b91c1c">🗑️ Excluir negociação</button>
+                <button id="rd-lp-delete" style="display:block;width:100%;text-align:left;padding:10px 14px;background:transparent;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#b91c1c">Excluir negociação</button>
               </div>
             </div>
             <button class="rd-leadpage-icon-btn" title="Reativar lead">
@@ -1188,7 +1191,7 @@
 
         <!-- Alterar Senha — todos os usuários -->
         <div class="settings-card">
-          <h3 class="settings-card-title">🔒 Alterar Senha</h3>
+          <h3 class="settings-card-title">Alterar senha</h3>
           <div class="form-group">
             <label class="form-label">Nova Senha</label>
             <input id="change-password-new" type="password" class="form-control" placeholder="Mínimo 6 caracteres">
@@ -1255,7 +1258,7 @@
       <section id="section-apresentacoes" class="admin-section hidden">
         <div class="section-topbar">
           <h2 class="section-title">Apresentações</h2>
-          <button class="btn-primary" id="apres-nova-btn">＋ Nova Apresentação</button>
+          <button class="btn-primary" id="apres-nova-btn"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Nova apresentação</button>
         </div>
 
         <!-- History list -->
@@ -1305,13 +1308,13 @@
       <div id="apres-link-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:5001;align-items:center;justify-content:center;padding:16px">
         <div style="background:#fff;border-radius:18px;width:100%;max-width:480px;box-shadow:0 24px 64px rgba(0,0,0,.2);padding:28px">
           <div style="text-align:center;margin-bottom:20px">
-            <div style="font-size:40px;margin-bottom:10px">🎉</div>
+            <div class="pm-empty-ico pm-empty-ico--ok"><svg class="ico" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div>
             <h3 style="font-size:18px;font-weight:700;color:#111;margin-bottom:6px">Apresentação criada!</h3>
             <p style="font-size:13px;color:#888">Compartilhe este link com o seu cliente:</p>
           </div>
           <div style="background:#f5f5f7;border-radius:10px;padding:14px;margin-bottom:16px;word-break:break-all;font-size:13px;color:#333;font-family:monospace" id="apres-link-display"></div>
           <div style="display:flex;gap:10px;margin-bottom:12px">
-            <button id="apres-copy-btn" style="flex:1;padding:12px;background:#111;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">📋 Copiar Link</button>
+            <button id="apres-copy-btn" style="flex:1;padding:12px;background:#111;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Copiar link</button>
             <button id="apres-wa-btn" style="flex:1;padding:12px;background:#25d366;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">WhatsApp</button>
           </div>
           <button id="apres-link-close" style="width:100%;padding:12px;background:#fff;border:1.5px solid #e8e8e8;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;color:#666">Fechar</button>
@@ -1351,23 +1354,23 @@
               <div id="colecoes-checkboxes" style="display:flex;flex-direction:column;gap:10px;margin-top:6px;padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">
                 <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
                   <input type="checkbox" name="col_frente_mar" value="frente-mar" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
-                  <span>🌊 Coleção Frente Mar</span>
+                  <span>Coleção Frente Mar</span>
                 </label>
                 <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
                   <input type="checkbox" name="col_decorados" value="decorados" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
-                  <span>🛋️ Coleção Decorados</span>
+                  <span>Coleção Decorados</span>
                 </label>
                 <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
                   <input type="checkbox" name="col_casas" value="casas-condominio" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
-                  <span>🏡 Coleção Casas em Condomínio</span>
+                  <span>Coleção Casas em Condomínio</span>
                 </label>
                 <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
                   <input type="checkbox" name="col_alto_padrao" value="alto-padrao" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
-                  <span>⭐ Alto Padrão</span>
+                  <span>Alto Padrão</span>
                 </label>
                 <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#374151;font-weight:400">
                   <input type="checkbox" name="col_lancamentos" value="lancamentos" style="width:16px;height:16px;accent-color:#b8962e;cursor:pointer">
-                  <span>🚀 Lançamentos em Destaque</span>
+                  <span>Lançamentos em Destaque</span>
                 </label>
               </div>
             </div>
@@ -1485,9 +1488,9 @@
               <label class="form-label">Mobília</label>
               <select name="furnishing_status" id="adminFurnishingStatus" class="form-control">
                 <option value="">Selecione</option>
-                <option value="mobiliado">🛋️ Mobiliado</option>
-                <option value="semimobiliado">🪑 Semimobiliado</option>
-                <option value="vazio">📦 Vazio (sem mobília)</option>
+                <option value="mobiliado">Mobiliado</option>
+                <option value="semimobiliado">Semimobiliado</option>
+                <option value="vazio">Vazio (sem mobília)</option>
               </select>
             </div>
           </div>
@@ -1571,10 +1574,10 @@
           <span id="view-modal-address" class="vm-address-text"></span>
           <div class="vm-map-links">
             <a id="view-map-link" href="#" target="_blank" rel="noopener" class="vm-map-btn">
-              📍 Localização
+              <svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg> Localização
             </a>
             <a id="view-directions-link" href="#" target="_blank" rel="noopener" class="vm-map-btn">
-              🗺️ Como chegar
+              <svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg> Como chegar
             </a>
           </div>
         </div>
@@ -1583,23 +1586,23 @@
           <img id="view-thumb-preview" src="" alt="" class="vm-thumb-preview">
           <div class="vm-actions">
             <button class="vm-action-btn" title="Feedback ao proprietário">
-              <span class="vm-action-icon">💬</span>
+              <span class="vm-action-icon"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></span>
               <span class="vm-action-label">Feedback p/ proprietário</span>
             </button>
             <button class="vm-action-btn" title="Roteiros de visitas">
-              <span class="vm-action-icon">🗓️</span>
+              <span class="vm-action-icon"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg></span>
               <span class="vm-action-label">Roteiros de visitas</span>
             </button>
             <button class="vm-action-btn" title="Adicionar proposta">
-              <span class="vm-action-icon">📝</span>
+              <span class="vm-action-icon"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>
               <span class="vm-action-label">Adicionar proposta</span>
             </button>
             <button class="vm-action-btn" title="Controle de chaves">
-              <span class="vm-action-icon">🔑</span>
+              <span class="vm-action-icon"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg></span>
               <span class="vm-action-label">Controle de chaves</span>
             </button>
             <button class="vm-action-btn" title="Radar">
-              <span class="vm-action-icon">📡</span>
+              <span class="vm-action-icon"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg></span>
               <span class="vm-action-label">Radar</span>
             </button>
           </div>
@@ -1610,7 +1613,7 @@
       <div class="modal-tabs">
         <button class="tab-btn active" data-tab="principal">Principal</button>
         <button class="tab-btn" data-tab="detalhes">Detalhes</button>
-        <button class="tab-btn" data-tab="confidencial">🔒 Confidencial</button>
+        <button class="tab-btn" data-tab="confidencial"><svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Confidencial</button>
       </div>
 
       <!-- Tab: Principal -->
@@ -1688,8 +1691,8 @@
 
       <div class="modal-footer">
         <button class="btn-cancel" id="view-modal-close2">Fechar</button>
-        <button class="btn-secondary" id="view-modal-share">🔗 Compartilhar</button>
-        <button class="btn-primary" id="view-modal-edit">✏️ Editar</button>
+        <button class="btn-secondary" id="view-modal-share"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg> Compartilhar</button>
+        <button class="btn-primary" id="view-modal-edit"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg> Editar</button>
       </div>
 
       <!-- Share panel -->
@@ -2429,7 +2432,7 @@
     function copyLink() {
       var btn = document.getElementById('apres-copy-btn')
       navigator.clipboard.writeText(currentLink).then(function() {
-        if (btn) { btn.textContent = '✅ Copiado!'; setTimeout(function(){ btn.textContent = '📋 Copiar Link' }, 2000) }
+        if (btn) { btn.textContent = 'Link copiado'; setTimeout(function(){ btn.textContent = 'Copiar link' }, 2000) }
       }).catch(function() { prompt('Copie o link:', currentLink) })
     }
 

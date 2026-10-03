@@ -73,6 +73,9 @@ function formatPrice(rawPrice, lang) {
   if (str.includes(',') && str.lastIndexOf(',') > str.lastIndexOf('.')) {
     // Formato BR: ponto = milhar, vírgula = decimal
     num = parseFloat(str.replace(/\./g, '').replace(',', '.'))
+  } else if (/^\D*\d{1,3}(\.\d{3})+\D*$/.test(str)) {
+    // "11.000.000" — pontos são separador de milhar (formato BR sem centavos)
+    num = parseFloat(str.replace(/\D/g, ''))
   } else {
     num = parseFloat(str.replace(/[^\d.]/g, ''))
   }
@@ -85,6 +88,14 @@ function formatPrice(rawPrice, lang) {
   // PT e ES: sempre Real brasileiro
   return 'R$ ' + num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
+
+
+// ─── Ícones de linha (estilo Lucide) para a interface do CRM ─────────────
+const ICO_PATHS = {"pencil": "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\"/><path d=\"m15 5 4 4\"/>", "trash": "<path d=\"M3 6h18\"/><path d=\"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6\"/><path d=\"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2\"/><path d=\"M10 11v6\"/><path d=\"M14 11v6\"/>", "home": "<path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/>", "check-circle": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/>", "message": "<path d=\"M7.9 20A9 9 0 1 0 4 16.1L2 22Z\"/>", "phone": "<path d=\"M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z\"/>", "mail": "<rect width=\"20\" height=\"16\" x=\"2\" y=\"4\" rx=\"2\"/><path d=\"m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7\"/>", "calendar": "<path d=\"M8 2v4\"/><path d=\"M16 2v4\"/><rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\"/><path d=\"M3 10h18\"/>", "clipboard": "<rect width=\"8\" height=\"4\" x=\"8\" y=\"2\" rx=\"1\"/><path d=\"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2\"/><path d=\"M12 11h4\"/><path d=\"M12 16h4\"/><path d=\"M8 11h.01\"/><path d=\"M8 16h.01\"/>", "copy": "<rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/>", "user": "<circle cx=\"12\" cy=\"8\" r=\"5\"/><path d=\"M20 21a8 8 0 0 0-16 0\"/>", "users": "<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\"/><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"/>", "pin": "<path d=\"M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/>", "target": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><circle cx=\"12\" cy=\"12\" r=\"6\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/>", "briefcase": "<path d=\"M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16\"/><rect width=\"20\" height=\"14\" x=\"2\" y=\"6\" rx=\"2\"/>", "shield": "<path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/>", "dollar": "<path d=\"M12 2v20\"/><path d=\"M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6\"/>", "alert": "<path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/>", "check": "<path d=\"M20 6 9 17l-5-5\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/>", "lock": "<rect width=\"18\" height=\"11\" x=\"3\" y=\"11\" rx=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"/>", "link": "<path d=\"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71\"/><path d=\"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71\"/>", "file": "<path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z\"/><path d=\"M14 2v4a2 2 0 0 0 2 2h4\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/>", "key": "<path d=\"m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4\"/><path d=\"m21 2-9.6 9.6\"/><circle cx=\"7.5\" cy=\"15.5\" r=\"5.5\"/>", "signal": "<path d=\"M4 11a9 9 0 0 1 9 9\"/><path d=\"M4 4a16 16 0 0 1 16 16\"/><circle cx=\"5\" cy=\"19\" r=\"1\"/>", "star": "<path d=\"M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z\"/>", "plus": "<path d=\"M5 12h14\"/><path d=\"M12 5v14\"/>", "map": "<path d=\"M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z\"/><path d=\"M15 5.764v15\"/><path d=\"M9 3.236v15\"/>", "building": "<rect width=\"16\" height=\"20\" x=\"4\" y=\"2\" rx=\"2\"/><path d=\"M9 22v-4h6v4\"/><path d=\"M8 6h.01\"/><path d=\"M16 6h.01\"/><path d=\"M12 6h.01\"/><path d=\"M12 10h.01\"/><path d=\"M12 14h.01\"/><path d=\"M16 10h.01\"/><path d=\"M16 14h.01\"/><path d=\"M8 10h.01\"/><path d=\"M8 14h.01\"/>", "image": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21\"/>", "save": "<path d=\"M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z\"/><path d=\"M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7\"/><path d=\"M7 3v4a1 1 0 0 0 1 1h7\"/>", "handshake": "<path d=\"m11 17 2 2a1 1 0 1 0 3-3\"/><path d=\"m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4\"/><path d=\"m21 3 1 11h-2\"/><path d=\"M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3\"/><path d=\"M3 4h8\"/>", "pen": "<path d=\"M12 20h9\"/><path d=\"M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z\"/>", "sparkle": "<path d=\"M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z\"/>", "eye": "<path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>", "clock": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/>", "share": "<circle cx=\"18\" cy=\"5\" r=\"3\"/><circle cx=\"6\" cy=\"12\" r=\"3\"/><circle cx=\"18\" cy=\"19\" r=\"3\"/><path d=\"m8.59 13.51 6.83 3.98\"/><path d=\"m15.41 6.51-6.82 3.98\"/>", "upload": "<path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"m17 8-5-5-5 5\"/><path d=\"M12 3v12\"/>", "folder": "<path d=\"M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z\"/>", "settings": "<path d=\"M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>", "palette": "<circle cx=\"13.5\" cy=\"6.5\" r=\".5\" fill=\"currentColor\"/><circle cx=\"17.5\" cy=\"10.5\" r=\".5\" fill=\"currentColor\"/><circle cx=\"8.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\"/><circle cx=\"6.5\" cy=\"12.5\" r=\".5\" fill=\"currentColor\"/><path d=\"M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z\"/>", "smartphone": "<rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\"/><path d=\"M12 18h.01\"/>", "tag": "<path d=\"M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z\"/><circle cx=\"7.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\"/>", "git": "<circle cx=\"18\" cy=\"18\" r=\"3\"/><circle cx=\"6\" cy=\"6\" r=\"3\"/><path d=\"M6 21V9a9 9 0 0 0 9 9\"/>", "bolt": "<path d=\"M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z\"/>", "bulb": "<path d=\"M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5\"/><path d=\"M9 18h6\"/><path d=\"M10 22h4\"/>", "bell": "<path d=\"M10.268 21a2 2 0 0 0 3.464 0\"/><path d=\"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326\"/>", "chart": "<path d=\"M3 3v16a2 2 0 0 0 2 2h16\"/><path d=\"M18 17V9\"/><path d=\"M13 17V5\"/><path d=\"M8 17v-3\"/>", "globe": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20\"/><path d=\"M2 12h20\"/>", "camera": "<path d=\"M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z\"/><circle cx=\"12\" cy=\"13\" r=\"3\"/>", "download": "<path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"m7 10 5 5 5-5\"/><path d=\"M12 15V3\"/>", "sofa": "<path d=\"M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3\"/><path d=\"M2 16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z\"/><path d=\"M4 18v2\"/><path d=\"M20 18v2\"/>", "waves": "<path d=\"M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1\"/><path d=\"M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1\"/><path d=\"M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1\"/>", "rocket": "<path d=\"M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z\"/><path d=\"m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z\"/><path d=\"M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0\"/><path d=\"M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5\"/>", "x": "<path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/>"}
+function ico(name, size = 16) {
+  return '<svg class="ico" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICO_PATHS[name] || '') + '</svg>'
+}
+window.ico = ico
 
 // Expõe lang atual para uso nos templates (atualizado pelo setLang() do index.html)
 window.currentLang = window.currentLang || 'pt'
@@ -996,8 +1007,8 @@ function renderAdminTable(props) {
       <td>${badge}</td>
       <td>
         <div class="action-btns">
-          ${(currentProfile?.role === 'admin' || currentProfile?.role === 'super_admin') ? `<button data-id="${p.id}" class="icon-btn edit-btn" title="Editar">✏️</button>` : ''}
-          ${(currentProfile?.role === 'admin' || currentProfile?.role === 'super_admin') ? `<button data-id="${p.id}" class="icon-btn del-btn" title="Remover">🗑️</button>` : ''}
+          ${(currentProfile?.role === 'admin' || currentProfile?.role === 'super_admin') ? `<button data-id="${p.id}" class="icon-btn edit-btn" title="Editar">${ico('pencil',15)}</button>` : ''}
+          ${(currentProfile?.role === 'admin' || currentProfile?.role === 'super_admin') ? `<button data-id="${p.id}" class="icon-btn del-btn" title="Remover">${ico('trash',15)}</button>` : ''}
         </div>
       </td>
     </tr>`
@@ -1134,7 +1145,7 @@ function renderCoverPicker(images) {
     <div class="cover-thumb-wrap${url === selectedCover ? ' selected' : ''}" data-url="${url}">
       <img src="${url}" class="cover-thumb" alt="">
       <span class="cover-star" title="Marcar como capa">★</span>
-      <button type="button" class="cover-delete" title="Remover foto" aria-label="Remover foto">🗑️</button>
+      <button type="button" class="cover-delete" title="Remover foto" aria-label="Remover foto">${ico('trash',14)}</button>
     </div>`).join('')
   // Click no card: marca como capa (exceto se for clique no botão lixo)
   strip.querySelectorAll('.cover-thumb-wrap').forEach(wrap => {
@@ -1452,7 +1463,7 @@ function openViewModal(p) {
 
   // Address + Google Maps
   const addr = [p.rua, p.numero ? `nº ${p.numero}` : '', p.neighborhood, p.city].filter(Boolean)
-  document.getElementById('view-modal-address').textContent = addr.length ? `📍 ${addr.join(', ')}` : ''
+  document.getElementById('view-modal-address').textContent = addr.length ? addr.join(', ') : ''
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr.join(' '))}`
   document.getElementById('view-map-link').href        = mapsUrl
   document.getElementById('view-directions-link').href = mapsUrl
@@ -2185,8 +2196,8 @@ function renderKanban() {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             </a>` : ''}
           </div>
-          ${l.phone ? `<div class="kanban-card-info">📞 ${escapeHTML(l.phone)}</div>` : ''}
-          ${l.email ? `<div class="kanban-card-info" style="font-size:11px;color:#94a3b8;">✉ ${escapeHTML(l.email)}</div>` : ''}
+          ${l.phone ? `<div class="kanban-card-info">${ico('phone',12)} ${escapeHTML(l.phone)}</div>` : ''}
+          ${l.email ? `<div class="kanban-card-info" style="font-size:11px;color:#94a3b8;">${ico('mail',12)} ${escapeHTML(l.email)}</div>` : ''}
           ${(() => {
             const tc = kanbanTaskCounts[l.id]
             if (!tc || !tc.total) return ''
@@ -2198,7 +2209,7 @@ function renderKanban() {
               ? (tc.overdue === 1 ? '1 tarefa atrasada' : tc.overdue + ' tarefas atrasadas')
               : (tc.total === 1 ? '1 tarefa pendente' : tc.total + ' tarefas pendentes')
             return `<div class="rd-card-task-badge" style="background:${bg};color:${fg};border:1px solid ${bd};">
-              ${isOverdue ? '⏰' : '📋'} ${label}
+              ${isOverdue ? ico('clock',12) : ico('clipboard',12)} ${label}
             </div>`
           })()}
           ${tagsCount > 0 || l.source ? `<div class="kanban-card-tags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;">
@@ -2294,8 +2305,8 @@ window.openLeadSidePanel = function(leadId) {
     '<div class="rd-lead-sidepanel-body">',
       '<div class="rd-lead-sidepanel-section-label">DADOS GERAIS</div>',
       `<div class="rd-lead-field"><div class="rd-lead-field-label">Nome</div><div class="rd-lead-field-value">${escapeHTML(lead.name || '—')}</div></div>`,
-      lead.phone  ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Telefone</div><div class="rd-lead-field-value">📞 ${escapeHTML(lead.phone)}</div></div>` : '',
-      lead.email  ? `<div class="rd-lead-field"><div class="rd-lead-field-label">E-mail</div><div class="rd-lead-field-value">✉ ${escapeHTML(lead.email)}</div></div>` : '',
+      lead.phone  ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Telefone</div><div class="rd-lead-field-value">${ico('phone',13)} ${escapeHTML(lead.phone)}</div></div>` : '',
+      lead.email  ? `<div class="rd-lead-field"><div class="rd-lead-field-label">E-mail</div><div class="rd-lead-field-value">${ico('mail',13)} ${escapeHTML(lead.email)}</div></div>` : '',
       `<div class="rd-lead-field"><div class="rd-lead-field-label">Fonte</div><div class="rd-lead-field-value">${escapeHTML(lead.source || 'Não informado')}</div></div>`,
       lead.utm_campaign ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Campanha</div><div class="rd-lead-field-value">${escapeHTML(lead.utm_campaign)}</div></div>` : '',
       lead.utm_source   ? `<div class="rd-lead-field"><div class="rd-lead-field-label">UTM Source</div><div class="rd-lead-field-value">${escapeHTML(lead.utm_source)}</div></div>` : '',
@@ -2305,7 +2316,7 @@ window.openLeadSidePanel = function(leadId) {
       (lead.updated_at && lead.updated_at !== lead.created_at) ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Último contato</div><div class="rd-lead-field-value">${fmtDate(lead.updated_at)}</div></div>` : '',
       `<div class="rd-lead-field"><div class="rd-lead-field-label">Previsão de fechamento</div><div class="rd-lead-field-value" style="color:${lead.next_contact ? '#0f172a' : '#94a3b8'}">${lead.next_contact ? fmtDate(lead.next_contact) : 'Não preenchido'}</div></div>`,
       lead.interest ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Qualificação / Interesse</div><div class="rd-lead-field-value">${escapeHTML(lead.interest)}</div></div>` : '',
-      `<div class="rd-lead-field"><div class="rd-lead-field-label">⭐ Classificação</div><div class="rd-lead-field-value">${[1,2,3,4,5].map(i => `<svg viewBox="0 0 24 24" fill="${(lead.rating||0) >= i ? '#fbbf24' : '#cbd5e1'}" stroke="none" width="16" height="16" style="cursor:pointer" onclick="window.closeLeadSidePanel();setTimeout(()=>window.openRatingPicker('${lead.id}',event),100)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`).join('')} ${lead.rating ? '<span style=\"margin-left:4px;font-size:11px;color:#92400e\">'+lead.rating+'/5</span>' : ''}</div></div>`,
+      `<div class="rd-lead-field"><div class="rd-lead-field-label">Classificação</div><div class="rd-lead-field-value">${[1,2,3,4,5].map(i => `<svg viewBox="0 0 24 24" fill="${(lead.rating||0) >= i ? '#fbbf24' : '#cbd5e1'}" stroke="none" width="16" height="16" style="cursor:pointer" onclick="window.closeLeadSidePanel();setTimeout(()=>window.openRatingPicker('${lead.id}',event),100)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`).join('')} ${lead.rating ? '<span style=\"margin-left:4px;font-size:11px;color:#92400e\">'+lead.rating+'/5</span>' : ''}</div></div>`,
       (Array.isArray(lead.tags) && lead.tags.length) ? `<div class="rd-lead-field"><div class="rd-lead-field-label">Tags</div><div class="rd-lead-field-value" style="display:flex;flex-wrap:wrap;gap:4px">${lead.tags.map(t => `<span style="background:#ecfeff;color:#0e7490;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${escapeHTML(t)}</span>`).join('')}</div></div>` : '',
     '</div>',
     '<div class="rd-lead-sidepanel-footer">',
@@ -2388,7 +2399,7 @@ window.openLeadDetailPage = async function(leadId) {
   const fmtMoney = v => v ? 'R$ ' + Number(v).toLocaleString('pt-BR') : null
   // Estrelas de classificação no topo (interativo)
   const ratingHtml = `<div class="rd-leadpage-field-row" style="background:#fffbeb;border-radius:6px;padding:10px 12px">
-    <span class="rd-leadpage-field-label">⭐ Classificação</span>
+    <span class="rd-leadpage-field-label">Classificação</span>
     <span class="rd-leadpage-field-value">
       ${[1,2,3,4,5].map(i => `<svg viewBox="0 0 24 24" fill="${(lead.rating||0) >= i ? '#fbbf24' : '#cbd5e1'}" stroke="none" width="18" height="18" style="cursor:pointer;margin:0 1px" onclick="window.openRatingPicker?.('${lead.id}', event)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`).join('')}
       <span style="margin-left:6px;font-size:12px;color:#92400e">${lead.rating ? lead.rating + '/5' : 'Sem classificação'}</span>
@@ -2421,14 +2432,14 @@ window.openLeadDetailPage = async function(leadId) {
   document.getElementById('rd-lp-contatos-fields').innerHTML = `
     <div style="margin-bottom:14px">
       <div style="font-weight:700;color:#0f172a;font-size:14px;margin-bottom:8px">${escapeHTML(lead.name || '—')}</div>
-      ${lead.phone ? `<div style="font-size:13px;color:#0ea5e9;margin-bottom:6px">
-        📞 <a href="tel:${escapeHTML(lead.phone)}" style="color:#0ea5e9;text-decoration:none">${escapeHTML(lead.phone)}</a>
-        <button onclick="navigator.clipboard.writeText('${escapeHTML(lead.phone)}');this.textContent='✓'" style="margin-left:6px;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px" title="Copiar">📋</button>
-        <a href="https://wa.me/${(lead.phone||'').replace(/\D/g,'')}" target="_blank" style="margin-left:6px;color:#25d366;text-decoration:none" title="WhatsApp">💬</a>
+      ${lead.phone ? `<div style="font-size:13px;color:#0d2144;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        ${ico('phone',13)} <a href="tel:${escapeHTML(lead.phone)}" style="color:#0d2144;text-decoration:none">${escapeHTML(lead.phone)}</a>
+        <button onclick="navigator.clipboard.writeText('${escapeHTML(lead.phone)}');this.textContent='✓'" style="margin-left:6px;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px;display:inline-flex" title="Copiar">${ico('copy',13)}</button>
+        <a href="https://wa.me/${(lead.phone||'').replace(/\D/g,'')}" target="_blank" style="margin-left:6px;color:#25d366;text-decoration:none" title="WhatsApp" style="display:inline-flex">${ico('message',14)}</a>
       </div>` : ''}
-      ${lead.email ? `<div style="font-size:13px;color:#0ea5e9">
-        ✉ <a href="mailto:${escapeHTML(lead.email)}" style="color:#0ea5e9;text-decoration:none">${escapeHTML(lead.email)}</a>
-        <button onclick="navigator.clipboard.writeText('${escapeHTML(lead.email)}');this.textContent='✓'" style="margin-left:6px;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px" title="Copiar">📋</button>
+      ${lead.email ? `<div style="font-size:13px;color:#0d2144;display:flex;align-items:center;gap:6px">
+        ${ico('mail',13)} <a href="mailto:${escapeHTML(lead.email)}" style="color:#0d2144;text-decoration:none">${escapeHTML(lead.email)}</a>
+        <button onclick="navigator.clipboard.writeText('${escapeHTML(lead.email)}');this.textContent='✓'" style="margin-left:6px;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px;display:inline-flex" title="Copiar">${ico('copy',13)}</button>
       </div>` : ''}
     </div>
     <button class="rd-leadpage-add-link">+ Adicionar contato</button>
@@ -2528,7 +2539,7 @@ async function initVendasSection() {
 
   if (!leads.length) {
     list.innerHTML = `<div class="rd-empty-card">
-      <div style="font-size:48px">🎯</div>
+      <div class="pm-empty-ico">${ico('target',26)}</div>
       <div style="font-size:16px;font-weight:600;color:#0f172a;margin-top:10px">Nenhuma venda registrada ainda</div>
       <div style="color:#64748b;font-size:13px;margin-top:6px">Conforme você marcar leads como "venda" no funil, eles aparecem aqui.</div>
     </div>`
@@ -2544,9 +2555,9 @@ async function initVendasSection() {
       <div class="rd-result-info">
         <div class="rd-result-name">${escapeHTML(l.name || '—')}</div>
         <div class="rd-result-meta">
-          ${l.phone ? `<span>📞 ${escapeHTML(l.phone)}</span>` : ''}
-          ${l.email ? `<span>✉ ${escapeHTML(l.email)}</span>` : ''}
-          ${l.source ? `<span>🎯 ${escapeHTML(l.source)}</span>` : ''}
+          ${l.phone ? `<span>${ico('phone',12)} ${escapeHTML(l.phone)}</span>` : ''}
+          ${l.email ? `<span>${ico('mail',12)} ${escapeHTML(l.email)}</span>` : ''}
+          ${l.source ? `<span>${ico('target',12)} ${escapeHTML(l.source)}</span>` : ''}
         </div>
       </div>
       <div class="rd-result-value">
@@ -2597,7 +2608,7 @@ async function initPerdasSection() {
 
   if (!leads.length) {
     list.innerHTML = `<div class="rd-empty-card">
-      <div style="font-size:48px">🛡️</div>
+      <div class="pm-empty-ico">${ico('shield',26)}</div>
       <div style="font-size:16px;font-weight:600;color:#0f172a;margin-top:10px">Nenhum lead perdido ainda</div>
       <div style="color:#64748b;font-size:13px;margin-top:6px">Bons números! Quando algo der errado, você pode revisar aqui.</div>
     </div>`
@@ -2612,11 +2623,11 @@ async function initPerdasSection() {
       <div class="rd-result-info">
         <div class="rd-result-name">${escapeHTML(l.name || '—')}</div>
         <div class="rd-result-meta">
-          ${l.phone ? `<span>📞 ${escapeHTML(l.phone)}</span>` : ''}
-          ${l.email ? `<span>✉ ${escapeHTML(l.email)}</span>` : ''}
-          ${l.source ? `<span>🎯 ${escapeHTML(l.source)}</span>` : ''}
+          ${l.phone ? `<span>${ico('phone',12)} ${escapeHTML(l.phone)}</span>` : ''}
+          ${l.email ? `<span>${ico('mail',12)} ${escapeHTML(l.email)}</span>` : ''}
+          ${l.source ? `<span>${ico('target',12)} ${escapeHTML(l.source)}</span>` : ''}
         </div>
-        ${l.lost_reason ? `<div class="rd-result-reason">💬 ${escapeHTML(l.lost_reason)}</div>` : ''}
+        ${l.lost_reason ? `<div class="rd-result-reason">${ico('message',12)} ${escapeHTML(l.lost_reason)}</div>` : ''}
       </div>
       <div class="rd-result-date">
         <div class="rd-result-value-label">Marcado em</div>
@@ -2787,7 +2798,7 @@ function _rdRenderLeadsList() {
         </td>
         <td style="text-align:center;color:#64748b;font-size:13px">${fmtDt(l.created_at)}</td>
         <td style="text-align:center">
-          <span title="${status.title}" style="font-size:18px;cursor:help">${status.icon}</span>
+          <span title="${status.title}" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${status.color};box-shadow:0 0 0 3px ${status.color}22;cursor:help"></span>
           <button class="rd-list-info-btn"  title="Ver resumo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           </button>
@@ -2891,12 +2902,12 @@ window._lpLoadTasks = async function(leadId) {
         '<div class="rd-lp-task-title">'+escapeHTML(t.title)+'</div>'+
         (t.description?'<div class="rd-lp-task-desc">'+escapeHTML(t.description)+'</div>':'')+
         '<div class="rd-lp-task-meta">'+
-          (t.due_date?'<span class="rd-lp-task-date '+(overdue?'overdue':'')+'">📅 '+fmtDt(t.due_date)+(overdue?' · ATRASADA':'')+'</span>':'')+
+          (t.due_date?'<span class="rd-lp-task-date '+(overdue?'overdue':'')+'">'+ico('calendar',12)+' '+fmtDt(t.due_date)+(overdue?' · ATRASADA':'')+'</span>':'')+
           '<span class="rd-lp-task-prio prio-'+(t.priority||'medium')+'">'+(t.priority||'medium').toUpperCase()+'</span>'+
-          (t.due_date?'<a class="rd-lp-task-gcal" href="'+window.buildGoogleCalendarUrl(t)+'" target="_blank" rel="noopener" title="Adicionar ao Google Agenda">🗓 Google Agenda</a>':'')+
+          (t.due_date?'<a class="rd-lp-task-gcal" href="'+window.buildGoogleCalendarUrl(t)+'" target="_blank" rel="noopener" title="Adicionar ao Google Agenda">'+ico('calendar',12)+' Google Agenda</a>':'')+
         '</div>'+
       '</div>'+
-      '<button class="rd-lp-task-del" data-id="'+t.id+'" title="Excluir">🗑️</button>'+
+      '<button class="rd-lp-task-del" data-id="'+t.id+'" title="Excluir">'+ico('trash',14)+'</button>'+
     '</div>'
   }).join('')
   el.querySelectorAll('.rd-lp-task-check').forEach(cb => {
@@ -2988,12 +2999,12 @@ window._lpLoadTimeline = async function(leadId) {
   const tasks = tasksRes.data || []
   const notes = notesRes.data || []
   const events = []
-  notes.forEach(n => events.push({ author: n.author_name || 'Anotação', text: n.body, date: n.created_at, icon: '✍️', noteId: n.id }))
+  notes.forEach(n => events.push({ author: n.author_name || 'Anotação', text: n.body, date: n.created_at, icon: ico('pen',13), noteId: n.id }))
   tasks.filter(t => t.status === 'concluida' || t.status === 'done').forEach(t => {
-    events.push({ author: 'Tarefa concluída', text: t.title + (t.description ? '\n'+t.description : ''), date: t.updated_at || t.created_at, icon: '✅' })
+    events.push({ author: 'Tarefa concluída', text: t.title + (t.description ? '\n'+t.description : ''), date: t.updated_at || t.created_at, icon: ico('check-circle',13) })
   })
   tasks.filter(t => t.status !== 'concluida' && t.status !== 'done').forEach(t => {
-    events.push({ author: 'Tarefa criada', text: t.title, date: t.created_at, icon: '📋' })
+    events.push({ author: 'Tarefa criada', text: t.title, date: t.created_at, icon: ico('clipboard',13) })
   })
   // Parse lead.notes (pode ter múltiplas anotações separadas por \n\n)
   if (lead.notes) {
@@ -3007,13 +3018,13 @@ window._lpLoadTimeline = async function(leadId) {
         const [d, t] = dt.replace(',', '').split(/\s+/)
         const [dia, mes, ano] = d.split('/')
         const dateObj = new Date(`${ano}-${mes}-${dia}T${t}:00`)
-        events.push({ author: 'Anotação', text: txt, date: dateObj.toISOString(), icon: '✍️' })
+        events.push({ author: 'Anotação', text: txt, date: dateObj.toISOString(), icon: ico('pen',13) })
       } else {
-        events.push({ author: 'Anotação', text: b, date: lead.updated_at || lead.created_at, icon: '✍️' })
+        events.push({ author: 'Anotação', text: b, date: lead.updated_at || lead.created_at, icon: ico('pen',13) })
       }
     })
   }
-  events.push({ author: 'Sistema', text: 'Lead criado na etapa "'+(lead.stage || '—')+'"', date: lead.created_at, icon: '🌱' })
+  events.push({ author: 'Sistema', text: 'Lead criado na etapa "'+(lead.stage || '—')+'"', date: lead.created_at, icon: ico('plus',13) })
   events.sort((a,b) => new Date(b.date) - new Date(a.date))
   const fmtDt = iso => {
     if (!iso) return ''
@@ -3156,7 +3167,7 @@ window.maybePromptPush = function() {
   const b = document.createElement('div')
   b.id = 'push-prompt-banner'
   b.innerHTML = '🔔 <strong>Ative notificações</strong> para receber alertas de tarefas no PC/celular. ' +
-    '<button id="push-prompt-yes" style="background:#06b6d4;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:600;cursor:pointer;margin-left:10px">Ativar</button>' +
+    '<button id="push-prompt-yes" style="background:#0d2144;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:600;cursor:pointer;margin-left:10px">Ativar</button>' +
     '<button id="push-prompt-no" style="background:transparent;border:none;color:#94a3b8;padding:6px 10px;cursor:pointer;margin-left:4px">Depois</button>'
   b.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fef3c7;border-bottom:1px solid #fde68a;padding:12px 20px;text-align:center;font-size:14px;color:#92400e;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,.05)'
   document.body.appendChild(b)
@@ -3340,7 +3351,7 @@ async function openLeadModal(lead = null) {
   panel.style.cssText = 'position:fixed;top:0;right:0;bottom:0;width:420px;max-width:100vw;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.15);z-index:1000;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;'
   panel.innerHTML = `
     <div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">${isNew ? '+ Novo Lead' : '✏️ Editar Lead'}</h3>
+      <h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">${isNew ? 'Novo lead' : 'Editar lead'}</h3>
       <button id="ldp-close" style="background:none;border:none;cursor:pointer;font-size:22px;color:#94a3b8;line-height:1;">✕</button>
     </div>
     <div style="flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
@@ -3421,8 +3432,8 @@ async function openLeadModal(lead = null) {
       <div id="ldp-msg" style="font-size:13px;min-height:18px;"></div>
     </div>
     <div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;gap:10px;flex-shrink:0;">
-      ${!isNew ? `<button id="ldp-delete" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;">🗑️ Excluir</button>` : ''}
-      <button id="ldp-save" style="flex:1;background:#0a1628;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;">💾 Salvar</button>
+      ${!isNew ? `<button id="ldp-delete" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;">Excluir</button>` : ''}
+      <button id="ldp-save" style="flex:1;background:#0a1628;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;">Salvar</button>
     </div>
   `
   document.body.appendChild(panel)
@@ -3499,9 +3510,9 @@ async function openLeadModal(lead = null) {
       _crmNotify('new_lead', { leadId: insertedId }).catch(()=>{})
     }
 
-    btn.disabled = false; btn.textContent = '💾 Salvar'
+    btn.disabled = false; btn.textContent = 'Salvar'
     if (error) { msgEl.style.color='#ef4444'; msgEl.textContent='Erro: ' + error.message; return }
-    msgEl.style.color='#22c55e'; msgEl.textContent='✅ Salvo!'
+    msgEl.style.color='#22c55e'; msgEl.textContent='Salvo'
 
     // Fecha + recarrega kanban IMEDIATAMENTE (sem delay artificial)
     close()
@@ -3604,7 +3615,7 @@ async function loadTarefas() {
     const list2 = document.getElementById('tarefas-list')
     if (list2) list2.innerHTML = `
       <div style="text-align:center;padding:40px;color:#94a3b8;">
-        <div style="font-size:32px;margin-bottom:8px;">📋</div>
+        <div class="pm-empty-ico">${ico('clipboard',24)}</div>
         <p style="margin-bottom:12px;">Para usar Tarefas, execute o SQL abaixo no Supabase:</p>
         <code style="font-size:11px;background:#f1f5f9;padding:8px 12px;border-radius:8px;display:block;text-align:left;white-space:pre;overflow-x:auto;">CREATE TABLE IF NOT EXISTS public.tasks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -3645,7 +3656,7 @@ function renderTarefas() {
 
   if (!filtered.length) {
     list.innerHTML = `<div style="text-align:center;padding:40px;color:#94a3b8;">
-      <div style="font-size:32px;margin-bottom:8px;">${tarefasFilter === 'done' ? '✅' : '📋'}</div>
+      <div class="pm-empty-ico">${tarefasFilter === 'done' ? ico('check-circle',24) : ico('clipboard',24)}</div>
       <p>${tarefasFilter === 'done' ? 'Nenhuma tarefa concluída.' : 'Nenhuma tarefa pendente.'}</p>
     </div>`
     return
@@ -3662,12 +3673,12 @@ function renderTarefas() {
         <div class="tarefa-body">
           <div class="tarefa-title">${escapeHTML(t.title)}</div>
           <div class="tarefa-meta">
-            ${due ? `<span style="${overdue ? 'color:#ef4444;' : ''}">📅 ${due}${overdue ? ' (atrasada)' : ''}</span>` : ''}
+            ${due ? `<span style="${overdue ? 'color:#ef4444;' : ''}">${ico('calendar',12)} ${due}${overdue ? ' (atrasada)' : ''}</span>` : ''}
             ${t.description ? `<span>${escapeHTML(t.description.substring(0, 60))}${t.description.length > 60 ? '…' : ''}</span>` : ''}
           </div>
         </div>
         <span class="tarefa-priority ${t.priority || 'medium'}">${t.priority === 'high' ? 'Alta' : t.priority === 'low' ? 'Baixa' : 'Média'}</span>
-        <button class="tarefa-del-btn" data-id="${t.id}" title="Excluir">🗑️</button>
+        <button class="tarefa-del-btn" data-id="${t.id}" title="Excluir">${ico('trash',14)}</button>
       </div>`
   }).join('')
 
@@ -3731,13 +3742,13 @@ function openTarefaModal(tarefa = null, presetLeadId = null) {
     <div class="modal" style="max-width:520px;">
       <div class="modal-header">
         <h3 style="display:flex;align-items:center;gap:10px;">
-          ${isDone ? '<span style="color:#22c55e;font-size:18px;">✅</span>' : '<span style="font-size:18px;">📋</span>'}
+          ${isDone ? '<span style="color:#16a34a;display:inline-flex">'+ico('check-circle',18)+'</span>' : '<span style="color:#0d2144;display:inline-flex">'+ico('clipboard',18)+'</span>'}
           ${isEdit ? 'Editar Tarefa' : 'Nova Tarefa'}
         </h3>
         <button class="modal-close" id="tm-close">✕</button>
       </div>
       <div class="modal-body" style="padding:24px;">
-        ${isEdit && isDone ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:16px;color:#15803d;font-size:13px;font-weight:600;">✅ Tarefa concluída</div>` : ''}
+        ${isEdit && isDone ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:16px;color:#15803d;font-size:13px;font-weight:600;">Tarefa concluída</div>` : ''}
         <form id="tarefa-form" style="display:flex;flex-direction:column;gap:16px;">
           <div class="form-group">
             <label class="form-label">Título *</label>
@@ -3764,14 +3775,14 @@ function openTarefaModal(tarefa = null, presetLeadId = null) {
         </form>
         ${tarefa?.due_date ? `<div style="margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;">
           <a href="${window.buildGoogleCalendarUrl(tarefa)}" target="_blank" rel="noopener" class="btn-cancel" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;">
-            🗓 Adicionar ao Google Agenda
+            ${ico('calendar',14)} Adicionar ao Google Agenda
           </a>
         </div>` : ''}
       </div>
       <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between;align-items:center;">
         <div style="display:flex;gap:8px;">
           ${isEdit ? `<button id="tm-toggle-done" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid ${isDone ? '#94a3b8' : '#22c55e'};background:${isDone ? '#f8fafc' : '#f0fdf4'};color:${isDone ? '#64748b' : '#15803d'};">
-            ${isDone ? '↩ Reabrir tarefa' : '✅ Marcar como Concluída'}
+            ${isDone ? '↩ Reabrir tarefa' : 'Marcar como concluída'}
           </button>` : ''}
         </div>
         <div style="display:flex;gap:8px;">
@@ -3871,7 +3882,7 @@ async function runSearch(q) {
     parts.push(`<div class="search-group-label">Imóveis</div>`)
     parts.push(...props.map(p => `
       <div class="search-result-item" data-type="property" data-id="${p.id}">
-        <div class="search-result-icon">🏠</div>
+        <div class="search-result-icon">${ico('home',15)}</div>
         <div>
           <div class="search-result-title">${escapeHTML(p.title || '—')}</div>
           <div class="search-result-sub">${escapeHTML(p.reference || '')} · ${escapeHTML(p.city || '')}</div>
@@ -3883,7 +3894,7 @@ async function runSearch(q) {
     parts.push(`<div class="search-group-label">Leads / Contatos</div>`)
     parts.push(...leads.map(l => `
       <div class="search-result-item" data-type="lead" data-id="${l.id}">
-        <div class="search-result-icon">👤</div>
+        <div class="search-result-icon">${ico('user',15)}</div>
         <div>
           <div class="search-result-title">${escapeHTML(l.name || '—')}</div>
           <div class="search-result-sub">${escapeHTML(l.email || l.phone || '')}</div>
@@ -3965,7 +3976,7 @@ async function loadNotifications() {
     const isUnread = !notifsRead.includes(String(l.id))
     return `
       <div class="notif-item${isUnread ? ' unread' : ''}" data-id="${l.id}" style="position:relative">
-        <div class="notif-item-icon">👤</div>
+        <div class="notif-item-icon">${ico('user',15)}</div>
         <div class="notif-item-body">
           <div class="notif-item-title">Novo lead: ${escapeHTML(l.name || '—')}</div>
           <div class="notif-item-sub">${escapeHTML(l.phone || l.source || '')} · ${ago}</div>
@@ -4130,7 +4141,7 @@ function renderContatos() {
             </a>`
           })()}
           <button class="icon-btn contato-edit-btn" data-id="${c.id}" title="Editar" style="color:#64748b;">
-            ✏️
+            ${ico('pencil',15)}
           </button>
         </td>
       </tr>
@@ -4298,7 +4309,7 @@ async function openContatoModal(contato = null) {
         </form>
       </div>
       <div class="modal-footer" style="flex-shrink:0;">
-        ${isEdit ? `<button class="btn-danger" id="cm-delete" style="margin-right:auto;">🗑️ Excluir</button>` : ''}
+        ${isEdit ? `<button class="btn-danger" id="cm-delete" style="margin-right:auto;">Excluir</button>` : ''}
         <button class="btn-cancel" id="cm-cancel">Cancelar</button>
         <button class="btn-primary" id="cm-save" style="margin:0;">${isEdit ? 'Salvar' : 'Criar Contato'}</button>
       </div>
@@ -4628,13 +4639,13 @@ async function loadCorretores() {
       ? `<button class="corretor-toggle-btn" data-uid="${p.id}" data-active="true">Pausar acesso</button>`
       : `<button class="corretor-toggle-btn btn-liberar" data-uid="${p.id}" data-active="false">Liberar acesso</button>`
     const deleteBtn = isMe ? '' :
-      `<button class="corretor-del-btn icon-btn" data-uid="${p.id}" title="Excluir corretor">🗑️</button>`
+      `<button class="corretor-del-btn icon-btn" data-uid="${p.id}" title="Excluir corretor">${ico('trash',15)}</button>`
     return `<div class="corretor-item">
       <div class="corretor-info">
         ${avatar}
         <div>
           <div class="corretor-name">${escapeHTML(p.name || '—')}</div>
-          <div class="corretor-role-badge">${p.role === 'super_admin' ? '⚡ Super Admin' : p.role === 'admin' ? '👑 Admin' : '🔑 Corretor'}</div>
+          <div class="corretor-role-badge">${p.role === 'super_admin' ? 'Super Admin' : p.role === 'admin' ? 'Admin' : 'Corretor'}</div>
         </div>
       </div>
       <div class="corretor-actions">
@@ -5609,7 +5620,7 @@ async function initEmpresaSection() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>🏢</span> Identidade</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('building',16)}</span> Identidade</div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Nome da Empresa</label>
@@ -5647,7 +5658,7 @@ async function initEmpresaSection() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>📞</span> Contatos</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('phone',16)}</span> Contatos</div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">WhatsApp <small style="color:#9ca3af">(somente números, com DDI)</small></label>
@@ -5676,7 +5687,7 @@ async function initEmpresaSection() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>📱</span> Redes Sociais</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('smartphone',16)}</span> Redes Sociais</div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Instagram</label>
@@ -5793,7 +5804,7 @@ async function initVisualSection() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>🎨</span> Preview ao Vivo</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('eye',16)}</span> Preview ao Vivo</div>
       <div class="visual-preview">
         <div class="visual-preview-bar" id="vp-bar"></div>
         <div class="visual-preview-body">
@@ -5805,7 +5816,7 @@ async function initVisualSection() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>🖌️</span> Paleta de Cores</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('palette',16)}</span> Paleta de Cores</div>
 
       <div class="color-row">
         <div>
@@ -5845,7 +5856,7 @@ async function initVisualSection() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>🖼️</span> Imagens do Site</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('image',16)}</span> Imagens do Site</div>
       <div class="form-group" style="margin-bottom:16px">
         <label class="form-label">Imagem de Fundo do Hero (Banner Principal)</label>
         <div style="display:flex;gap:8px">
@@ -6034,7 +6045,7 @@ async function initSiteConfigSection() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>📝</span> Conteúdo do Site</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('file',16)}</span> Conteúdo do Site</div>
       <div class="content-tabs" id="sc-tabs">${renderLangTabs('pt')}</div>
       <div id="sc-panels">
         ${langs.map(l => `<div class="content-panel${l === 'pt' ? ' active' : ''}" data-panel="${l}">${renderFields(l)}</div>`).join('')}
@@ -6046,7 +6057,7 @@ async function initSiteConfigSection() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>🔍</span> SEO</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('search',16)}</span> SEO</div>
       <div class="content-field">
         <label class="form-label">Title da Página (PT)</label>
         <input id="seo-title" class="form-control" value="${g('seo.title_pt', 'pt')}" placeholder="Nome — Cargo">
@@ -6155,7 +6166,7 @@ async function renderCRMConfig() {
       <div class="stage-color-dot" style="background:${s.color}"></div>
       <input type="text" class="stage-name-input" value="${escapeHTML(s.name)}" data-sid="${s.id}" data-orig="${escapeHTML(s.name)}" placeholder="Nome da etapa">
       <input type="color" value="${s.color}" data-sid="${s.id}" class="stage-color-pick" title="Cor da etapa">
-      <button class="icon-btn del-btn stage-del" data-id="${s.id}" title="Remover etapa">🗑️</button>
+      <button class="icon-btn del-btn stage-del" data-id="${s.id}" title="Remover etapa">${ico('trash',15)}</button>
     </div>`).join('') || '<p style="color:#9ca3af;font-size:14px;margin:0">Nenhuma etapa cadastrada.</p>'
 
   const tagItems = (tags || []).map(t =>
@@ -6170,12 +6181,12 @@ async function renderCRMConfig() {
       <div class="stage-color-dot" style="background:${s.color}"></div>
       <span class="stage-name">${escapeHTML(s.name)}</span>
       <span style="font-size:11px;color:#9ca3af;margin-left:auto;margin-right:8px">${s.is_final ? 'Final' : ''}</span>
-      <button class="icon-btn del-btn status-del" data-id="${s.id}" title="Remover">🗑️</button>
+      <button class="icon-btn del-btn status-del" data-id="${s.id}" title="Remover">${ico('trash',15)}</button>
     </div>`).join('') || '<p style="color:#9ca3af;font-size:14px;margin:0">Nenhum status cadastrado.</p>'
 
   body.innerHTML = `
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>🔀</span> Funis e Etapas</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('git',16)}</span> Funis e Etapas</div>
 
       <!-- Seletor de Funil + ações sobre o funil inteiro -->
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
@@ -6185,25 +6196,25 @@ async function renderCRMConfig() {
             <select class="pipeline-select" id="crm-pipe-sel" style="flex:1;min-width:200px;font-size:14px;padding:8px 10px;border:1px solid var(--border);border-radius:6px">${pipeOptions}</select>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn-secondary" id="crm-rename-pipeline" style="font-size:13px;padding:7px 14px" title="Renomear este funil">✏️ Renomear</button>
-            <button class="btn-secondary" id="crm-set-default-pipeline" style="font-size:13px;padding:7px 14px" title="Marcar como padrão">⭐ Tornar padrão</button>
-            <button class="btn-secondary" id="crm-delete-pipeline" style="font-size:13px;padding:7px 14px;color:#dc2626;border-color:#fecaca" title="Excluir este funil">🗑️ Excluir funil</button>
-            <button class="btn-primary" id="crm-add-pipeline" style="font-size:13px;padding:7px 14px">➕ Novo Funil</button>
+            <button class="btn-secondary" id="crm-rename-pipeline" style="font-size:13px;padding:7px 14px" title="Renomear este funil">Renomear</button>
+            <button class="btn-secondary" id="crm-set-default-pipeline" style="font-size:13px;padding:7px 14px" title="Marcar como padrão">Tornar padrão</button>
+            <button class="btn-secondary" id="crm-delete-pipeline" style="font-size:13px;padding:7px 14px;color:#dc2626;border-color:#fecaca" title="Excluir este funil">Excluir funil</button>
+            <button class="btn-primary" id="crm-add-pipeline" style="font-size:13px;padding:7px 14px">${ico('plus',14)} Novo funil</button>
           </div>
         </div>
-        ${defaultPipe?.is_default ? '<div style="margin-top:8px;font-size:12px;color:#059669"><strong>⭐ Funil padrão</strong> · usado por novos leads</div>' : ''}
+        ${defaultPipe?.is_default ? '<div style="margin-top:8px;font-size:12px;color:#059669"><strong>Funil padrão</strong> · usado por novos leads</div>' : ''}
       </div>
 
       <!-- Banner explicativo -->
       <div style="background:linear-gradient(to right,#fffbeb,#fef3c7);border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:16px">
         <div style="display:flex;align-items:flex-start;gap:12px">
-          <span style="font-size:24px;line-height:1">💡</span>
+          <span style="color:#c9a84c;display:inline-flex">${ico('bulb',22)}</span>
           <div style="font-size:13px;color:#78350f;line-height:1.6">
             <div style="font-weight:700;margin-bottom:4px;color:#92400e">Como editar as etapas do funil "${escapeHTML(defaultPipe?.name || '')}"</div>
             <div>• <strong>Reordenar:</strong> arraste pela alça <span style="display:inline-block;background:#C9A227;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;letter-spacing:-2px;font-family:monospace;font-size:14px">⋮⋮</span> dourada</div>
             <div>• <strong>Renomear:</strong> clique no nome da etapa, edite e tecle Enter</div>
             <div>• <strong>Mudar cor:</strong> clique no quadradinho colorido</div>
-            <div>• <strong>Excluir:</strong> clique no 🗑️ (cuidado: leads dessa etapa ficam órfãos)</div>
+            <div>• <strong>Excluir:</strong> clique na lixeira (cuidado: leads dessa etapa ficam órfãos)</div>
           </div>
         </div>
       </div>
@@ -6223,12 +6234,12 @@ async function renderCRMConfig() {
       <div class="stage-add-row" style="margin-top:12px;padding:12px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px">
         <input id="crm-new-stage" type="text" class="form-control" placeholder="Nome da nova etapa (ex: Visita Marcada, Sem Resposta…)">
         <input type="color" id="crm-new-stage-color" value="#3b82f6" style="width:44px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:2px">
-        <button class="btn-primary" id="crm-add-stage">➕ Adicionar Etapa</button>
+        <button class="btn-primary" id="crm-add-stage">${ico('plus',14)} Adicionar etapa</button>
       </div>
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>🏷️</span> Tags de Classificação</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('tag',16)}</span> Tags de Classificação</div>
       <p style="font-size:13px;color:#64748b;margin:0 0 16px;">Classifique seus leads com tags coloridas personalizadas. Use emojis no nome para identificar visualmente.</p>
       <div class="tm-list" id="crm-tags-list">
         ${!(tags||[]).length ? '<p style="color:#9ca3af;font-size:13px;margin:0;padding:8px 0;">Nenhuma tag criada ainda. Adicione abaixo ou use as sugestões rápidas.</p>' : (tags||[]).map(t => `
@@ -6237,7 +6248,7 @@ async function renderCRMConfig() {
           <input type="color" class="tm-color-input" data-id="${t.id}" value="${t.color}" title="Cor da tag">
           <input class="tm-name-input form-control" type="text" value="${escapeHTML(t.name)}" data-id="${t.id}" data-orig="${escapeHTML(t.name)}" placeholder="Nome da tag">
           <button class="btn-primary tm-save-btn" data-id="${t.id}">Salvar</button>
-          <button class="icon-btn del-btn tm-del-btn" data-id="${t.id}" title="Excluir tag">🗑️</button>
+          <button class="icon-btn del-btn tm-del-btn" data-id="${t.id}" title="Excluir tag">${ico('trash',15)}</button>
         </div>`).join('')}
       </div>
       <div class="tm-add-row">
@@ -6246,7 +6257,7 @@ async function renderCRMConfig() {
         <button class="btn-primary" id="crm-add-tag">+ Adicionar Tag</button>
       </div>
       <div class="tm-templates">
-        <div class="tm-templates-label">⚡ Sugestões rápidas — clique para adicionar:</div>
+        <div class="tm-templates-label">Sugestões rápidas — clique para adicionar:</div>
         <div class="tm-tpl-grid" id="tm-tpl-grid">
           ${[{name:'🔴 Quente',color:'#EF4444'},{name:'🟡 Morno',color:'#F59E0B'},{name:'🔵 Frio',color:'#3B82F6'},{name:'💰 Investidor',color:'#8B5CF6'},{name:'⭐ Alto Padrão',color:'#C9A227'},{name:'🏦 Financiamento',color:'#0EA5E9'},{name:'🔄 Permuta',color:'#374151'},{name:'🏠 Comprador',color:'#10B981'},{name:'📋 Proprietário',color:'#F97316'}]
           .filter(tpl => !(tags||[]).some(t => t.name === tpl.name))
@@ -6256,7 +6267,7 @@ async function renderCRMConfig() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>📋</span> Status de Leads</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('clipboard',16)}</span> Status de Leads</div>
       <div class="stages-list" id="crm-status-list">${statusItems}</div>
       <div class="stage-add-row">
         <input id="crm-new-status" type="text" class="form-control" placeholder="Nome do status…">
@@ -6570,7 +6581,7 @@ async function initIntegracoesSection() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>🔗</span> Analytics &amp; Tracking</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('chart',16)}</span> Analytics &amp; Tracking</div>
       ${integList.map(i => `
         <div class="integration-row">
           <div class="integration-icon">${i.icon}</div>
@@ -6595,7 +6606,7 @@ async function initIntegracoesSection() {
     </div>
 
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>📧</span> Configurações de E-mail (SMTP)</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('mail',16)}</span> Configurações de E-mail (SMTP)</div>
       <p style="font-size:13px;color:#9ca3af;margin:0 0 16px">Configure para enviar e-mails via servidor próprio.</p>
       ${smtpFields.map(f => `
         <div class="form-group" style="margin-bottom:14px">
@@ -6663,7 +6674,7 @@ async function initMidiaSection() {
       <div><div class="section-title">Biblioteca de Mídia</div><div class="section-sub">Gerencie imagens e arquivos do sistema</div></div>
     </div>
     <div class="cfg-card">
-      <div class="cfg-card-title"><span>📤</span> Upload de Arquivos</div>
+      <div class="cfg-card-title"><span class="cfg-ico">${ico('upload',16)}</span> Upload de Arquivos</div>
       <div class="media-upload-area" id="media-drop-area">
         <input type="file" id="media-file-input" accept="image/*" multiple>
         <div class="media-upload-icon">🖼️</div>
@@ -6741,7 +6752,7 @@ async function loadMediaGrid() {
       <img src="${escapeHTML(item.url)}" alt="${escapeHTML(item.name || '')}">
       <div class="media-item-overlay">
         <button class="media-copy-btn" data-url="${escapeHTML(item.url)}">📋 Copiar URL</button>
-        <button class="media-del-btn" data-id="${item.id}">🗑️ Excluir</button>
+        <button class="media-del-btn" data-id="${item.id}">Excluir</button>
       </div>
       <div class="media-item-name">${escapeHTML(item.name || 'imagem')}</div>
     </div>
@@ -7287,7 +7298,7 @@ function openTenantPropertyEdit(p, onSaved) {
       </div>
       <div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
         <button id="tpe-cancel" style="background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Cancelar</button>
-        <button id="tpe-save" style="background:#0a1628;color:#fff;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px;font-weight:700;">💾 Salvar</button>
+        <button id="tpe-save" style="background:#0a1628;color:#fff;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px;font-weight:700;">Salvar</button>
       </div>
     </div>`
 
@@ -7325,10 +7336,10 @@ function openTenantPropertyEdit(p, onSaved) {
     const { error } = await supabase.from('properties').update(payload).eq('id', p.id)
     if (error) {
       msgEl.style.color='#ef4444'; msgEl.textContent='Erro: ' + error.message
-      btn.disabled = false; btn.textContent = '💾 Salvar'
+      btn.disabled = false; btn.textContent = 'Salvar'
       return
     }
-    msgEl.style.color='#16a34a'; msgEl.textContent='✅ Salvo!'
+    msgEl.style.color='#16a34a'; msgEl.textContent='Salvo'
     setTimeout(() => { close(); if (typeof onSaved === 'function') onSaved() }, 800)
   })
 }
@@ -7718,7 +7729,7 @@ await fetch(\`\${API}/leads?key=\${KEY}\`, {
       </div>
 
       <div class="sa-modal-footer">
-        <button id="et-delete" class="btn-danger-sm">🗑️ Excluir</button>
+        <button id="et-delete" class="btn-danger-sm">Excluir</button>
         <button id="et-cancel" class="btn-secondary-sm">Cancelar</button>
         <button id="et-save" class="btn-primary-sm">Salvar</button>
       </div>
@@ -7807,7 +7818,7 @@ await fetch(\`\${API}/leads?key=\${KEY}\`, {
         <input id="et-cfg-slogan" class="form-input" type="text"  value="${escapeHTML(s['company.slogan']||'')}"   placeholder="Os melhores imóveis da região">
       </div>
       <div id="et-cfg-msg" style="font-size:13px;min-height:20px;"></div>
-      <button id="et-cfg-save" class="btn-primary-sm" style="width:100%;padding:10px 0;">💾 Salvar configurações</button>
+      <button id="et-cfg-save" class="btn-primary-sm" style="width:100%;padding:10px 0;">Salvar configurações</button>
     `
     document.getElementById('et-cfg-save')?.addEventListener('click', async () => {
       const btn   = document.getElementById('et-cfg-save')
@@ -7833,7 +7844,7 @@ await fetch(\`\${API}/leads?key=\${KEY}\`, {
         { onConflict: 'tenant_id,key' }
       )
 
-      btn.disabled = false; btn.textContent = '💾 Salvar configurações'
+      btn.disabled = false; btn.textContent = 'Salvar configurações'
       if (error) { msgEl.textContent = '❌ ' + error.message; msgEl.style.color = '#ef4444' }
       else        { msgEl.textContent = '✅ Configurações salvas!'; msgEl.style.color = '#22c55e' }
     })
@@ -8522,7 +8533,7 @@ async function initDashboardSection() {
         <button class="db-card-link" onclick="navigateToSection('funil')">Ver kanban →</button>
       </div>
       <div class="db-funnel-stages" id="db-funnel-stages">
-        <div class="db-empty"><div class="db-empty-icon">⏳</div><div class="db-empty-text">Carregando…</div></div>
+        <div class="db-empty"><div class="db-empty-icon pm-skel"></div><div class="db-empty-text">Carregando…</div></div>
       </div>
     </div>
     <div class="db-card db-quick-actions-card">
@@ -8534,27 +8545,27 @@ async function initDashboardSection() {
       </div>
       <div class="db-quick-actions">
         <button class="db-quick-action" onclick="navigateToSection('funil');setTimeout(()=>document.getElementById('btn-funil-add-lead')?.click(),200)">
-          <span class="db-quick-icon" style="background:#dcfce7;color:#059669">+</span>
+          <span class="db-quick-icon" style="background:#dcfce7;color:#059669">${ico('plus',18)}</span>
           <span class="db-quick-label">Novo lead</span>
         </button>
         <button class="db-quick-action" onclick="navigateToSection('properties');setTimeout(()=>document.querySelector('#section-properties .btn-primary')?.click(),200)">
-          <span class="db-quick-icon" style="background:#dbeafe;color:#2563eb">🏠</span>
+          <span class="db-quick-icon" style="background:#dbeafe;color:#0d2144">${ico('home',18)}</span>
           <span class="db-quick-label">Novo imóvel</span>
         </button>
         <button class="db-quick-action" onclick="navigateToSection('tarefas')">
-          <span class="db-quick-icon" style="background:#fef3c7;color:#d97706">✓</span>
+          <span class="db-quick-icon" style="background:#fef3c7;color:#d97706">${ico('check',18)}</span>
           <span class="db-quick-label">Nova tarefa</span>
         </button>
         <button class="db-quick-action" onclick="navigateToSection('vendas')">
-          <span class="db-quick-icon" style="background:#cffafe;color:#0e7490">💰</span>
+          <span class="db-quick-icon" style="background:#cffafe;color:#0d2144">${ico('dollar',18)}</span>
           <span class="db-quick-label">Vendas</span>
         </button>
         <button class="db-quick-action" onclick="navigateToSection('contatos')">
-          <span class="db-quick-icon" style="background:#fce7f3;color:#be185d">👥</span>
+          <span class="db-quick-icon" style="background:#fce7f3;color:#be185d">${ico('users',18)}</span>
           <span class="db-quick-label">Contatos</span>
         </button>
         <button class="db-quick-action" onclick="navigateToSection('perdas')">
-          <span class="db-quick-icon" style="background:#fee2e2;color:#dc2626">⚠</span>
+          <span class="db-quick-icon" style="background:#fee2e2;color:#dc2626">${ico('alert',18)}</span>
           <span class="db-quick-label">Perdas</span>
         </button>
       </div>
@@ -8609,7 +8620,7 @@ async function initDashboardSection() {
             <th></th>
           </tr></thead>
           <tbody id="db-leads-tbody">
-            <tr><td colspan="5" class="db-empty"><div class="db-empty-icon">⏳</div><div class="db-empty-text">Carregando leads…</div></td></tr>
+            <tr><td colspan="5" class="db-empty"><div class="db-empty-icon pm-skel"></div><div class="db-empty-text">Carregando leads…</div></td></tr>
           </tbody>
         </table>
       </div>
@@ -8623,7 +8634,7 @@ async function initDashboardSection() {
         <button class="db-card-link" onclick="navigateToSection('properties')">Ver todos →</button>
       </div>
       <div class="db-prop-list" id="db-top-props">
-        <div class="db-empty"><div class="db-empty-icon">⏳</div><div class="db-empty-text">Carregando…</div></div>
+        <div class="db-empty"><div class="db-empty-icon pm-skel"></div><div class="db-empty-text">Carregando…</div></div>
       </div>
     </div>
   </div>
@@ -8638,7 +8649,7 @@ async function initDashboardSection() {
         </div>
       </div>
       <div class="db-timeline" id="db-timeline">
-        <div class="db-empty"><div class="db-empty-icon">⏳</div><div class="db-empty-text">Carregando…</div></div>
+        <div class="db-empty"><div class="db-empty-icon pm-skel"></div><div class="db-empty-text">Carregando…</div></div>
       </div>
     </div>
     <div class="db-card">
@@ -8664,7 +8675,7 @@ async function initDashboardSection() {
   const userName = currentProfile?.name?.split(' ')[0] || 'Corretor'
 
   const greetEl = section.querySelector('.db-greeting')
-  if (greetEl) greetEl.innerHTML = `${greet}, <span class="db-greeting-name">${_dbEsc(userName)}</span> 👋`
+  if (greetEl) greetEl.innerHTML = `${greet}, <span class="db-greeting-name">${_dbEsc(userName)}</span>`
   const sublineEl = document.getElementById('db-subline')
   if (sublineEl) sublineEl.textContent = `Aqui está o resumo do seu negócio — ${dateStr}`
 
@@ -8877,7 +8888,7 @@ function _dbRenderKPIs(properties, leads, now) {
     },
     {
       idx: 5, val: _dbFmt(vendasMes), label: 'Vendas (30d)',
-      trend: vendasMes === 0 ? '<span class="db-kpi-trend db-trend-neu">Aguardando primeira venda</span>' : '<span class="db-kpi-trend db-trend-up">🎯 Fechadas</span>',
+      trend: vendasMes === 0 ? '<span class="db-kpi-trend db-trend-neu">Aguardando primeira venda</span>' : '<span class="db-kpi-trend db-trend-up">Fechadas</span>',
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>'
     }
   ]
@@ -8912,7 +8923,7 @@ function _dbRenderFunnelStages(leads) {
   const total = activeLeads.length
   const maxV = Math.max(...stages.map(s => s[1]), 1)
   if (!stages.length) {
-    el.innerHTML = '<div class="db-empty"><div class="db-empty-icon">💼</div><div class="db-empty-text">Nenhum lead em negociação ainda</div></div>'
+    el.innerHTML = '<div class="db-empty"><div class="db-empty-icon">'+ico('briefcase',24)+'</div><div class="db-empty-text">Nenhum lead em negociação ainda</div></div>'
     return
   }
   el.innerHTML = stages.map(([name, count]) => {
@@ -9074,7 +9085,7 @@ function _dbRenderLeadsTable(leads, properties) {
   if (subEl) subEl.textContent = `${leads.length} lead${leads.length !== 1 ? 's' : ''} no total`
 
   if (recent.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5"><div class="db-empty"><div class="db-empty-icon">💬</div><div class="db-empty-text">Nenhum lead recebido ainda</div></div></td></tr>'
+    tbody.innerHTML = '<tr><td colspan="5"><div class="db-empty"><div class="db-empty-icon">'+ico('message',24)+'</div><div class="db-empty-text">Nenhum lead recebido ainda</div></div></td></tr>'
     return
   }
 
@@ -9115,7 +9126,7 @@ function _dbRenderTopProperties(properties) {
     .slice(0, 6)
 
   if (sorted.length === 0) {
-    el.innerHTML = '<div class="db-empty"><div class="db-empty-icon">🏠</div><div class="db-empty-text">Nenhum imóvel cadastrado ainda</div></div>'
+    el.innerHTML = '<div class="db-empty"><div class="db-empty-icon">'+ico('home',24)+'</div><div class="db-empty-text">Nenhum imóvel cadastrado ainda</div></div>'
     return
   }
 
@@ -9133,7 +9144,7 @@ function _dbRenderTopProperties(properties) {
       ${thumb
         ? `<img class="db-prop-thumb" src="${_dbEsc(thumb)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
         : ''}
-      <div class="db-prop-thumb-ph" ${thumb ? 'style="display:none"' : ''}>🏠</div>
+      <div class="db-prop-thumb-ph" ${thumb ? 'style="display:none"' : ''}>${ico('home',18)}</div>
       <div class="db-prop-info">
         <div class="db-prop-name" title="${_dbEsc(p.title || '')}">${_dbEsc(p.title || 'Sem título')}</div>
         <div class="db-prop-city">${_dbEsc(city)} · ${_dbEsc(price)}</div>
@@ -9152,17 +9163,17 @@ function _dbRenderTimeline(properties, leads, now) {
   const events = []
 
   // Login event (always first)
-  events.push({ icon: '👤', cls: 'tl-login', title: 'Você entrou no sistema', meta: `Bem-vindo de volta, ${currentProfile?.name?.split(' ')[0] || 'Corretor'}`, time: now.toISOString() })
+  events.push({ icon: ico('user',15), cls: 'tl-login', title: 'Você entrou no sistema', meta: `Bem-vindo de volta, ${currentProfile?.name?.split(' ')[0] || 'Corretor'}`, time: now.toISOString() })
 
   // Recent leads
   leads.slice(0, 3).forEach(l => {
-    events.push({ icon: '💬', cls: 'tl-lead', title: `Novo lead: ${l.name || 'Sem nome'}`, meta: `Origem: ${l.source || 'Direto'} · ${l.phone || l.email || ''}`, time: l.created_at })
+    events.push({ icon: ico('message',15), cls: 'tl-lead', title: `Novo lead: ${l.name || 'Sem nome'}`, meta: `Origem: ${l.source || 'Direto'} · ${l.phone || l.email || ''}`, time: l.created_at })
   })
 
   // Recent properties
   properties.slice(0, 3).forEach(p => {
     const action = p.published ? 'Imóvel publicado' : 'Imóvel cadastrado'
-    events.push({ icon: '🏠', cls: 'tl-prop', title: `${action}: ${p.title || 'Sem título'}`, meta: `${p.city || ''} · ${p.reference || ''}`, time: p.created_at })
+    events.push({ icon: ico('home',15), cls: 'tl-prop', title: `${action}: ${p.title || 'Sem título'}`, meta: `${p.city || ''} · ${p.reference || ''}`, time: p.created_at })
   })
 
   // Sort by time desc
@@ -9179,7 +9190,7 @@ function _dbRenderTimeline(properties, leads, now) {
     </div>`).join('')
 
   if (events.length === 0) {
-    el.innerHTML = '<div class="db-empty"><div class="db-empty-icon">📋</div><div class="db-empty-text">Sem atividades recentes</div></div>'
+    el.innerHTML = '<div class="db-empty"><div class="db-empty-icon">'+ico('clipboard',24)+'</div><div class="db-empty-text">Sem atividades recentes</div></div>'
   }
 }
 
@@ -9205,10 +9216,10 @@ function _dbRenderPortfolio(properties, leads) {
   // const vendidos = properties.filter(p => p.status === 'vendido').length
 
   const cards = [
-    { icon: '✅', val: published,    lbl: 'Imóveis Ativos' },
-    { icon: '📝', val: rascunho,     lbl: 'Em Rascunho' },
-    { icon: '🤝', val: emNegociacao, lbl: 'Em Negociação' },
-    { icon: '⭐', val: destacados,   lbl: 'Em Coleções' },
+    { icon: ico('check-circle',20), val: published,    lbl: 'Imóveis Ativos' },
+    { icon: ico('file',20), val: rascunho,     lbl: 'Em Rascunho' },
+    { icon: ico('handshake',20), val: emNegociacao, lbl: 'Em Negociação' },
+    { icon: ico('star',20), val: destacados,   lbl: 'Em Coleções' },
   ]
 
   el.innerHTML = cards.map(c => `
