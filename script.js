@@ -986,14 +986,14 @@ function renderAdminTable(props) {
     return
   }
   tbody.innerHTML = props.map(p => {
-    const img   = p.cover_image || p.images?.[0] || SAMPLE_URLS[0]
+    const img   = p.cover_image || p.images?.[0] || ''
     const addr  = [p.rua, p.numero ? `nº ${p.numero}` : '', p.neighborhood, p.city].filter(Boolean).join(', ') || '—'
     const badge = p.published === true
       ? '<span class="badge badge-green">● Publicado</span>'
       : '<span class="badge badge-gray">○ Rascunho</span>'
     return `<tr data-id="${p.id}">
       <td style="position:relative;width:80px;">
-        <img src="${img}" class="table-thumb" alt="">
+        ${img ? `<img src="${img}" class="table-thumb" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;table-thumb table-thumb-ph&quot;>'+ico('image',18)+'</div>'">` : `<div class="table-thumb table-thumb-ph">${ico('image',18)}</div>`}
         ${p.reference ? `<span class="ref-badge">${escapeHTML(p.reference)}</span>` : ''}
       </td>
       <td>

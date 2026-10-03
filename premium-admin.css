@@ -267,3 +267,8 @@ table thead th { font-size: 11px !important; letter-spacing: .08em !important; c
 .vm-action-icon { color: var(--navy); display: inline-flex; }
 
 @media (prefers-reduced-motion: reduce) { .pm-skel { animation: none; } }
+
+/* Miniatura sem foto */
+.table-thumb-ph { display: flex !important; align-items: center; justify-content: center; background: var(--cream); color: #b9a46a; }
+/* VGV: valor numa linha só */
+.db-kpi.db-kpi-vgv .db-kpi-val { font-size: 24px !important; white-space: nowrap; }
