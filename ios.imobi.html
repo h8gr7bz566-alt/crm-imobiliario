@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>IOS imobi — Gerenciamento de Imóveis</title>
   <link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="premium-admin.css">
   <script type="module" src="./script.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <link rel="shortcut icon" href="/favicon.ico?v=5">
@@ -2031,7 +2032,7 @@
       panel.innerHTML =
         '<div class="toolbar-panel-header">' +
           '<span class="toolbar-panel-title">' + title + '</span>' +
-          '<button class="toolbar-panel-close" onclick="this.closest('.toolbar-panel-overlay').remove()">&#x2715;</button>' +
+          '<button class="toolbar-panel-close" onclick="this.closest(\'.toolbar-panel-overlay\').remove()">&#x2715;</button>' +
         '</div>' +
         '<div class="toolbar-panel-body" id="' + id + '-body">Carregando&#8230;</div>'
 

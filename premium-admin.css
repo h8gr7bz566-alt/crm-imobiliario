@@ -1,0 +1,112 @@
+/* ════════════════════════════════════════════════════════════════
+   PREMIUM LAYER — CRM (out/2026)
+   Só acabamento: toque nos botões, entrada suave de menus/modais,
+   gaveta lateral com curva do iOS. Carregado DEPOIS de admin.css.
+   Para desfazer, basta remover o <link> deste arquivo.
+════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+/* Números alinhados (painéis, valores, contadores) */
+.stats-row, .stat-value, .db-kpi-value, .kanban-col-count, .rd-card-value, td {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Botões: resposta ao toque ─────────────────────────────── */
+.btn-primary, .btn-cancel, .btn-secondary, .btn-primary-sm, .btn-secondary-sm,
+.rd-btn-primary, .filter-btn, .tarefa-filter-btn, .tab-btn, .rd-chip, .icon-btn,
+.modal-close, .rd-toolbar-icon, .topnav-icon-btn, .rd-leadpage-btn, .rd-leadpage-btn-add,
+.rd-leadpage-btn-win, .rd-leadpage-btn-lose, .rd-leadpage-icon-btn, .vm-action-btn,
+.btn-login, .rd-view-btn, .rd-pagination-btn, .topnav-link {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary, .btn-cancel, .btn-secondary, .btn-primary-sm, .btn-secondary-sm,
+.rd-btn-primary, .btn-login, .rd-leadpage-btn, .rd-leadpage-btn-add,
+.rd-leadpage-btn-win, .rd-leadpage-btn-lose, .vm-action-btn {
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease,
+              box-shadow .25s var(--ease-out), transform 160ms var(--ease-out) !important;
+}
+
+.btn-primary:active, .btn-cancel:active, .btn-secondary:active, .btn-primary-sm:active,
+.btn-secondary-sm:active, .rd-btn-primary:active, .filter-btn:active, .tarefa-filter-btn:active,
+.tab-btn:active, .rd-chip:active, .icon-btn:active, .modal-close:active, .rd-toolbar-icon:active,
+.topnav-icon-btn:active, .rd-leadpage-btn:active, .rd-leadpage-btn-add:active,
+.rd-leadpage-btn-win:active, .rd-leadpage-btn-lose:active, .rd-leadpage-icon-btn:active,
+.vm-action-btn:active, .btn-login:active, .rd-view-btn:active, .rd-pagination-btn:active {
+  transform: scale(0.97) !important;
+}
+
+/* Sem “hover preso” no celular */
+@media (hover: none) {
+  .btn-primary:hover, .rd-btn-primary:hover, .btn-login:hover,
+  .rd-leadpage-btn-win:hover, .kanban-card:hover {
+    transform: none !important;
+  }
+}
+
+/* ── Menus suspensos: surgem do ponto de origem ────────────── */
+.notif-dropdown, .avatar-dropdown {
+  transform-origin: top right;
+  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+}
+.topnav-dropdown-menu-inner {
+  transform-origin: top left;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+@starting-style {
+  .notif-dropdown, .avatar-dropdown, .topnav-dropdown-menu-inner {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
+}
+
+/* ── Modais: entrada suave, centralizados ──────────────────── */
+#property-modal, #view-modal, .modal-backdrop, .sa-modal-backdrop {
+  transition: opacity 200ms ease;
+}
+.modal-box, .modal-backdrop .modal, .sa-modal {
+  transition: opacity 220ms var(--ease-out), transform 260ms var(--ease-out);
+}
+@starting-style {
+  #property-modal, #view-modal, .modal-backdrop, .sa-modal-backdrop { opacity: 0; }
+  .modal-box, .modal-backdrop .modal, .sa-modal { opacity: 0; transform: scale(0.97) translateY(6px); }
+}
+
+/* ── Gaveta do lead: curva do iOS ──────────────────────────── */
+.rd-lead-sidepanel {
+  transition: transform 340ms var(--ease-drawer) !important;
+}
+
+/* ── Cards do funil ────────────────────────────────────────── */
+.kanban-card {
+  transition: box-shadow .2s var(--ease-out), transform .2s var(--ease-out), border-color .2s ease;
+}
+
+/* ── Foco visível (teclado) ────────────────────────────────── */
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.7);
+  outline-offset: 2px;
+}
+
+/* ── Menos movimento ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .notif-dropdown, .avatar-dropdown, .topnav-dropdown-menu-inner,
+  .modal-box, .modal-backdrop .modal, .sa-modal, .rd-lead-sidepanel, .kanban-card {
+    transition-property: opacity !important;
+  }
+  .btn-primary:active, .btn-cancel:active, .filter-btn:active, .icon-btn:active { transform: none !important; }
+}
+
+/* ── Tela de login: entrada única e suave ──────────────────── */
+@keyframes pm-login-rise {
+  from { opacity: 0; transform: translateY(12px) scale(0.99); }
+  to   { opacity: 1; transform: none; }
+}
+.login-box { animation: pm-login-rise 700ms var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .login-box { animation: none; } }

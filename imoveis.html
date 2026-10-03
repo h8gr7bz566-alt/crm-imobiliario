@@ -14,7 +14,11 @@
   <meta property="og:image" content="https://omarcorretor.com.br/logo.png">
   <meta property="og:locale" content="pt_BR">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="premium.css">
   <script type="module" src="./script.js"></script>
   <link rel="shortcut icon" href="/favicon.ico?v=5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=5">
@@ -1069,7 +1073,7 @@ function closeMobileNav(){
   function fmt(n){
     if(!n) return 'Consultar';
     var num = parseFloat(String(n).replace(/\./g,'').replace(',','.'));
-    return isNaN(num) ? 'Consultar' : 'R ' + num.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+    return isNaN(num) ? 'Consultar' : 'R$ ' + num.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
   }
   function badge(s){
     var m={'pronto':'Pronto','lancamento':'Lançamento','pre-lancamento':'Pré-lançamento','em-obra':'Em Obra','em_obra':'Em Obra','pré-lançamento':'Pré-lançamento'};
@@ -1322,4 +1326,5 @@ function closeMobileNav(){
 })();
   </script>
 
+<script src="/premium-motion.js" defer></script>
 </body>

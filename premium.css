@@ -1,0 +1,284 @@
+/* ════════════════════════════════════════════════════════════════
+   PREMIUM LAYER — site público (out/2026)
+   Camada só visual, carregada DEPOIS de styles.css.
+   Não altera estrutura, rotas nem comportamento: para desfazer,
+   basta remover o <link> deste arquivo e o <script> premium-motion.js.
+   Base: princípios de Emil Kowalski (movimento) + Taste Skill
+   (Editorial Luxury, mantendo a identidade azul-marinho + dourado).
+════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Tipografia: serif editorial para títulos, sans refinada no corpo */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --syne: var(--font-display); /* redireciona os títulos que usavam Syne */
+
+  /* Curvas de movimento (fortes, nunca ease-in) */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --gold-hair: rgba(201, 168, 76, 0.22);
+  --ring: 0 0 0 3px rgba(201, 168, 76, 0.35);
+}
+
+/* ── Tipografia ─────────────────────────────────────────────── */
+* { font-family: var(--font-sans); }
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, .section-title, .hero-v2-title, .city-carousel-title,
+.em-obra-title, .idx-emobra-title, .salas-title, .sobre-title,
+.pv2-title, .selecao-title, .planta-title {
+  font-family: var(--font-display) !important;
+  font-optical-sizing: auto;
+  font-weight: 500 !important;
+  letter-spacing: -0.015em !important;
+  text-wrap: balance;
+}
+.hero-v2-title { font-weight: 500 !important; letter-spacing: -0.025em !important; line-height: 1.05 !important; }
+.hero-v2-title em, .sobre-title em { font-style: italic; }
+
+/* Preços e números: algarismos tabulares, peso firme */
+.icard-h-price, .iof-card-price, .pv2-price, .selecao-card-price,
+.sobre-stat-num, .pv2-stat-value, .city-carousel-count {
+  font-variant-numeric: tabular-nums;
+}
+.pv2-price { font-family: var(--font-sans) !important; font-weight: 700 !important; letter-spacing: -0.01em !important; }
+.sobre-stat-num { font-family: var(--font-display) !important; font-weight: 500 !important; }
+
+p, .sobre-p, .dep-text-v2, .hero-v2-sub { text-wrap: pretty; }
+
+/* Rótulos (eyebrows): sem brilho artificial, tracking mais aberto */
+.section-eyebrow, .city-carousel-label, .em-obra-label, .idx-emobra-label,
+.salas-label, .hero-v2-eyebrow, .pv2-type-tag {
+  text-shadow: none !important;
+  letter-spacing: 0.22em !important;
+  font-weight: 600 !important;
+}
+
+/* ── Textura: grão de papel quase imperceptível ─────────────── */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483000;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Foco visível (teclado) ─────────────────────────────────── */
+a:focus-visible, button:focus-visible, select:focus-visible,
+input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: none !important;
+  box-shadow: var(--ring) !important;
+  border-radius: 8px;
+}
+
+/* ── Botões: resposta ao toque (scale .97) ─────────────────── */
+.btn-gold, .ver-todos-btn, .main-nav-wa-btn, .iof-btn-search, .iof-btn-clear,
+.iof-more-btn, .pv2-cta-btn, .pv2-share-icon-btn, .planta-cta, .planta-loc-btn,
+.btn-outline-white, .selecao-btn, .hero-whatsapp-btn, .prop-cta, .prop-share-btn,
+.wa-float, .lang-btn, .main-nav-link, .footer-social, .pv2-back-btn,
+.gallery-nav-btn, .carousel-btn, .selecao-nav {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-gold, .ver-todos-btn, .main-nav-wa-btn, .iof-btn-search {
+  transition: background-position .5s var(--ease-out), transform 160ms var(--ease-out), box-shadow .3s var(--ease-out) !important;
+}
+.iof-more-btn, .pv2-cta-btn, .planta-cta, .planta-loc-btn, .btn-outline-white,
+.selecao-btn, .iof-btn-clear, .pv2-share-icon-btn, .prop-cta, .prop-share-btn, .hero-whatsapp-btn {
+  transition: transform 160ms var(--ease-out), background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .3s var(--ease-out) !important;
+}
+
+.btn-gold:active, .ver-todos-btn:active, .main-nav-wa-btn:active, .iof-btn-search:active,
+.iof-btn-clear:active, .iof-more-btn:active, .pv2-cta-btn:active, .pv2-share-icon-btn:active,
+.planta-cta:active, .planta-loc-btn:active, .btn-outline-white:active, .selecao-btn:active,
+.hero-whatsapp-btn:active, .prop-cta:active, .prop-share-btn:active, .lang-btn:active,
+.pv2-back-btn:active {
+  transform: scale(0.97) !important;
+}
+
+.wa-float { transition: transform 200ms var(--ease-out), box-shadow .3s var(--ease-out) !important; }
+.wa-float:active { transform: scale(0.94) !important; }
+
+.gallery-nav-btn:active, .carousel-btn:active, .selecao-nav:active {
+  transform: translateY(-50%) scale(0.92) !important;
+}
+
+/* Botão dourado: pílula, sem “pulo” no hover */
+.btn-gold, .ver-todos-btn, .iof-btn-search { border-radius: 999px !important; }
+.iof-more-btn { border-radius: 999px; padding: 11px 30px; }
+
+/* Hover só em dispositivos com mouse (evita “hover preso” no celular) */
+@media (hover: none) {
+  .btn-gold:hover, .ver-todos-btn:hover, .main-nav-wa-btn:hover, .iof-btn-search:hover,
+  .imovel-card-h:hover, .iof-card:hover, .selecao-card:hover, .dep-card:hover,
+  .pv2-cta-btn:hover, .prop-cta:hover, .wa-float:hover, .hero-whatsapp-btn:hover {
+    transform: none !important;
+  }
+}
+
+/* ── Cards de imóvel ───────────────────────────────────────── */
+.imovel-card-h, .iof-card {
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 10px 30px -18px rgba(0, 0, 0, 0.6);
+  transition: opacity 700ms var(--ease-out), transform 400ms var(--ease-out), box-shadow 400ms var(--ease-out), border-color 300ms ease !important;
+}
+.icard-h-img-wrap, .iof-card-img { overflow: hidden; }
+.icard-img, .iof-card-img img, .selecao-card-img {
+  transition: transform 900ms var(--ease-out), opacity 500ms ease !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .imovel-card-h:hover, .iof-card:hover {
+    transform: translateY(-3px) !important;
+    border-color: var(--gold-hair) !important;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 24px 48px -20px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(201, 168, 76, 0.08) !important;
+  }
+  .imovel-card-h:hover .icard-img, .iof-card:hover .iof-card-img img, .selecao-card:hover .selecao-card-img {
+    transform: scale(1.045);
+  }
+}
+.imovel-card-h:active, .iof-card:active { transform: scale(0.985) !important; transition-duration: 160ms !important; }
+
+/* Selo (Pronto / Em obra): discreto, de vidro */
+.icard-h-img-badge, .iof-card-badge {
+  background: rgba(8, 14, 28, 0.62) !important;
+  color: #e8cf86 !important;
+  border: 1px solid rgba(232, 199, 106, 0.35) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: none !important;
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+  letter-spacing: .14em !important;
+  padding: 4px 10px !important;
+}
+
+/* Título do card: caixa normal, mais elegante que tudo em maiúsculas */
+.icard-h-title { text-transform: none !important; letter-spacing: -0.005em !important; font-weight: 600 !important; }
+.iof-card-title { font-size: 13px; letter-spacing: -0.005em; }
+.iof-card-price { font-size: 14px; }
+.icard-h-body [style*="color:#b8962e"], .icard-h-body [style*="color: #b8962e"] { text-shadow: none !important; }
+
+/* Imagens: entrada suave quando terminam de carregar */
+img.pm-img-loading { opacity: 0 !important; }
+
+/* ── /imoveis: alinhamento dos cabeçalhos de cidade ────────── */
+.iof-city-block > .city-carousel-hdr {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+  box-sizing: border-box;
+}
+@media (max-width: 699px) {
+  .iof-city-block > .city-carousel-hdr { padding-left: 16px; padding-right: 16px; }
+  .em-obra-section .em-obra-grid, .salas-section .salas-grid { padding-left: 0 !important; padding-right: 0 !important; }
+  .em-obra-inner, .salas-inner { padding-left: 16px !important; padding-right: 16px !important; }
+}
+
+/* ── Página do imóvel ──────────────────────────────────────── */
+.pv2-title { font-size: clamp(26px, 3.4vw, 40px) !important; line-height: 1.12 !important; }
+.pv2-cta-btn { border-radius: 999px !important; box-shadow: 0 10px 30px -10px rgba(37, 211, 102, 0.55) !important; }
+
+.pv2-stats-strip {
+  display: grid !important;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+.pv2-stats-strip:has(> :nth-child(5)) { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pv2-stat-item { min-width: 0 !important; flex: none !important; }
+.pv2-stat-value { font-family: var(--font-display) !important; font-weight: 500 !important; font-size: 26px; }
+@media (max-width: 480px) {
+  .pv2-stat-item { padding: 16px 4px !important; }
+  .pv2-stat-label { font-size: 9px; letter-spacing: .06em; }
+  .pv2-stat-value { font-size: 22px; }
+}
+
+.gallery-thumb { transition: opacity 200ms ease, border-color 200ms ease, transform 160ms var(--ease-out) !important; }
+.gallery-thumb:active { transform: scale(0.95); }
+
+/* ── Formulários (Serviços): campos claros e legíveis ──────── */
+#cadastro-imovel-form input, #cadastro-imovel-form select, #cadastro-imovel-form textarea,
+#avaliacao-form input, #avaliacao-form select, #avaliacao-form textarea {
+  background: #fff !important;
+  color: #111827 !important;
+  font-weight: 400 !important;
+  border-radius: 12px !important;
+  transition: border-color .2s ease, box-shadow .25s var(--ease-out) !important;
+}
+#cadastro-imovel-form ::placeholder, #avaliacao-form ::placeholder { color: #9ca3af !important; }
+#cadastro-imovel-form input:focus, #cadastro-imovel-form select:focus, #cadastro-imovel-form textarea:focus,
+#avaliacao-form input:focus, #avaliacao-form select:focus, #avaliacao-form textarea:focus {
+  box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.14) !important;
+}
+#cadastro-imovel-form button, #avaliacao-form button { border-radius: 999px !important; }
+#cadastro-imovel-form button:active, #avaliacao-form button:active { transform: scale(0.97); }
+
+/* iPhone: campos com 16px não dão “zoom” ao tocar */
+@media (max-width: 768px) {
+  input:not([type=range]):not([type=checkbox]):not([type=radio]), select, textarea { font-size: 16px !important; }
+}
+
+/* ── Depoimentos e seções claras ───────────────────────────── */
+.dep-card-v2 {
+  border-radius: 20px !important;
+  transition: opacity 700ms var(--ease-out), transform 400ms var(--ease-out), box-shadow 400ms var(--ease-out) !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dep-card-v2:hover { transform: translateY(-3px); box-shadow: 0 24px 48px -24px rgba(13, 33, 68, 0.25) !important; }
+}
+.dep-text-v2 { font-size: 15px !important; line-height: 1.75 !important; }
+
+/* ── Foto do Sobre: moldura mais fina ──────────────────────── */
+.sobre-photo-frame { border-radius: 22px !important; }
+
+/* ── Entrada do hero (uma vez, ao abrir a página) ──────────── */
+@keyframes pm-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.hero-v2-eyebrow, .hero-v2-title, .hero-v2-sub, .hero-ai-search {
+  animation: pm-rise 900ms var(--ease-out) both;
+}
+.hero-v2-eyebrow { animation-delay: 80ms; }
+.hero-v2-title   { animation-delay: 160ms; }
+.hero-v2-sub     { animation-delay: 260ms; }
+.hero-ai-search  { animation-delay: 360ms; }
+
+/* ── Revelação ao rolar (ativada pelo premium-motion.js) ────── */
+html.pm-motion .pm-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 700ms var(--ease-out), transform 800ms var(--ease-out);
+  transition-delay: var(--pm-delay, 0ms);
+}
+html.pm-motion .pm-reveal.pm-in {
+  opacity: 1;
+  transform: none;
+}
+/* Cards têm transição própria (com !important): mantém a cascata */
+html.pm-motion .pm-reveal.imovel-card-h,
+html.pm-motion .pm-reveal.iof-card,
+html.pm-motion .pm-reveal.dep-card-v2 {
+  transition-delay: var(--pm-delay, 0ms) !important;
+}
+
+/* ── Acessibilidade: menos movimento ───────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  .hero-v2-eyebrow, .hero-v2-title, .hero-v2-sub, .hero-ai-search { animation: none !important; }
+  html.pm-motion .pm-reveal { transform: none !important; transition: opacity 300ms ease !important; }
+  .imovel-card-h:hover, .iof-card:hover, .dep-card-v2:hover,
+  .imovel-card-h:hover .icard-img, .iof-card:hover .iof-card-img img { transform: none !important; }
+}

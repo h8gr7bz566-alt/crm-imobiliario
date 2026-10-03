@@ -140,7 +140,7 @@ function renderProperty(p) {
   const details = [
     p.city         ? { label: 'Cidade',         value: p.city }         : null,
     p.neighborhood ? { label: 'Bairro',          value: p.neighborhood } : null,
-    p.condominium  ? { label: 'Condomínio',       value: `R$ ${parseFloat(p.condominium).toLocaleString('pt-BR', {minimumFractionDigits:0})}/mês` } : null,
+    p.condominium  ? { label: 'Condomínio',       value: (function(c){ var n = typeof c === 'number' ? c : parseFloat(String(c).replace(/[^\d,.-]/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.')); return isNaN(n) ? String(c) : `R$ ${n.toLocaleString('pt-BR', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2})}/mês`; })(p.condominium) } : null,
     p.furnished    ? { label: 'Mobiliado',        value: p.furnished ? 'Sim' : 'Não' } : null,
     p.construction_status ? { label: 'Status',   value: p.construction_status === 'pronto' ? 'Pronto para morar' : p.construction_status === 'lancamento' ? 'Lançamento' : 'Em obras' } : null,
   ].filter(Boolean)
