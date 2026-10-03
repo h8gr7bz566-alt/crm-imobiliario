@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireStaff } from './_auth.js'
 
 const ALLOWED = 'https://omarcorretor.com.br'
 
@@ -9,7 +10,11 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { subscription, userId, tenantId, userAgent } = req.body || {}
+  const caller = await requireStaff(req, res)
+  if (!caller) return
+  const { subscription, userAgent } = req.body || {}
+  const userId = caller.profile.id
+  const tenantId = caller.profile.tenant_id
   if (!subscription?.endpoint || !subscription?.keys?.p256dh) {
     return res.status(400).json({ error: 'invalid subscription' })
   }

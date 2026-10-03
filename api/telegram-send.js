@@ -1,11 +1,13 @@
 // /api/telegram-send - Envia mensagem via Telegram Bot
 // ENV: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+import { requireAdmin } from './_auth.js'
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Origin', 'https://omarcorretor.com.br')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (!(await requireAdmin(req, res))) return
 
   const token  = process.env.TELEGRAM_BOT_TOKEN
   const chatId = process.env.TELEGRAM_CHAT_ID

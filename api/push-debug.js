@@ -1,14 +1,15 @@
 // /api/push-debug - Diagnóstico completo do sistema de push
 import { createClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
+import { requireAdmin } from './_auth.js'
 
 export default async function handler(req, res) {
+  if (!(await requireAdmin(req, res))) return
   const out = {
     env: {
       SUPABASE_URL_set: !!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
       SUPABASE_SERVICE_ROLE_KEY_set: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      SUPABASE_SERVICE_ROLE_KEY_prefix: (process.env.SUPABASE_SERVICE_ROLE_KEY || '').slice(0, 12),
-      VAPID_PUBLIC_set: !!process.env.VAPID_PUBLIC,
+            VAPID_PUBLIC_set: !!process.env.VAPID_PUBLIC,
       VAPID_PRIVATE_set: !!process.env.VAPID_PRIVATE,
     },
     subscriptions: [],

@@ -1,5 +1,5 @@
 // script.js — Supabase Integration
-import { supabase } from './lib/supabase.js'
+import { supabase, authHeader } from './lib/supabase.js'
 if (typeof window !== 'undefined') window.supabase = supabase
 import {
   loadAllSettings, getSetting, getContent,
@@ -491,7 +491,7 @@ async function _crmNotify(event, data = {}) {
   try {
     await fetch('/api/notify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
       body: JSON.stringify({ event, tenantId: currentProfile?.tenant_id || null, ...data }),
     })
   } catch (e) { console.warn('[notify] falhou:', e) }
@@ -593,7 +593,7 @@ async function uploadToStorage(file) {
   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
 
   const _fd0 = new FormData(); _fd0.append('file', blob, 'upload.jpg'); _fd0.append('path', path)
-  const _r0 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd0 })
+  const _r0 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd0, headers: await authHeader() })
   const { publicUrl, error } = await _r0.json()
   if (error) throw new Error(error)
 
@@ -1802,7 +1802,7 @@ function openChangePhotoModal() {
       const blob = await compressToBlob(file, 400, 0.85)
       const path = `avatars/${currentProfile.id}-${Date.now()}.jpg`
       const _fd1 = new FormData(); _fd1.append('file', blob, 'upload.jpg'); _fd1.append('path', path)
-      const _r1 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd1 })
+      const _r1 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd1, headers: await authHeader() })
       const { publicUrl, error: upErr } = await _r1.json()
       if (upErr) throw new Error(upErr)
       await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentProfile.id)
@@ -3135,7 +3135,7 @@ window.enablePushNotifications = async function() {
     }
     log('   payload: ' + JSON.stringify({userId: payload.userId, tenantId: payload.tenantId}))
     const r = await fetch('/api/push-register', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
       body: JSON.stringify(payload),
     })
     log('   status: ' + r.status)
@@ -4438,7 +4438,8 @@ async function callEdgeFunction(body) {
   const res = await fetch(EDGE_FN_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY,
+      ...(await authHeader()),
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(body)
@@ -4516,7 +4517,7 @@ async function initSettings(profile) {
         const blob = await compressToBlob(file, 400, 0.85)
         const path = `avatars/${currentProfile.id}-${Date.now()}.jpg`
         const _fd2 = new FormData(); _fd2.append('file', blob, 'upload.jpg'); _fd2.append('path', path)
-        const _r2 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd2 })
+        const _r2 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd2, headers: await authHeader() })
         const { publicUrl: _pu2, error: upErr } = await _r2.json()
         if (!upErr) {
           avatar_url = _pu2
@@ -5552,7 +5553,7 @@ async function applyWatermarkToUrl(imageUrl) {
             try {
               const path = `wm-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
               const _fd3 = new FormData(); _fd3.append('file', blob, 'upload.jpg'); _fd3.append('path', path)
-              const _r3 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd3 })
+              const _r3 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd3, headers: await authHeader() })
               const { publicUrl, error } = await _r3.json()
               if (error) { console.error('Upload watermark error:', error); resolve(imageUrl); return }
               resolve(publicUrl)
@@ -5596,7 +5597,7 @@ async function uploadImageToStorage(file, folder = 'assets') {
   const blob = await compressToBlob(file, 1200, 0.85)
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
   const _fd4 = new FormData(); _fd4.append('file', blob, 'upload.jpg'); _fd4.append('path', path)
-  const _r4 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd4 })
+  const _r4 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd4, headers: await authHeader() })
   const { publicUrl, error } = await _r4.json()
   if (error) throw new Error(error)
   return publicUrl
@@ -7888,7 +7889,7 @@ await fetch(\`\${API}/leads?key=\${KEY}\`, {
         const blob = await compressToBlob(logoFile, 256, 0.85)
         const path = `tenant-logos/${tenant.id}-${Date.now()}.jpg`
         const _fd5 = new FormData(); _fd5.append('file', blob, 'upload.jpg'); _fd5.append('path', path)
-        const _r5 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd5 })
+        const _r5 = await fetch('https://upload-imoveis.h8gr7bz566.workers.dev/', { method: 'POST', body: _fd5, headers: await authHeader() })
         const { publicUrl: _pu5, error: upErr } = await _r5.json()
         if (!upErr) {
           logo_url = _pu5
@@ -9531,8 +9532,6 @@ if (typeof openTarefaModal === 'function') window.openTarefaModal = openTarefaMo
         setTimeout(() => addMsg('⚠ Tive um problema técnico ao salvar, mas anotei aqui. Pode me chamar direto: wa.me/5547999701743', 'bot'), 600)
         return
       }
-      // BRUTAL: força disparo de push direto chamando o endpoint que SEMPRE funciona
-      fetch('/api/push-debug?send=1').catch(() => {})
       setTimeout(() => {
         addMsg('🎉 Pronto, ' + (answers.name || '').split(' ')[0] + '! Isaac já foi notificado e vai te chamar logo. Pode também falar direto: wa.me/5547999701743', 'bot')
       }, 600)
@@ -9708,7 +9707,7 @@ function wirePushStatusCard() {
     try {
       const r = await fetch('/api/notify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
         body: JSON.stringify({
           tenantId: currentProfile?.tenant_id,
           title: '🧪 Teste IOS Imobi',

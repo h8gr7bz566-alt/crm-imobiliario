@@ -97,7 +97,8 @@ export default async function handler(req, res) {
 
     const { data: inserted, error } = await sb.from('leads').insert(row).select().single()
     if (error) {
-      return res.status(500).json({ error: 'Falha ao inserir lead', detail: error.message, code: error.code })
+      console.error('[chatbot-lead] insert', error.message)
+      return res.status(500).json({ error: 'Falha ao salvar' })
     }
     
     // BRUTAL DIRECT: envia pra TODAS as subscriptions (mesma lógica do /api/push-debug?send=1 que funciona)
@@ -136,8 +137,10 @@ export default async function handler(req, res) {
       pushResult.error = e.message
     }
     
-    return res.status(200).json({ ok: true, leadId: inserted?.id, name, pipeline: pipelineDebug.chosen, push: pushResult })
+    console.log('[chatbot-lead] pipeline', pipelineDebug.chosen)
+    return res.status(200).json({ ok: true })
   } catch (e) {
-    return res.status(500).json({ error: 'Erro inesperado', detail: e.message })
+    console.error('[chatbot-lead]', e.message)
+    return res.status(500).json({ error: 'Erro inesperado' })
   }
 }

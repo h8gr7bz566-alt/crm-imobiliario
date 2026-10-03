@@ -1,7 +1,9 @@
 // /api/ai-test - Diagnóstico do estado da integração Gemini
+import { requireAdmin } from './_auth.js'
 const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-flash-latest']
 
 export default async function handler(req, res) {
+  if (!(await requireAdmin(req, res))) return
   const apiKey = process.env.GEMINI_API_KEY
   const result = {
     timestamp: new Date().toISOString(),

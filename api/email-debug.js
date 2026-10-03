@@ -1,5 +1,7 @@
 // /api/email-debug - Diagnóstico do envio de email via Resend
+import { requireAdmin } from './_auth.js'
 export default async function handler(req, res) {
+  if (!(await requireAdmin(req, res))) return
   const apiKey = process.env.RESEND_API_KEY
   const to     = process.env.NOTIFY_EMAIL || 'isaacomar11@icloud.com'
   const from   = process.env.RESEND_FROM || 'IOS Imobi <onboarding@resend.dev>'

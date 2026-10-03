@@ -2,6 +2,7 @@
 // Body: { event, leadId, taskId, title?, body?, url? }
 import { sendPushToUsers } from './push-helper.js'
 import { createClient } from '@supabase/supabase-js'
+import { requireStaff } from './_auth.js'
 
 const ALLOWED = ['https://omarcorretor.com.br', 'https://www.omarcorretor.com.br']
 
@@ -9,12 +10,15 @@ export default async function handler(req, res) {
   const origin = req.headers.origin || ''
   if (ALLOWED.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin)
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  const caller = await requireStaff(req, res)
+  if (!caller) return
 
   try {
-    const { event, leadId, taskId, title, body, url, tenantId, userIds } = req.body || {}
+    const { event, leadId, taskId, title, body, url, userIds } = req.body || {}
+    const tenantId = caller.profile.role === 'super_admin' ? (req.body?.tenantId || caller.profile.tenant_id) : caller.profile.tenant_id
     
     const sb = createClient(
       process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
@@ -31,7 +35,8 @@ export default async function handler(req, res) {
     // Constrói título/corpo baseado no evento se não foi passado
     let pushTitle = title
     let pushBody = body
-    let pushUrl = url || 'https://omarcorretor.com.br/ios.imobi'
+    // Só links do próprio site nas notificações
+    let pushUrl = (typeof url === 'string' && url.startsWith('https://omarcorretor.com.br/')) ? url : 'https://omarcorretor.com.br/ios.imobi'
 
     if (event === 'new_lead' && leadId) {
       const { data: lead } = await sb.from('leads').select('name, phone, source').eq('id', leadId).single()

@@ -1,8 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// Só o próprio CRM chama esta função
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://omarcorretor.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Vary': 'Origin',
 }
 
 function json(data: unknown, status = 200) {
@@ -49,8 +51,37 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
+    // ── Segurança: só admin/super_admin logado no CRM pode usar ─────────────
+    const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
+    const { data: authData } = await supabase.auth.getUser(token)
+    const callerId = authData?.user?.id
+    if (!callerId) return json({ success: false, error: 'Não autorizado' }, 401)
+    const { data: caller } = await supabase
+      .from('profiles').select('role, tenant_id, active').eq('id', callerId).single()
+    if (!caller || caller.active === false || !['admin', 'super_admin'].includes(caller.role)) {
+      return json({ success: false, error: 'Não autorizado' }, 403)
+    }
+    const isSuper = caller.role === 'super_admin'
+
     const body = await req.json()
-    const { action, email, password, userId, active, role, tenant_id } = body
+    const { action, email, password, userId, active } = body
+    let { role, tenant_id } = body
+
+    // Admin comum: só mexe na própria imobiliária e não cria super_admin
+    if (!isSuper) {
+      tenant_id = caller.tenant_id
+      if (role && !['corretor', 'admin'].includes(role)) role = 'corretor'
+    }
+    if (role && !['corretor', 'admin', 'super_admin'].includes(role)) role = 'corretor'
+
+    // Pausar/excluir: nunca a si mesmo, nunca um super_admin (exceto por super_admin), só da mesma imobiliária
+    if (action === 'toggle' || action === 'delete') {
+      if (!userId || userId === callerId) return json({ success: false, error: 'Operação não permitida' }, 403)
+      const { data: target } = await supabase.from('profiles').select('role, tenant_id').eq('id', userId).single()
+      if (!target) return json({ success: false, error: 'Usuário não encontrado' }, 404)
+      if (target.role === 'super_admin' && !isSuper) return json({ success: false, error: 'Operação não permitida' }, 403)
+      if (!isSuper && target.tenant_id !== caller.tenant_id) return json({ success: false, error: 'Operação não permitida' }, 403)
+    }
 
     // ── Toggle ativo/pausado ──────────────────────────────────────────────
     if (action === 'toggle') {
@@ -93,7 +124,7 @@ Deno.serve(async (req: Request) => {
           // Busca usuário existente via SQL direto (mais confiável que listUsers)
           const { data: authUsers, error: listErr2 } = await supabase
             .rpc('get_user_id_by_email', { user_email: email.toLowerCase() })
-          console.log('rpc result:', JSON.stringify(authUsers), listErr2?.message)
+          
 
           // Fallback: listUsers paginado
           const listResult = await supabase.auth.admin.listUsers({ page: 1, perPage: 500 })
@@ -106,8 +137,11 @@ Deno.serve(async (req: Request) => {
           if (existing) {
             // Busca role atual para não rebaixar super_admin
             const { data: existingProfile } = await supabase
-              .from('profiles').select('role').eq('id', existing.id).single()
+              .from('profiles').select('role, tenant_id').eq('id', existing.id).single()
             const currentRole = existingProfile?.role
+            if (!isSuper && existingProfile?.tenant_id && existingProfile.tenant_id !== caller.tenant_id) {
+              return json({ success: false, error: 'Usuário já cadastrado em outra conta.' }, 403)
+            }
             const profileUpd: Record<string, unknown> = { active: true }
             // Nunca rebaixa super_admin para uma role inferior
             if (role && currentRole !== 'super_admin') profileUpd.role = role
@@ -120,7 +154,7 @@ Deno.serve(async (req: Request) => {
             }
 
             // Envia e-mail com as novas credenciais
-            const loginUrl2 = 'https://omarcorretor.com.br/admin.html'
+            const loginUrl2 = 'https://omarcorretor.com.br/ios.imobi'
             const crmName2  = 'IOS imobi - Gerenciamento de Imóveis'
             const html2     = buildEmailHtml(email, password, loginUrl2, crmName2)
             const resendKey2 = Deno.env.get('RESEND_API_KEY')
@@ -162,7 +196,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Enviar email com as credenciais de acesso via Resend
-    const loginUrl  = 'https://omarcorretor.com.br/admin.html'
+    const loginUrl  = 'https://omarcorretor.com.br/ios.imobi'
     const crmName   = 'IOS imobi - Gerenciamento de Imóveis'
     const emailHtml = buildEmailHtml(email, password, loginUrl, crmName)
 
